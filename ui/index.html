@@ -661,7 +661,7 @@ function connect() {
     pending = d;
     if (d.s) onSensor(d.s, d.p);
   };
-  es.onopen = () => { if (!quitting) banner(''); };
+  es.onopen = () => { if (!quitting && $('#banner').textContent === NO_LINK) banner(''); };  // uyarilari silme
   es.onerror = () => {
     if (quitting) { es.close(); return; }
     banner(NO_LINK);
@@ -957,7 +957,10 @@ function renderSettingsPage() {
       ? 'Yönetici görevi kurulu ama motor standart yetkiyle çalışıyor. Aşağıdaki düğme motoru yönetici olarak yeniden başlatır.'
       : 'Sessiz profillerdeki ekran kartı saat kilidi yönetici izni ister. Bir kez kurarsın; sonra motor UAC sormadan yönetici olarak başlar.';
   const btn = $('#adminBtn');
-  btn.hidden = admin;
+  btn.hidden = admin || !meta.trusted_install;
+  if (!admin && !meta.trusted_install)
+    $('#adminTxt').textContent = 'Yönetici modu yalnızca kur.ps1 ile Program Files\'a kurulmuş sürümde açılır. '
+      + 'Betik klasöründen kurulan yönetici görevi, o klasöre yazabilen her programa UAC sormadan yönetici yetkisi verirdi.';
   btn.textContent = meta.task ? 'Yönetici olarak yeniden başlat' : 'Yönetici modunu kur';
   $('#autostart').checked = !!meta.autostart;
   setText('aboutVer', meta.version);
@@ -1326,6 +1329,7 @@ async function init() {
   try { st = await api('/api/state'); }
   catch (e) { banner(NO_LINK); return; }
   meta = st; cfg = st.config; cc = st.cc;
+  if (st.notices && st.notices.length) banner(st.notices.map(n => n.text).join(' · '));
   $('#device').textContent = st.device || '';
   try {
     const h = (await api('/api/sensors')).hist || {};
