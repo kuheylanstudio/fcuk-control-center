@@ -513,6 +513,7 @@ def state():
         "ec_clevo": bool(getattr(App.dchu, "clevo", True)),  # aygit var, yalnizca kitaplik yok
         "ec_reason": getattr(App.dchu, "reason", ""),
         "vendor": getattr(App.dchu, "vendor", ""),
+        "ec_kind": getattr(App.dchu, "kind", ""),  # "clevo" / "gigabyte" / "" (kurulum.ps1 ile ayni anahtarlar)
         "caps": sorted(getattr(App.dchu, "caps", ())),
         "kb": bool(getattr(App.dchu, "kb_available", App.dchu.available)),
         "charge": charge_state(),

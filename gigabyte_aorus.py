@@ -151,7 +151,7 @@ class GigabyteError(RuntimeError):
 
 class Gigabyte:
     """GB_WMIACPI uzerinden fan/kip/sicaklik/sarj, varsa ITE klavye. donanim.DCHU yerine gecer."""
-    vendor = "gigabyte"
+    vendor = kind = "gigabyte"  # kind: /api/state ec_kind, kurulum.ps1 ile ayni anahtar
     path = "WMI root\\WMI GB_WMIACPI"
     clevo = False
     reason = ""

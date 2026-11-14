@@ -202,7 +202,7 @@ class DCHU:
     """InsydeDCHU.dll sarmalayicisi. Tum cagrilar tek kilitten gecer (motor, sensor ve sunucu ayni anda cagirir)."""
     available = True      # fan ve guc modu denetlenebilir
     kb_available = True   # klavye isigi denetlenebilir
-    vendor = "clevo"      # Clevo'ya ozel adimlar (Fn olaylari, IFEO, Monster programlari) yalnizca bunda
+    vendor = kind = "clevo"  # kind: /api/state ec_kind (kurulumla ortak anahtar). Clevo'ya ozel adimlar (Fn olaylari, IFEO, Monster programlari) yalnizca bunda
     caps = frozenset(("power", "fan_auto", "fan_max", "fan_curve", "kb"))
 
     def __init__(self):
@@ -359,7 +359,7 @@ class NullDCHU:
     'desteklenmiyor' olarak gosterir; geri kalan her sey calisir."""
     available = False
     kb_available = False
-    vendor = ""
+    vendor = kind = ""
     caps = frozenset()
     path = ""
 

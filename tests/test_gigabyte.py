@@ -129,6 +129,7 @@ class Detection(unittest.TestCase):
         self.assertTrue(g.available)
         self.assertTrue(g.kb_available)
         self.assertEqual(g.vendor, "gigabyte")
+        self.assertEqual(g.kind, "gigabyte")
         self.assertLessEqual({"power", "fan_auto", "fan_max", "fan_fixed", "fan_curve", "charge", "kb", "temps"},
                              set(g.caps))
 
@@ -205,6 +206,8 @@ class DonanimOrder(unittest.TestCase):
         self.assertIsInstance(d, hw.NullDCHU)
         self.assertFalse(d.available)
         self.assertFalse(d.kb_available)
+        self.assertEqual(d.kind, "")
+        self.assertEqual(hw.DCHU.kind, "clevo")
 
     def test_detection_crash_is_null(self):
         hw.clevo_present = lambda: False
