@@ -153,6 +153,60 @@ def active_scheme():
     return s
 
 
+# ----------------------------------------------------------------------------- baska bilgisayarlara olcekleme
+# Profillerdeki frekans ve saat degerleri gelistirme bilgisayarinda (i5-12450H, nominal 2496 MHz; RTX 3050
+# Laptop, en yuksek 2100 MHz) ayarlandi. Baska islemci/kartta ayni ORANLA uygulanir: daha hizli bir
+# islemcide "Sessiz kullanim" tavani da orantili yukari kayar, yavas bir kartta saat siniri asagi.
+REF_CPU_NOMINAL = 2496
+REF_GPU_MAX = 2100
+_cache = {}
+
+
+def is_hybrid():
+    """Melez Intel (P + E cekirdek) mi: cekirdeklerde iki farkli verimlilik sinifi var mi."""
+    if "hybrid" not in _cache:
+        try:
+            import envanter
+            sets = envanter.cpu_sets()
+            # okunamadiysa eski davranis (melez varsayilir: E tavani yalnizca E cekirdeklere gider)
+            _cache["hybrid"] = len({s[2] for s in sets}) > 1 if sets else True
+        except Exception:
+            _cache["hybrid"] = True
+    return _cache["hybrid"]
+
+
+def _cpu_ratio():
+    if "cpu" not in _cache:
+        try:
+            nominal = hw.base_mhz() or REF_CPU_NOMINAL
+        except Exception:
+            nominal = REF_CPU_NOMINAL
+        _cache["cpu"] = max(0.6, min(1.8, nominal / float(REF_CPU_NOMINAL)))
+    return _cache["cpu"]
+
+
+def cpu_caps(c):
+    """(P tavani, E tavani) MHz; 0 = sinir yok. 100 MHz'e yuvarlanir."""
+    r = _cpu_ratio()
+    return tuple(int(round(v * r / 100.0) * 100) if v else 0 for v in (c["fmax_p"], c["fmax_e"]))
+
+
+def gpu_caps(pair, query=False):
+    """(alt, ust) MHz kartin en yuksek saatine oranli. query: bilinmiyorsa nvidia-smi'ye sor (profil
+    uygulanirken; kart zaten kilitlenmek uzere). Sorulmadiysa ve bilinmiyorsa gelistirme degeri."""
+    if "gpu" not in _cache and query:
+        rc, out = hw.run(["nvidia-smi", "--query-gpu=clocks.max.graphics", "--format=csv,noheader,nounits"])
+        try:
+            _cache["gpu"] = int(out.split()[0]) if rc == 0 else None
+        except (ValueError, IndexError):
+            _cache["gpu"] = None
+    mx = _cache.get("gpu")
+    if not mx:
+        return tuple(pair)
+    r = mx / float(REF_GPU_MAX)
+    return pair[0], max(pair[0] + 90, int(round(pair[1] * r)))
+
+
 # ----------------------------------------------------------------------------- yonetici
 class Manager:
     def __init__(self, dchu, sensors, cfg, save, notify=None):
@@ -188,7 +242,8 @@ class Manager:
         if c["boost"] == 0:
             caps = t("val.capTurboOff")
         elif c["fmax_p"] or c["fmax_e"]:
-            caps = t("val.capPE", p=ceviri.num(c["fmax_p"] / 1000.0, 1), e=ceviri.num(c["fmax_e"] / 1000.0, 1))
+            cap_p, cap_e = cpu_caps(c)
+            caps = t("val.capPE", p=ceviri.num(cap_p / 1000.0, 1), e=ceviri.num(cap_e / 1000.0, 1))
         cap = hw.caps(self.dchu)
         ec = cap["power"]
         msi = getattr(self.dchu, "kind", "") == "msi"
@@ -206,7 +261,7 @@ class Manager:
                      else t("val.unsupported"))
         if ec and hasattr(self.dchu, "profile_power_label"):
             power_txt = self.dchu.profile_power_label(p)
-        gpu_txt = t("val.gpuCap", mhz=p["gpu"][1]) if p["gpu"] else t("val.gpuFree")
+        gpu_txt = t("val.gpuCap", mhz=gpu_caps(p["gpu"])[1]) if p["gpu"] else t("val.gpuFree")
         if not self.sensors.gpu_name:
             gpu_txt = t("val.unsupported")
         return [
@@ -308,7 +363,10 @@ class Manager:
     def _cpu(self, p):
         c = p["cpu"]
         ensure_scheme()
-        vals = {"boost": c["boost"], "epp": c["epp"], "epp1": c["epp"], "fmax": c["fmax_e"], "fmax1": c["fmax_p"],
+        cap_p, cap_e = cpu_caps(c)
+        # Melez olmayan islemcide tum cekirdekler sinif 0'dir: "fmax" tum cekirdeklere uygulanir, P tavani gecerli
+        vals = {"boost": c["boost"], "epp": c["epp"], "epp1": c["epp"],
+                "fmax": cap_e if is_hybrid() else cap_p, "fmax1": cap_p,
                 "sched": c["sched"], "sched_short": c["sched_short"], "aspm": p["aspm"]}
         park = c["park"]
         vals["park"] = park if park is not None else (self.defaults.get("park") or 10)
@@ -340,11 +398,12 @@ class Manager:
         # Not: guc sinirini 75 W'a cikarmak (nvidia-smi -pl) denendi, olculebilir fark yok: Dynamic Boost
         # karta zaten 74 W'a kadar pay veriyor (2026-11-13, kart ve kart+islemci yukunde olculdu).
         if p["gpu"]:
-            rc, out = hw.nvidia_lock_clocks(*p["gpu"])
+            lo, hi = gpu_caps(p["gpu"], query=True)
+            rc, out = hw.nvidia_lock_clocks(lo, hi)
             if rc != 0:
                 raise RuntimeError(out[:160])
             self._gpu_locked = True
-            return t("val.gpuCap", mhz=p["gpu"][1])
+            return t("val.gpuCap", mhz=hi)
         rc, out = hw.nvidia_lock_clocks(0, None)
         self._gpu_locked = False
         if rc != 0:

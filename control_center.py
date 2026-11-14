@@ -29,6 +29,7 @@ from ctypes import wintypes as wt
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import ceviri
+import destek
 import donanim as hw
 import envanter
 import guncelleme
@@ -38,7 +39,7 @@ import nvidia
 import profiller
 from ceviri import t
 
-VERSION = "2.4.0"
+VERSION = "2.5.0"
 PORT = 47815
 HOSTS = ("127.0.0.1:%d" % PORT, "localhost:%d" % PORT)
 BASE = "http://127.0.0.1:%d" % PORT
@@ -515,7 +516,7 @@ def state():
         "gpu_name": App.sensors.gpu_name,
         "modes": [{"id": m[0], "label": t("mode." + m[0]), "pal": PAL_KIND[m[0]],
                    "speed": SPEED_KEY.get(m[3]) and t(SPEED_KEY[m[3]]), "desc": t("mode.%s.desc" % m[0])}
-                  for m in core.MODES if m[0] != "bolgeler" or (getattr(App.dchu, "caps", None) or {}).get("kb_zones")],
+                  for m in core.MODES if m[0] != "bolgeler" or hw.caps(App.dchu).get("kb_zones")],
         "sources": [{"id": s[0], "label": t("src." + s[0])} for s in core.SOURCES],
         "layouts": [{"id": k, "label": t("keys." + k)} for k in core.GAME_LAYOUTS],
         "slots": [t("slot." + k) for k in core.GAME_SLOTS],
@@ -544,6 +545,7 @@ def state():
         "ideapad": App.dchu.features() if App.dchu.kind == "ideapad" else None,  # Lenovo IdeaPad (ideapad.py)
         "vendor": getattr(App.dchu, "vendor", App.dchu.kind),  # clevo | hp | ... | "" (denetleyici yok)
         "caps": caps(),
+        "support": support(),  # Ayarlar > Bu bilgisayarda destek (destek.py; yalnizca okuyarak yoklanir)
         "msi": msi_state(),
         "hp": App.dchu.describe() if getattr(App.dchu, "vendor", "") == "hp" else None,
         "hw": getattr(App.dchu, "vendor", ""),  # Acer arayuzu: "clevo", "acer" ya da "" (denetleyici yok)
@@ -572,6 +574,20 @@ def lenovo_state():
 def caps():
     """Bu bilgisayarda hangi donanim denetimleri var: arayuz olmayani gizler, motor komut gondermez."""
     return hw.caps(App.dchu)
+
+
+_support_cache = {}
+
+
+def support():
+    """Ozellik bazinda destek raporu; donanim degismez, yalnizca dil degisince metinler yeniden uretilir."""
+    lang = ceviri.lang()
+    if lang not in _support_cache:
+        try:
+            _support_cache[lang] = destek.detect(App.dchu, App.display, App.audio)
+        except Exception as exc:  # rapor yalnizca bilgi: hatasi arayuzu dusurmesin
+            return [{"id": "ec", "state": "no", "why": str(exc), "section": "genel", "label": t("sup.ec")}]
+    return _support_cache[lang]
 
 
 def msi_state():
@@ -1137,7 +1153,8 @@ def serve():
     App.nvapi = nvidia.NvApi()
     # Fn tusu olaylarini ac (Clevo "events enabled", komut 0x46). Bunu eskiden FnKey.exe acilista yapiyordu;
     # gonderilmezse denetleyici Fn bildirimlerini AcpiBridge'e iletmez (14.11.2026 olculdu). Yeniden
-    # baslatmaya dek kalicidir; her acilista gonderilir.
+    # baslatmaya dek kalicidir; her acilista gonderilir. Denetleyici Clevo komut setine yanit vermiyorsa
+    # DCHU bunu Unsupported ile reddeder (destek.py).
     if App.dchu.available and getattr(App.dchu, "kind", "clevo") == "clevo":
         try:
             App.dchu.set_wmi(0x46, 0)

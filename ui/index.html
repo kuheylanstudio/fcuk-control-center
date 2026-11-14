@@ -123,6 +123,13 @@ canvas.spark{display:block;width:100%;height:44px}
 .nosup{margin:var(--s-5) var(--s-6);max-width:720px;padding:var(--s-4) var(--s-5);border:1px solid var(--line-strong);border-radius:var(--r-2);background:var(--surface)}
 .nosup h2{margin:0 0 var(--s-2);font:500 var(--fs-4)/1.2 var(--f-display);color:var(--text)}
 .nosup p{margin:0;color:var(--text-2)}
+.sup-list{list-style:none;margin:0;padding:0;display:grid;gap:var(--s-2)}
+.sup-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px var(--s-3);font-size:var(--fs-2);color:var(--text-2)}
+.sup-list b{font-weight:500;white-space:nowrap}
+.sup-list .ok{color:var(--live-ink)}
+.sup-list .partial{color:var(--warn)}
+.sup-list .no{color:var(--text-3)}
+.sup-list .why{grid-column:1 / -1;color:var(--text-3);overflow-wrap:anywhere}
 .report .st{color:var(--text-3)}
 .strip-live{display:flex;flex-wrap:wrap;gap:var(--s-6);padding:var(--s-3) var(--s-4);border:1px solid var(--line);border-radius:var(--r-2);background:color-mix(in srgb,var(--surface) 86%,transparent)}
 .strip-live .cell{display:grid;gap:8px}
@@ -649,6 +656,11 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
             <div class="kv"><span data-i18n="ov.gpu">Ekran kartı</span><b id="aboutGpu">–</b></div>
             <div class="kv"><span data-i18n="set.dll">Donanım kitaplığı</span><b id="aboutDll" style="white-space:normal;text-align:right;word-break:break-all">–</b></div>
           </div>
+          <div class="tile" id="supTile" hidden>
+            <span class="lbl" data-i18n="sup.title">Bu bilgisayarda destek</span>
+            <p class="hint" data-i18n="sup.intro"></p>
+            <ul class="sup-list" id="supList"></ul>
+          </div>
         </div>
       </div>
     </section>
@@ -1125,6 +1137,18 @@ function renderDisplay() {
 }
 
 /* ---------- ayarlar ---------- */
+// Ayarlar > Bu bilgisayarda destek: motor her ozelligi yalnizca okuyarak yoklar (destek.py)
+function renderSupportList() {
+  const list = $('#supList'), items = meta.support || [];
+  $('#supTile').hidden = !items.length;
+  list.textContent = '';
+  for (const it of items) {
+    const li = el('li');
+    li.append(el('span', '', it.label), el('b', it.state, t('sup.state.' + it.state)));
+    if (it.why) li.append(el('span', 'why', it.why));
+    list.append(li);
+  }
+}
 function renderSettingsPage() {
   const admin = meta.admin;
   const chip = $('#adminChip');
@@ -1141,6 +1165,7 @@ function renderSettingsPage() {
   setText('aboutVer', meta.version);
   setText('aboutGpu', meta.gpu_name || '–');
   setText('aboutDll', meta.dll || '–');
+  renderSupportList();
   setText('verNote', t('set.verNote', { v: meta.version }));
   $('#updMode').value = meta.update_mode || 'auto';
   setText('updModeHint', t(meta.update_mode === 'manual' ? 'upd.modeManualHint' : 'upd.modeAutoHint'));
@@ -1852,6 +1877,10 @@ function hideUnsupported(id, text) {
 // Alienware'de fan denetimi olup RGB klavye olmayabilir (16 Aurora: beyaz isikli): iki sayfa ayri karar verir.
 // HP Omen/Victus (donanim -> hp_omen): ozellikler BIOS yoklamasiyla belirlenir (meta.caps); olmayan ozellik
 // gizlenir ya da devre disi kalir, motor da ona komut gondermez.
+function supWhy(id) {
+  const it = (meta.support || []).find(s => s.id === id);
+  return (it && it.why) || t('sup.blockedPlain');
+}
 function applySupport() {
   renderMsi();
   const caps = meta.caps || { fan: meta.ec, fan_curve: meta.ec, kb: meta.ec, temps: meta.ec };
@@ -1878,6 +1907,13 @@ function applySupport() {
       const e = document.querySelector(`[data-i18n="${from}"]`);
       if (e) { e.dataset.i18n = to; e.textContent = t(to); }
     }
+  }
+  if (meta.ec_kind === 'clevo' && meta.ec) {
+    // Clevo modelleri BIOS bayraklarina gore farkli ozellik tasir (destek.py): olmayan denetim gizlenir
+    if (!caps.fan_curve) { const c = $('#curve'), tile = c && c.closest('.tile'); if (tile) tile.hidden = true; }
+    if (!caps.fan_max && !caps.fan_curve) document.querySelector('input[name=fanm]').closest('fieldset').hidden = true;
+    if (!caps.fan_read && !caps.fan_max && !caps.fan_curve) hideUnsupported('fan', supWhy('fan_control'));
+    if (!caps.kb) hideUnsupported('klavye', supWhy('keyboard'));
   }
   if (meta.ec_kind === 'asus') asusSupport();
   if (meta.ec_kind === 'ideapad') ideapadSupport();

@@ -203,12 +203,41 @@ class DCHU:
     available = True
     vendor = "clevo"
     kind = "clevo"        # Clevo'ya ozel adimlar (Fn olaylari, IFEO) yalnizca bu turde
-    fan_curve_ok = True   # sicakliga bagli fan egrisini denetleyici calistirir
-    kb_available = True   # klavye isigi bu denetleyicide
 
-    @staticmethod
-    def caps():
-        return {"power": True, "fan": True, "fan_curve": True, "kb": True, "temps": True}
+    # Clevo tabanli her model ayni ozellikleri tasimaz (fan egrisi, RGB klavye, guc modlari). Acilista her
+    # ozellik YALNIZCA OKUYARAK yoklanir (destek.py, BIOS ozellik bayraklari); desteklenmeyen bir ozellige
+    # denetleyiciye hicbir yazma komutu gitmez, Unsupported verilir (profil raporunda 'desteklenmiyor').
+    def caps(self):
+        s = self.support()
+        ok = lambda f: s[f]["state"] in ("ok", "partial")  # noqa: E731
+        return {"power": ok("power_mode"), "fan_max": ok("fan_control"), "fan_curve": ok("fan_curve"),
+                "fan_read": ok("fan_read"), "temp": ok("ec"), "kb": ok("keyboard"), "gpu_mux": False}
+
+    @property
+    def fan_curve_ok(self):  # sicakliga bagli fan egrisini denetleyici calistirir (modele gore)
+        return self.caps()["fan_curve"]
+
+    @property
+    def kb_available(self):
+        return self.caps()["kb"]
+
+    @property
+    def kb_reason(self):
+        return self.support()["keyboard"]["why"]
+
+    def support(self):
+        """{ozellik: {"state": ok|partial|no, "why": metin, ...}}: ilk cagride okunarak yoklanir."""
+        if self._support is None:
+            import destek
+            self._support = destek.clevo(self)
+        return self._support
+
+    def _need(self, feature):
+        """Ozellik bu modelde yoksa Unsupported (denetleyiciye hicbir sey gonderilmeden)."""
+        item = self.support()[feature]
+        if item["state"] not in ("ok", "partial"):
+            raise Unsupported(ceviri.t("sup.blocked", why=item["why"]) if item["why"] else ceviri.t("sup.blockedPlain"))
+        return item
 
     def __init__(self):
         # Surumler farkli islev kumesi tasir (ornek: surucu deposundaki 1.0.0.1'de SetDCHU_DataEx yok). Yalnizca
@@ -227,6 +256,11 @@ class DCHU:
             raise RuntimeError(ceviri.t("err.dll") + ("" if not errors else " (" + "; ".join(errors) + ")"))
         self.lock = threading.Lock()
         self._fan_default = None
+        self._features = None
+        self._flags = None
+        self._kb_kind = None
+        self._kb_level = None
+        self._support = None
 
     @staticmethod
     def _bind(path):
@@ -240,6 +274,10 @@ class DCHU:
         d.GetDCHU_Data_Integer.restype = c_int
         d.ReadAppSettings.argtypes = [c_int, c_int, c_int, ctypes.POINTER(c_ubyte)]
         d.WriteAppSettings.argtypes = [c_int, c_int, c_int, ctypes.POINTER(c_ubyte)]
+        ex = getattr(d, "SetDCHU_DataEx", None)  # eski surumlerde yok: ozellik listesi o zaman okunmaz
+        if ex is not None:
+            ex.argtypes = [c_int, ctypes.POINTER(c_ubyte), c_int, ctypes.POINTER(c_ubyte)]
+            ex.restype = c_int
         return d
 
     # ------------------------------------------------------------------ ham erisim
@@ -258,6 +296,8 @@ class DCHU:
         return bytes(b[:256])
 
     def set_data(self, cmd, data):
+        # Son guvenlik agi: denetleyici Clevo komut setine anlamli yanit vermiyorsa hicbir yazma gitmez
+        self._need("ec")
         b = (c_ubyte * len(data))(*data)
         with self.lock:
             return self.dll.SetDCHU_Data(cmd, b, len(data))
@@ -275,13 +315,84 @@ class DCHU:
         return bytes(b)
 
     def write_app(self, page, offset, data):
+        self._need("ec")
         b = (c_ubyte * len(data))(*data)
         with self.lock:
             self.dll.WriteAppSettings(page, offset, len(data), b)
 
+    # ------------------------------------------------------------------ BIOS ozellik bayraklari
+    # Orijinal Control Center modele gore tablo tutmaz; her ozelligi BIOS'un bildirdigi bayraklardan okur
+    # (FnKey Features.cs, FanSpeedSetting FAN.cs, BaseKB.cs; 14.11.2026 kod cozumu). Hepsi yalnizca okumadir.
+    def feature_list(self):
+        """'BIOS Special Feature List': SetDCHU_DataEx(4, [8, ...]) cikti tamponu ya da None.
+        Control Center bunu her acilista sorgu olarak cagirir; denetleyicide hicbir sey degistirmez."""
+        if self._features is None:
+            fn = getattr(self.dll, "SetDCHU_DataEx", None)
+            self._features = b""
+            if fn is not None:
+                inp = (c_ubyte * 512)()
+                out = (c_ubyte * 512)()
+                inp[0] = 8
+                try:
+                    with self.lock:
+                        fn(4, inp, 256, out)
+                    self._features = bytes(out[:256])
+                except OSError:
+                    pass
+        return self._features or None
+
+    def flags(self):
+        """Ozellik bayraklari tek sozlukte (ilk cagride okunur, sonra onbellekten)."""
+        if self._flags is None:
+            p13 = self.get_buf(13)
+            self._flags = {"wmi16": self.get_int(16) & 0xFFFFFFFF, "wmi122": self.get_int(122) & 0xFFFFFFFF,
+                           "wmi96": self.get_int(96) & 0xFFFFFFFF, "pkg13": p13, "ex8": self.feature_list()}
+        return self._flags
+
+    def keyboard_type(self):
+        """'rgb' (3 bolge, komut 103) | 'white' (tek renk, 6 seviye) | 'zones' (cok bolgeli, Ex4(44)) |
+        'perkey' (tus basina, ayri kitaplik) | 'none' | 'unknown'."""
+        f = self.flags()
+        if f["wmi96"] & 1:  # NoSupportHW_KB_Type: BIOS klavye tipini bildirmiyor
+            return "unknown"
+        kb = f["pkg13"][15]
+        if kb in (3, 19, 35, 51, 243):
+            return "perkey"
+        if kb in (2, 6, 22, 38):
+            return "rgb"
+        if kb == 1:
+            return "white"
+        if kb == 23:
+            return "zones"
+        if kb == 0 or kb & 0x0F == 4:
+            return "none"
+        return "unknown"
+
     # ------------------------------------------------------------------ klavye
     def set_color(self, r, g, b):
-        return self.set_data(103, (g & 255, r & 255, b & 255, 0xF0))
+        # klavye motoru her karede cagirir: destek yoksa sessizce yok say (hata tufani olmasin)
+        if not self.caps()["kb"]:
+            return 0
+        kind = self._kb_kind
+        if kind is None:
+            try:
+                kind = self._kb_kind = self.keyboard_type()
+            except Exception:
+                kind = self._kb_kind = "unknown"
+        if kind in ("zones", "perkey", "none"):  # bu tipler 103 komutunu kullanmaz: hicbir sey gonderme
+            return 0
+        if kind == "white":
+            # Tek renkli klavye: rengin parlakligi 0-5 seviyeye; yalnizca degisince gonderilir
+            level = round(max(r, g, b) / 255.0 * 5)
+            if level != self._kb_level:
+                self._kb_level = level
+                return self.set_wmi(39, level)
+            return 0
+        rc = self.set_data(103, (g & 255, r & 255, b & 255, 0xF0))  # sol (tek bolgelide tumu)
+        if kind == "rgb":  # 3 bolgeli: orta ve sag bolge ayni renge
+            self.set_data(103, (g & 255, r & 255, b & 255, 0xF1))
+            self.set_data(103, (g & 255, r & 255, b & 255, 0xF2))
+        return rc
 
     # ------------------------------------------------------------------ olcumler
     @staticmethod
@@ -308,6 +419,9 @@ class DCHU:
     def set_power_mode(self, mode):
         if mode not in POWER_MODES:
             raise ValueError(ceviri.t("err.unknownPower"))
+        item = self._need("power_mode")
+        if mode not in item.get("modes", POWER_MODES):
+            raise Unsupported(ceviri.t("sup.blocked", why=ceviri.t("sup.why.modeMissing", mode=ceviri.t("power.%d" % mode))))
         self.write_app(1, 1, bytes([mode]))
         self.set_wmi(121, mode, 25)
         # Control Center'in yaptigi gibi enerji tercihi ipucu: performans 0, tasarruf 1, digerleri 2
@@ -318,6 +432,7 @@ class DCHU:
         return self.read_app(4, 5, 1)[0]
 
     def set_fan_mode(self, mode):
+        self._need("fan_control")
         self.set_wmi(121, mode, 1)
         self.write_app(4, 5, bytes([mode]))
 
@@ -338,6 +453,7 @@ class DCHU:
 
     def set_fan_curve(self, cpu, gpu):
         """cpu/gpu: (T2, D2%, T3, D3%). Ilk nokta (T1, D1) ve son nokta (100 C, %100) denetleyicide sabittir."""
+        self._need("fan_curve")
         base = self.fan_default()
         out = bytearray(256)
         slopes = []

@@ -417,7 +417,8 @@ class DetectTest(unittest.TestCase):
 
     def test_clevo_and_null_caps(self):
         self.assertEqual(donanim.DCHU.kind, "clevo")
-        self.assertTrue(all(donanim.DCHU.caps().values()))
+        # Clevo ozellikleri artik modele gore BIOS bayraklarindan yoklanir (destek.py, tests/test_destek.py)
+        self.assertTrue(callable(donanim.DCHU.caps))
         n = donanim.NullDCHU("x")
         self.assertFalse(any(n.caps().values()))
         self.assertFalse(n.kb_available)
@@ -435,6 +436,21 @@ class DetectTest(unittest.TestCase):
         # Clevo'ya ozel Fn olayi komutu ve IFEO engellemesi yalnizca kind == "clevo" iken
         self.assertIn('App.dchu.available and getattr(App.dchu, "kind", "clevo") == "clevo":\n        try:\n'
                       '            App.dchu.set_wmi(0x46, 0)', src)
+
+    def test_kb_zones_any_caps_shape(self):
+        # 2.4.0: state() caps'i sozluk sandi; Clevo'da caps bir yontem -> /api/state 500 (14.11.2026, Monster)
+        class Acer:
+            caps = {"kb": True, "kb_zones": 4}
+
+        class Gigabyte:
+            caps = frozenset({"power", "fan_auto"})
+        self.assertFalse(donanim.caps(donanim.DCHU).get("kb_zones"))
+        self.assertFalse(donanim.caps(donanim.NullDCHU("x")).get("kb_zones"))
+        self.assertEqual(donanim.caps(Acer()).get("kb_zones"), 4)
+        self.assertFalse(donanim.caps(Gigabyte()).get("kb_zones"))
+        import control_center as cc
+        with open(cc.__file__, encoding="utf-8") as f:
+            self.assertNotIn('getattr(App.dchu, "caps", None) or {}', f.read())
 
 
 if __name__ == "__main__":
