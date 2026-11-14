@@ -196,7 +196,7 @@ class Manager:
         if not self.sensors.gpu_name:
             gpu_txt = t("val.unsupported")
         return [
-            (t("row.powerMode"), t("power.%d" % p["ec"]) if ec else t("val.unsupported")),
+            (t("row.powerMode"), t(self._power_key(p["ec"])) if ec else t("val.unsupported")),
             (t("row.cpuCap"), caps),
             (t("row.turboEpp"), "%s / %d" % (t("boost.%d" % c["boost"]), c["epp"])),
             (t("row.sched"), t("sched.%d" % c["sched"])),
@@ -215,6 +215,7 @@ class Manager:
     def status(self):
         return {"profile": self.applied, "report": self.report, "guard": self.guard,
                 "power_mode": self.dchu.power_mode(), "fan_mode": self.dchu.fan_mode(),
+                "fan_fixed": getattr(self.dchu, "fan_fixed", lambda: None)(),
                 "scheme_active": active_scheme() == SCHEME, "admin": hw.is_admin(), "rules": self.cfg}
 
     # ------------------------------------------------------------------ uygula
@@ -255,9 +256,14 @@ class Manager:
             self.save()
             return rep
 
+    def _power_key(self, mode):
+        """Guc modu metni: Clevo'da power.N, Gigabyte'ta fan kipi (gbmode.*)."""
+        fn = getattr(self.dchu, "power_key", None)
+        return fn(mode) if fn else "power.%d" % mode
+
     def _ec(self, p):
         self.dchu.set_power_mode(p["ec"])
-        return t("power.%d" % p["ec"])
+        return t(self._power_key(p["ec"]))
 
     def _fan(self, p):
         kind = p["fan"][0]
@@ -337,6 +343,9 @@ class Manager:
                 why = "reason.ac" if ac else "reason.battery"
                 threading.Thread(target=self.apply, args=(target, why), daemon=True).start()
         self._last_ac = ac
+        if "fan_fixed" in getattr(self.dchu, "caps", ()) and self.dchu.fan_mode() == hw.FAN_FIXED:
+            self._fixed_guard(s)  # sabit hiz (Gigabyte): egriyi EC degil uygulama secti, koruma da uygulamada
+            return
         p = BY_ID.get(self.applied)
         if not p or p["fan"][0] != "curve" or not getattr(self.dchu, "available", True):
             return
@@ -355,6 +364,17 @@ class Manager:
         if s.get("dchu_error") or s.get("sensor_error") or not isinstance(v, (int, float)) or v <= 0:
             return None
         return v
+
+    def _fixed_guard(self, s):
+        """Sabit fan hizinda: islemci 93 / kart 87 C'yi 5 sn asarsa ya da sicaklik okunamazsa fanlar kipe doner."""
+        cpu, gpu = self._temp(s, "cpu_temp"), self._temp(s, "gpu_temp") or 0
+        bad = cpu is None or cpu >= 93 or gpu >= 87
+        self._hot = self._hot + 1 if bad else 0
+        if self._hot >= 5:
+            self._hot = 0
+            self.dchu.set_fan_mode(hw.FAN_AUTO)
+            self.guard = t("guard.fixed")
+            self.notify(self.guard)
 
     def _guard_step(self, s, p):
         # GPU uykudayken denetleyici GPU sicakligini 0 verebilir; bu yuzden "bilinmiyor" karari islemciye gore.

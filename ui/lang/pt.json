@@ -343,5 +343,25 @@
   "unsup.title": "Indisponível neste computador",
   "unsup.fan": "As curvas de ventoinha e os modos de energia do controlador são exclusivos do controlador embutido Clevo/Monster, que este computador não tem. O app não envia nenhum comando às ventoinhas nem ao controlador; o próprio computador ou o app do fabricante continua a geri-los. Os perfis ainda aplicam as definições de CPU, GPU e ecrã.",
   "unsup.kb": "A iluminação RGB do teclado é exclusiva do controlador embutido Clevo/Monster, que este computador não tem. O app não envia nenhum comando ao teclado; o app do fabricante ou as teclas Fn continuam a gerir a luz.",
-  "unsup.dll": "O controlador embutido foi encontrado, mas a sua biblioteca não carregou, por isso esta função está desligada: {err}"
+  "unsup.dll": "O controlador embutido foi encontrado, mas a sua biblioteca não carregou, por isso esta função está desligada: {err}",
+
+  "fan.fixed": "Fixa",
+  "fan.fixedSpeed": "Velocidade fixa da ventoinha",
+  "fanmode.7": "Fixa",
+  "fan.intro.gb": "Gigabyte/AORUS: o modo das ventoinhas e a curva própria funcionam no controlador do computador e continuam ativos com a app fechada. Os perfis escolhem os modos silencioso, normal e jogo; perfis com curva gravam uma curva de 15 pontos para as duas ventoinhas. A velocidade fixa é de pelo menos 30%. Proteção térmica: se a CPU passar de 93 °C ou a GPU de 87 °C por 5 segundos, as ventoinhas voltam à tabela do modo escolhido.",
+  "charge.title": "Limite de carga da bateria",
+  "charge.on": "Limitar a carga (vida da bateria)",
+  "charge.hint": "Na tomada, a bateria para de carregar nesta porcentagem. O controlador do computador guarda a configuração.",
+  "charge.fail": "Não foi possível definir o limite de carga: {err}",
+  "unsup.fanGb": "A interface WMI necessária para controlar as ventoinhas (GB_WMIACPI) não foi encontrada ou está incompleta neste computador Gigabyte/AORUS. A app não envia comandos às ventoinhas; o próprio computador ou o Gigabyte Control Center continua a controlá-las.",
+  "unsup.kbGb": "O controlador do teclado deste computador Gigabyte/AORUS não foi reconhecido (só teclados AERO/AORUS com ITE 829x são suportados). A app não envia comandos ao teclado.",
+  "gbmode.quiet": "Modo silencioso",
+  "gbmode.normal": "Modo normal",
+  "gbmode.gaming": "Modo jogo",
+  "guard.fixed": "Temperatura alta ou ilegível: velocidade fixa liberada, ventoinhas de volta ao modo escolhido.",
+  "err.gbNoMethod": "indisponível neste computador (método {m} não encontrado no controlador)",
+  "err.gbBadReply": "o controlador não deu uma resposta válida para {m}",
+  "err.gbVerify": "{m} foi gravado mas o valor relido é diferente (pedido {want}, lido {got})",
+  "err.gbNoFeature": "indisponível neste computador (o controlador Gigabyte não oferece este recurso)",
+  "err.gbCharge": "o limite de carga deve estar entre {lo} e {hi} (%)"
 }

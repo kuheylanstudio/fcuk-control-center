@@ -343,5 +343,25 @@
   "unsup.title": "Niet beschikbaar op deze computer",
   "unsup.fan": "Ventilatorcurves en energiemodi van de controller horen bij de Clevo/Monster embedded controller, die deze computer niet heeft. De app stuurt geen opdrachten naar de ventilatoren of de controller; de computer zelf of de app van de fabrikant blijft ze regelen. Profielen passen processor-, GPU- en scherminstellingen wel toe.",
   "unsup.kb": "RGB-toetsenbordverlichting hoort bij de Clevo/Monster embedded controller, die deze computer niet heeft. De app stuurt geen opdrachten naar het toetsenbord; de app van de fabrikant of de Fn-toetsen blijven de verlichting regelen.",
-  "unsup.dll": "De embedded controller is gevonden, maar de bibliotheek kon niet worden geladen, dus deze functie staat uit: {err}"
+  "unsup.dll": "De embedded controller is gevonden, maar de bibliotheek kon niet worden geladen, dus deze functie staat uit: {err}",
+
+  "fan.fixed": "Vast",
+  "fan.fixedSpeed": "Vaste ventilatorsnelheid",
+  "fanmode.7": "Vast",
+  "fan.intro.gb": "Gigabyte/AORUS: de ventilatormodus en eigen curve draaien in de eigen controller van de computer en blijven actief als de app dicht is. Profielen kiezen de modi stil, normaal en gaming; profielen met een curve schrijven één curve van 15 punten voor beide ventilatoren. Vaste snelheid is minstens 30%. Hittebeveiliging: komt de CPU 5 seconden boven 93 °C of de GPU boven 87 °C, dan keren de ventilatoren terug naar de tabel van de gekozen modus.",
+  "charge.title": "Laadlimiet van de accu",
+  "charge.on": "Laden beperken (levensduur accu)",
+  "charge.hint": "Aan het stopcontact stopt de accu met laden bij dit percentage. De controller van de computer bewaart de instelling.",
+  "charge.fail": "Laadlimiet kon niet worden ingesteld: {err}",
+  "unsup.fanGb": "De WMI-interface voor ventilatorbesturing (GB_WMIACPI) ontbreekt of is onvolledig op deze Gigabyte/AORUS-computer. De app stuurt geen opdrachten naar de ventilatoren; de computer zelf of Gigabyte Control Center blijft ze regelen.",
+  "unsup.kbGb": "De toetsenbordcontroller van deze Gigabyte/AORUS-computer werd niet herkend (alleen AERO/AORUS-toetsenborden met ITE 829x worden ondersteund). De app stuurt geen opdrachten naar het toetsenbord.",
+  "gbmode.quiet": "Stille modus",
+  "gbmode.normal": "Normale modus",
+  "gbmode.gaming": "Gamingmodus",
+  "guard.fixed": "Temperatuur hoog of onleesbaar: vaste snelheid losgelaten, ventilatoren terug in de gekozen modus.",
+  "err.gbNoMethod": "niet beschikbaar op deze computer (methode {m} niet gevonden in de controller)",
+  "err.gbBadReply": "de controller gaf geen geldig antwoord voor {m}",
+  "err.gbVerify": "{m} is geschreven maar de teruggelezen waarde wijkt af (gevraagd {want}, gelezen {got})",
+  "err.gbNoFeature": "niet beschikbaar op deze computer (de Gigabyte-controller biedt deze functie niet)",
+  "err.gbCharge": "de laadlimiet moet tussen {lo} en {hi} liggen (%)"
 }

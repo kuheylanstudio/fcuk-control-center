@@ -343,5 +343,25 @@
   "unsup.title": "No disponible en este equipo",
   "unsup.fan": "Las curvas de ventilador y los modos de energía del controlador son exclusivos del controlador integrado Clevo/Monster, que este equipo no tiene. La aplicación no envía ningún comando a los ventiladores ni al controlador; el propio equipo o la aplicación del fabricante siguen gestionándolos. Los perfiles siguen aplicando ajustes de CPU, GPU y pantalla.",
   "unsup.kb": "La iluminación RGB del teclado es exclusiva del controlador integrado Clevo/Monster, que este equipo no tiene. La aplicación no envía ningún comando al teclado; la aplicación del fabricante o las teclas Fn siguen gestionando la luz.",
-  "unsup.dll": "Se encontró el controlador integrado, pero no se pudo cargar su biblioteca, así que esta función está desactivada: {err}"
+  "unsup.dll": "Se encontró el controlador integrado, pero no se pudo cargar su biblioteca, así que esta función está desactivada: {err}",
+
+  "fan.fixed": "Fija",
+  "fan.fixedSpeed": "Velocidad fija del ventilador",
+  "fanmode.7": "Fija",
+  "fan.intro.gb": "Gigabyte/AORUS: el modo del ventilador y la curva propia se ejecutan en el controlador del equipo y siguen activos con la app cerrada. Los perfiles eligen los modos silencioso, normal y juego; los perfiles con curva escriben una curva de 15 puntos para ambos ventiladores. La velocidad fija es como mínimo del 30 %. Protección térmica: si la CPU supera 93 °C o la GPU 87 °C durante 5 segundos, los ventiladores vuelven a la tabla del modo elegido.",
+  "charge.title": "Límite de carga de la batería",
+  "charge.on": "Limitar la carga (vida de la batería)",
+  "charge.hint": "Conectada a la corriente, la batería deja de cargar en este porcentaje. El controlador del equipo guarda el ajuste.",
+  "charge.fail": "No se pudo fijar el límite de carga: {err}",
+  "unsup.fanGb": "En este equipo Gigabyte/AORUS no se encontró la interfaz WMI necesaria para los ventiladores (GB_WMIACPI) o está incompleta. La app no envía órdenes a los ventiladores; los sigue gestionando el propio equipo o Gigabyte Control Center.",
+  "unsup.kbGb": "No se reconoció el controlador del teclado de este equipo Gigabyte/AORUS (solo se admiten teclados AERO/AORUS con ITE 829x). La app no envía órdenes al teclado.",
+  "gbmode.quiet": "Modo silencioso",
+  "gbmode.normal": "Modo normal",
+  "gbmode.gaming": "Modo juego",
+  "guard.fixed": "Temperatura alta o ilegible: se liberó la velocidad fija, los ventiladores vuelven al modo elegido.",
+  "err.gbNoMethod": "no disponible en este equipo (no se encontró el método {m} en el controlador)",
+  "err.gbBadReply": "el controlador no dio una respuesta válida para {m}",
+  "err.gbVerify": "se escribió {m} pero el valor leído es distinto (pedido {want}, leído {got})",
+  "err.gbNoFeature": "no disponible en este equipo (el controlador Gigabyte no ofrece esta función)",
+  "err.gbCharge": "el límite de carga debe estar entre {lo} y {hi} (%)"
 }

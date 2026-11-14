@@ -23,6 +23,7 @@ bilgisayarlarda da donanım tespiti, canlı izleme, NVIDIA ve işlemci ayarları
 | **İşlemci** | İşlemci modeline göre yalnızca etkili olan ayarlar: turbo modu, EPP (Speed Shift), P ve E çekirdek frekans tavanları (melez Intel), işlemci durumu sınırları, çekirdek zamanlayıcı politikası, çekirdek park etme | Her bilgisayar (Windows güç planı) |
 | **Performans profilleri** | Beş profil: Tam Sessiz → Ultra Performans; her biri gömülü denetleyici güç modu, fan eğrisi, işlemci, ekran kartı ve ekran yenileme hızını birlikte ayarlar | Clevo / Monster |
 | **Fanlar, klavye RGB, Fn tuşları** | Özel fan eğrisi, 8 klavye ışık modu, Fn tuşu ekran bildirimleri | Clevo / Monster |
+| **Gigabyte / AORUS / AERO (deneysel)** | Sessiz / normal / oyun fan kipi (profillerin güç modu adımı), 15 noktalı özel fan eğrisi, sabit fan hızı, işlemci/kart sıcaklığı ve fan devri, pil şarj sınırı (%60-100), ITE 829x klavyelerde tek renk RGB. Yalnızca `GB_WMIACPI` WMI arayüzünde bulunan yöntemler kullanılır; olmayan özellik gizlenir. Gerçek donanımda henüz denenmedi | Gigabyte dizüstü (Clevo tabanlı modellerde Clevo yolu) |
 | **Ses ve ekran** | Hoparlör / mikrofon seviyesi, yenileme hızı | Her bilgisayar |
 | **Dil** | 14 dil, Windows bölge ayarına göre otomatik | |
 
@@ -150,6 +151,9 @@ nvidia.py          NVIDIA sürücü ayarları (NVAPI DRS), kart bilgisi (NVML)
 islemci.py         modele göre işlemci ayarları (Windows güç planı)
 profiller.py       beş performans profili, ısı koruması, fiş/pil kuralları
 klavye_rgb.py      klavye ışık motoru
+gigabyte_aorus.py  Gigabyte/AORUS/AERO arka ucu (GB_WMIACPI fan, kip, sıcaklık, şarj sınırı; ITE klavye)
+wmi_yontem.py      ek paketsiz WMI yöntem çağrıları (COM, tek iş parçacığı)
+hid_rapor.py       ek paketsiz HID özellik raporu (hid.dll)
 engelle.py         eski Monster Fn programlarını tam yollarıyla engeller (IFEO yol filtresi)
 fntus.py, tepsi.py Fn tuşları, ekran bildirimi ve tepsi simgesi (ayrı, normal yetkili süreç)
 ceviri.py, ui/lang dil dosyaları

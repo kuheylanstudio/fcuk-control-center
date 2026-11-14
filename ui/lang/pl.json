@@ -343,5 +343,25 @@
   "unsup.title": "Niedostępne na tym komputerze",
   "unsup.fan": "Krzywe wentylatorów i tryby zasilania kontrolera są właściwe dla kontrolera wbudowanego Clevo/Monster, którego ten komputer nie ma. Aplikacja nie wysyła żadnych poleceń do wentylatorów ani kontrolera; nadal zarządza nimi sam komputer lub aplikacja producenta. Profile nadal stosują ustawienia procesora, karty graficznej i ekranu.",
   "unsup.kb": "Podświetlenie RGB klawiatury jest właściwe dla kontrolera wbudowanego Clevo/Monster, którego ten komputer nie ma. Aplikacja nie wysyła żadnych poleceń do klawiatury; podświetleniem nadal zarządza aplikacja producenta lub klawisze Fn.",
-  "unsup.dll": "Znaleziono kontroler wbudowany, ale nie udało się wczytać jego biblioteki, więc ta funkcja jest wyłączona: {err}"
+  "unsup.dll": "Znaleziono kontroler wbudowany, ale nie udało się wczytać jego biblioteki, więc ta funkcja jest wyłączona: {err}",
+
+  "fan.fixed": "Stała",
+  "fan.fixedSpeed": "Stała prędkość wentylatora",
+  "fanmode.7": "Stała",
+  "fan.intro.gb": "Gigabyte/AORUS: tryb wentylatorów i własna krzywa działają w kontrolerze komputera i pozostają aktywne po zamknięciu aplikacji. Profile wybierają tryby cichy, normalny i gamingowy; profile z krzywą zapisują jedną 15-punktową krzywą dla obu wentylatorów. Stała prędkość to co najmniej 30%. Ochrona termiczna: jeśli procesor przekroczy 93 °C lub karta 87 °C przez 5 sekund, wentylatory wracają do tabeli wybranego trybu.",
+  "charge.title": "Limit ładowania baterii",
+  "charge.on": "Ogranicz ładowanie (żywotność baterii)",
+  "charge.hint": "Przy zasilaniu sieciowym bateria przestaje się ładować przy tym procencie. Ustawienie przechowuje kontroler komputera.",
+  "charge.fail": "Nie udało się ustawić limitu ładowania: {err}",
+  "unsup.fanGb": "Na tym komputerze Gigabyte/AORUS brakuje interfejsu WMI do sterowania wentylatorami (GB_WMIACPI) lub jest niekompletny. Aplikacja nie wysyła poleceń do wentylatorów; nadal steruje nimi sam komputer lub Gigabyte Control Center.",
+  "unsup.kbGb": "Nie rozpoznano kontrolera klawiatury tego komputera Gigabyte/AORUS (obsługiwane są tylko klawiatury AERO/AORUS z ITE 829x). Aplikacja nie wysyła poleceń do klawiatury.",
+  "gbmode.quiet": "Tryb cichy",
+  "gbmode.normal": "Tryb normalny",
+  "gbmode.gaming": "Tryb gamingowy",
+  "guard.fixed": "Temperatura wysoka lub nieczytelna: stała prędkość zwolniona, wentylatory wróciły do wybranego trybu.",
+  "err.gbNoMethod": "niedostępne na tym komputerze (nie znaleziono metody {m} w kontrolerze)",
+  "err.gbBadReply": "kontroler nie zwrócił poprawnej odpowiedzi dla {m}",
+  "err.gbVerify": "zapisano {m}, ale odczytana wartość jest inna (oczekiwano {want}, odczytano {got})",
+  "err.gbNoFeature": "niedostępne na tym komputerze (kontroler Gigabyte nie oferuje tej funkcji)",
+  "err.gbCharge": "limit ładowania musi wynosić od {lo} do {hi} (%)"
 }

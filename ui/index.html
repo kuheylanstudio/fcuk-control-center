@@ -451,8 +451,19 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
                 <label><input type="radio" name="fanm" value="profile"><span data-i18n="fan.byProfile">Profile göre</span></label>
                 <label><input type="radio" name="fanm" value="auto"><span data-i18n="fan.factoryOpt">Fabrika</span></label>
                 <label><input type="radio" name="fanm" value="max"><span data-i18n="fan.max">Maksimum</span></label>
+                <label id="fanFixedOpt" hidden><input type="radio" name="fanm" value="fixed"><span data-i18n="fan.fixed">Sabit</span></label>
               </div>
             </fieldset>
+            <div class="field" id="fanFixedBox" hidden>
+              <div class="field-top"><label class="lbl" for="fanFixed" data-i18n="fan.fixedSpeed">Sabit fan hızı</label><output id="fanFixedOut"></output></div>
+              <input type="range" id="fanFixed" min="30" max="100" step="5" value="60">
+            </div>
+            <div class="field" id="chargeBox" hidden>
+              <div class="field-top"><label class="lbl" for="chargeStop" data-i18n="charge.title">Pil şarj sınırı</label><output id="chargeOut"></output></div>
+              <label class="switch"><input type="checkbox" id="chargeOn"><span class="track" aria-hidden="true"></span><span data-i18n="charge.on">Şarjı sınırla (pil ömrü)</span></label>
+              <input type="range" id="chargeStop" min="60" max="100" step="5" value="80">
+              <p class="hint" data-i18n="charge.hint">Fişteyken pil bu yüzdede şarj olmayı bırakır. Ayarı bilgisayarın kendi denetleyicisi saklar.</p>
+            </div>
             <p class="hint" id="guardTxt"></p>
           </div>
         </div>
@@ -589,7 +600,7 @@ if (window.I18N) applyI18n();
 const PAL_HINT = { one: t('pal.one'), steps: t('pal.steps'), loop: t('pal.loop'), range: t('pal.range'), slots: t('pal.slots') };
 const SPECTRUM = 'var(--spectrum)';
 const LEVEL = { tam_sessiz: 1, sessiz_kullanim: 2, sessiz_oyun: 3, performans: 4, ultra: 5 };
-const FAN_MODE_TXT = { 0: t('fanmode.0'), 1: t('fanmode.1'), 6: t('fanmode.6') };
+const FAN_MODE_TXT = { 0: t('fanmode.0'), 1: t('fanmode.1'), 6: t('fanmode.6'), 7: t('fanmode.7') };
 const NO_LINK = t('err.noLink');
 
 let meta = null, cfg = null, cc = null, frozen = false, pending = null, quitting = false, saveTimer = 0;
@@ -844,9 +855,10 @@ function paintProfile() {
     $('#ruleBat').value = cc.rules.on_battery || '';
     $('#ruleAc').value = cc.rules.on_ac || '';
     $('#ruleHz').checked = cc.rules.refresh !== false;
-    setText('fanModeTxt', FAN_MODE_TXT[cc.fan_mode] || '–');
+    setText('fanModeTxt', cc.fan_mode === 7 && cc.fan_fixed != null ? FAN_MODE_TXT[7] + ' ' + pct(cc.fan_fixed) : FAN_MODE_TXT[cc.fan_mode] || '–');
     const pf = id ? (profById(id) || {}).fan : null;
-    const fm = cc.fan_mode === 1 ? 'max' : cc.fan_mode === 6 ? 'profile' : pf === 'auto' ? 'profile' : 'auto';
+    const fm = cc.fan_mode === 7 ? 'fixed' : cc.fan_mode === 1 ? 'max' : cc.fan_mode === 6 ? 'profile' : pf === 'auto' ? 'profile' : 'auto';
+    if (cc.fan_mode === 7 && cc.fan_fixed != null) setRange($('#fanFixed'), cc.fan_fixed, $('#fanFixedOut'));
     const r = document.querySelector(`input[name=fanm][value=${fm}]`); if (r) r.checked = true;
     document.querySelector('input[name=fanm][value=profile]').disabled = !id;
   }
@@ -899,11 +911,39 @@ function initPerformance() {
     try { cc = (await api('/api/factory', {})).cc; banner(t('perf.factoryDone'), true); paintProfile(); }
     catch (e) { banner(t('perf.factoryFail', { err: e.message })); }
   });
+  const fanFixed = $('#fanFixed');
+  const fanBody = mode => mode === 'fixed' ? { mode, percent: +fanFixed.value } : { mode };
   document.querySelectorAll('input[name=fanm]').forEach(r => r.addEventListener('change', async () => {
-    try { cc = (await api('/api/fan', { mode: r.value })).cc; }
+    try { cc = (await api('/api/fan', fanBody(r.value))).cc; }
     catch (e) { banner(t('fan.modeFail', { err: e.message })); }
     paintProfile();
   }));
+  // Sabit fan hizi (yalnizca destekleyen bilgisayarlarda gorunur): birakinca uygulanir
+  fanFixed.addEventListener('input', () => setRange(fanFixed, +fanFixed.value, $('#fanFixedOut')));
+  fanFixed.addEventListener('change', async () => {
+    try { cc = (await api('/api/fan', fanBody('fixed'))).cc; }
+    catch (e) { banner(t('fan.modeFail', { err: e.message })); }
+    paintProfile();
+  });
+  // Pil sarj siniri (yalnizca destekleyen bilgisayarlarda gorunur)
+  const cOn = $('#chargeOn'), cStop = $('#chargeStop');
+  const sendCharge = async () => {
+    try { meta.charge = (await api('/api/charge', { stop: cOn.checked ? +cStop.value : null })).charge; }
+    catch (e) { banner(t('charge.fail', { err: e.message })); }
+    paintCharge();
+  };
+  cOn.addEventListener('change', sendCharge);
+  cStop.addEventListener('input', () => setRange(cStop, +cStop.value, $('#chargeOut')));
+  cStop.addEventListener('change', () => { if (cOn.checked) sendCharge(); });
+}
+function paintCharge() {
+  const c = meta && meta.charge;
+  $('#chargeBox').hidden = !c;
+  if (!c) return;
+  $('#chargeOn').checked = !!c.enabled;
+  if (c.stop != null) setRange($('#chargeStop'), c.stop, $('#chargeOut'));
+  else $('#chargeOut').textContent = '–';
+  $('#chargeStop').disabled = !c.enabled;
 }
 
 /* ---------- fan egrisi ---------- */
@@ -1372,8 +1412,19 @@ function initPresets() {
 // Clevo/Monster gomulu denetleyicisi yoksa fan ve klavye isigi sayfalari denetim gostermez, nedenini soyler.
 // Motor da o denetleyiciye hicbir komut gondermez (donanim.NullDCHU).
 function applySupport() {
-  if (meta.ec) return;
-  for (const [id, key] of [['fan', 'unsup.fan'], ['klavye', 'unsup.kb']]) {
+  const caps = meta.caps || [];
+  const gb = meta.vendor === 'gigabyte';
+  // Bu bilgisayarda olmayan fan denetimleri gizlenir (secilemeyen denetim komut da gondermez)
+  $('#fanFixedOpt').hidden = $('#fanFixedBox').hidden = !caps.includes('fan_fixed');
+  const maxOpt = document.querySelector('input[name=fanm][value=max]');
+  if (maxOpt) maxOpt.closest('label').hidden = !!meta.ec && !caps.includes('fan_max');
+  if (!meta.fan_default) { const c = $('#curve'); if (c) c.closest('.tile').hidden = true; }
+  if (gb) { const intro = document.querySelector('#v-fan .page-head p'); if (intro) intro.textContent = t('fan.intro.gb'); }
+  paintCharge();
+  const off = [];
+  if (!meta.ec) off.push(['fan', gb ? 'unsup.fanGb' : 'unsup.fan']);
+  if (!meta.kb) off.push(['klavye', gb ? 'unsup.kbGb' : 'unsup.kb']);
+  for (const [id, key] of off) {
     const sec = $('#v-' + id);
     if (!sec || sec.querySelector('.nosup')) continue;
     for (const c of sec.children) c.hidden = true;

@@ -343,5 +343,25 @@
   "unsup.title": "Non disponibile su questo computer",
   "unsup.fan": "Le curve delle ventole e le modalità di alimentazione del controller sono specifiche del controller integrato Clevo/Monster, che questo computer non ha. L'app non invia alcun comando alle ventole o al controller; il computer stesso o l'app del produttore continua a gestirle. I profili applicano comunque le impostazioni di CPU, GPU e schermo.",
   "unsup.kb": "L'illuminazione RGB della tastiera è specifica del controller integrato Clevo/Monster, che questo computer non ha. L'app non invia alcun comando alla tastiera; l'app del produttore o i tasti Fn continuano a gestire la luce.",
-  "unsup.dll": "Il controller integrato è stato trovato ma la sua libreria non si è caricata, quindi questa funzione è disattivata: {err}"
+  "unsup.dll": "Il controller integrato è stato trovato ma la sua libreria non si è caricata, quindi questa funzione è disattivata: {err}",
+
+  "fan.fixed": "Fissa",
+  "fan.fixedSpeed": "Velocità fissa della ventola",
+  "fanmode.7": "Fissa",
+  "fan.intro.gb": "Gigabyte/AORUS: la modalità delle ventole e la curva personalizzata girano nel controller del computer e restano attive anche ad app chiusa. I profili scelgono le modalità silenziosa, normale e gioco; i profili con curva scrivono una curva a 15 punti per entrambe le ventole. La velocità fissa è almeno del 30%. Protezione termica: se la CPU supera 93 °C o la GPU 87 °C per 5 secondi, le ventole tornano alla tabella della modalità scelta.",
+  "charge.title": "Limite di carica della batteria",
+  "charge.on": "Limita la carica (durata della batteria)",
+  "charge.hint": "Con l'alimentatore collegato la batteria smette di caricarsi a questa percentuale. Il controller del computer conserva l'impostazione.",
+  "charge.fail": "Impossibile impostare il limite di carica: {err}",
+  "unsup.fanGb": "Su questo computer Gigabyte/AORUS l'interfaccia WMI per il controllo delle ventole (GB_WMIACPI) manca o è incompleta. L'app non invia comandi alle ventole; le gestisce ancora il computer stesso o Gigabyte Control Center.",
+  "unsup.kbGb": "Il controller della tastiera di questo computer Gigabyte/AORUS non è stato riconosciuto (sono supportate solo tastiere AERO/AORUS con ITE 829x). L'app non invia comandi alla tastiera.",
+  "gbmode.quiet": "Modalità silenziosa",
+  "gbmode.normal": "Modalità normale",
+  "gbmode.gaming": "Modalità gioco",
+  "guard.fixed": "Temperatura alta o non leggibile: velocità fissa rilasciata, ventole tornate alla modalità scelta.",
+  "err.gbNoMethod": "non disponibile su questo computer (metodo {m} non trovato nel controller)",
+  "err.gbBadReply": "il controller non ha dato una risposta valida per {m}",
+  "err.gbVerify": "{m} è stato scritto ma il valore riletto è diverso (richiesto {want}, letto {got})",
+  "err.gbNoFeature": "non disponibile su questo computer (il controller Gigabyte non offre questa funzione)",
+  "err.gbCharge": "il limite di carica deve essere tra {lo} e {hi} (%)"
 }

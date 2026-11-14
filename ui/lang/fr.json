@@ -343,5 +343,25 @@
   "unsup.title": "Indisponible sur cet ordinateur",
   "unsup.fan": "Les courbes de ventilation et les modes d'alimentation du contrôleur sont propres au contrôleur embarqué Clevo/Monster, absent de cet ordinateur. L'application n'envoie aucune commande aux ventilateurs ni au contrôleur ; l'ordinateur lui-même ou l'application du fabricant continue de les gérer. Les profils appliquent toujours les réglages processeur, GPU et écran.",
   "unsup.kb": "L'éclairage RGB du clavier est propre au contrôleur embarqué Clevo/Monster, absent de cet ordinateur. L'application n'envoie aucune commande au clavier ; l'application du fabricant ou les touches Fn continuent de gérer l'éclairage.",
-  "unsup.dll": "Le contrôleur embarqué a été trouvé mais sa bibliothèque n'a pas pu être chargée ; cette fonction est désactivée : {err}"
+  "unsup.dll": "Le contrôleur embarqué a été trouvé mais sa bibliothèque n'a pas pu être chargée ; cette fonction est désactivée : {err}",
+
+  "fan.fixed": "Fixe",
+  "fan.fixedSpeed": "Vitesse fixe du ventilateur",
+  "fanmode.7": "Fixe",
+  "fan.intro.gb": "Gigabyte/AORUS : le mode des ventilateurs et la courbe personnalisée tournent dans le contrôleur de l'ordinateur et restent actifs application fermée. Les profils choisissent les modes silencieux, normal et jeu ; les profils à courbe écrivent une courbe de 15 points pour les deux ventilateurs. La vitesse fixe est d'au moins 30 %. Protection thermique : si le processeur dépasse 93 °C ou la carte 87 °C pendant 5 secondes, les ventilateurs reviennent à la table du mode choisi.",
+  "charge.title": "Limite de charge de la batterie",
+  "charge.on": "Limiter la charge (durée de vie)",
+  "charge.hint": "Sur secteur, la batterie cesse de charger à ce pourcentage. Le contrôleur de l'ordinateur conserve le réglage.",
+  "charge.fail": "Impossible de régler la limite de charge : {err}",
+  "unsup.fanGb": "L'interface WMI nécessaire au contrôle des ventilateurs (GB_WMIACPI) est absente ou incomplète sur cet ordinateur Gigabyte/AORUS. L'application n'envoie aucune commande aux ventilateurs ; l'ordinateur lui-même ou Gigabyte Control Center continue de les gérer.",
+  "unsup.kbGb": "Le contrôleur du clavier de cet ordinateur Gigabyte/AORUS n'a pas été reconnu (seuls les claviers AERO/AORUS à ITE 829x sont pris en charge). L'application n'envoie aucune commande au clavier.",
+  "gbmode.quiet": "Mode silencieux",
+  "gbmode.normal": "Mode normal",
+  "gbmode.gaming": "Mode jeu",
+  "guard.fixed": "Température élevée ou illisible : vitesse fixe abandonnée, ventilateurs revenus au mode choisi.",
+  "err.gbNoMethod": "non disponible sur cet ordinateur (méthode {m} introuvable dans le contrôleur)",
+  "err.gbBadReply": "le contrôleur n'a pas donné de réponse valide pour {m}",
+  "err.gbVerify": "{m} a été écrit mais la valeur relue diffère (voulu {want}, lu {got})",
+  "err.gbNoFeature": "non disponible sur cet ordinateur (le contrôleur Gigabyte ne propose pas cette fonction)",
+  "err.gbCharge": "la limite de charge doit être entre {lo} et {hi} (%)"
 }

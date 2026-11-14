@@ -511,5 +511,25 @@
   "unsup.title": "Not available on this computer",
   "unsup.fan": "Fan curves and controller power modes are specific to the Clevo/Monster embedded controller, which this computer does not have. The app sends no commands to the fans or the controller; the computer itself or the manufacturer's app keeps managing the fans. Profiles still apply CPU, GPU and display settings.",
   "unsup.kb": "Keyboard RGB lighting is specific to the Clevo/Monster embedded controller, which this computer does not have. The app sends no commands to the keyboard; the manufacturer's app or the Fn keys keep managing the keyboard light.",
-  "unsup.dll": "The embedded controller was found but its library could not be loaded, so this feature is off: {err}"
+  "unsup.dll": "The embedded controller was found but its library could not be loaded, so this feature is off: {err}",
+
+  "fan.fixed": "Fixed",
+  "fan.fixedSpeed": "Fixed fan speed",
+  "fanmode.7": "Fixed",
+  "fan.intro.gb": "Gigabyte/AORUS: the fan mode and custom curve run in the computer's own controller and stay active while the app is closed. Profiles pick the quiet, normal and gaming modes; profiles with a curve write one 15-point curve for both fans. Fixed speed is at least 30%. Heat protection: if the CPU passes 93 °C or the GPU 87 °C for 5 seconds, the fans return to the selected mode's table.",
+  "charge.title": "Battery charge limit",
+  "charge.on": "Limit charging (battery life)",
+  "charge.hint": "On AC power the battery stops charging at this percentage. The computer's own controller stores the setting.",
+  "charge.fail": "Could not set the charge limit: {err}",
+  "unsup.fanGb": "The WMI interface needed for fan control (GB_WMIACPI) was not found or is incomplete on this Gigabyte/AORUS computer. The app sends no commands to the fans; the computer itself or Gigabyte Control Center keeps managing them.",
+  "unsup.kbGb": "This Gigabyte/AORUS computer's keyboard controller was not recognised (only ITE 829x based AERO/AORUS keyboards are supported). The app sends no commands to the keyboard.",
+  "gbmode.quiet": "Quiet mode",
+  "gbmode.normal": "Normal mode",
+  "gbmode.gaming": "Gaming mode",
+  "guard.fixed": "Temperature high or unreadable: fixed fan speed released, fans back to the selected mode.",
+  "err.gbNoMethod": "not available on this computer (method {m} not found in the controller)",
+  "err.gbBadReply": "the controller gave no valid reply for {m}",
+  "err.gbVerify": "{m} was written but the value read back differs (wanted {want}, got {got})",
+  "err.gbNoFeature": "not available on this computer (the Gigabyte controller does not offer this feature)",
+  "err.gbCharge": "charge limit must be between {lo} and {hi} (%)"
 }

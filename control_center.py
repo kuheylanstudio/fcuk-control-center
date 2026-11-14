@@ -512,12 +512,27 @@ def state():
         "ec": App.dchu.available,
         "ec_clevo": bool(getattr(App.dchu, "clevo", True)),  # aygit var, yalnizca kitaplik yok
         "ec_reason": getattr(App.dchu, "reason", ""),
+        "vendor": getattr(App.dchu, "vendor", ""),
+        "caps": sorted(getattr(App.dchu, "caps", ())),
+        "kb": bool(getattr(App.dchu, "kb_available", App.dchu.available)),
+        "charge": charge_state(),
         "cpu": App.inventory.data.get("cpu"),
         "nvidia": bool(App.sensors.gpu_name),
         "igpu_name": App.sensors.igpu_name,
         "trusted_install": trusted_install(),
         "notices": list(App.notices),
     }
+
+
+def charge_state():
+    """Pil sarj siniri (yalnizca destekleyen arka uclarda; Clevo'da None)."""
+    fn = getattr(App.dchu, "charge_limit", None)
+    if fn is None or "charge" not in getattr(App.dchu, "caps", ()):
+        return None
+    try:
+        return fn()
+    except Exception:
+        return None
 
 
 def nvidia_state():
@@ -635,7 +650,7 @@ class Handler(BaseHTTPRequestHandler):
                 "profile": mgr.applied, "guard": mgr.guard, "lang": ceviri.lang(),
                 "profiles": [{"id": p["id"], "name": profiller.name(p["id"]), "ac_only": bool(p.get("ac_only"))}
                              for p in profiller.PROFILES],
-                "ec": App.dchu.available, "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
+                "ec": App.dchu.available, "caps": sorted(getattr(App.dchu, "caps", ())), "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
                 "gpu_state": s.get("gpu_state"), "cpu_power": s.get("cpu_power"),
                 "ac": (s.get("battery") or {}).get("ac", True), "notices": list(App.notices)})
         if path == "/api/now":  # yalnizca son olcum (gecmissiz): ek sayfalar saniyede bir okur
@@ -738,9 +753,17 @@ class Handler(BaseHTTPRequestHandler):
                 mgr.apply(mgr.applied, "reason.fanProfile")
             elif mode in ("auto", "max"):
                 App.dchu.set_fan_mode(hw.FAN_MAX if mode == "max" else hw.FAN_AUTO)
+            elif mode == "fixed" and "fan_fixed" in getattr(App.dchu, "caps", ()):
+                App.dchu.set_fan_fixed(_int(body.get("percent"), 0, 100, 60))
             else:
                 return self._json({"error": t("err.fanMode")}, 400)
             return self._json({"ok": True, "cc": mgr.status()})
+        if path == "/api/charge":  # pil sarj siniri: {"stop": 60-100} ya da {"stop": null} (sinirsiz)
+            if "charge" not in getattr(App.dchu, "caps", ()):
+                return self._json({"error": t("err.gbNoFeature")}, 400)
+            stop = body.get("stop")
+            App.dchu.set_charge_limit(None if stop is None else _int(stop, 0, 100, 100))
+            return self._json({"ok": True, "charge": charge_state()})
         if path == "/api/audio":
             which = body.get("which")
             if which not in ("speaker", "mic"):
@@ -964,7 +987,7 @@ def serve():
     # Fn tusu olaylarini ac (Clevo "events enabled", komut 0x46). Bunu eskiden FnKey.exe acilista yapiyordu;
     # gonderilmezse denetleyici Fn bildirimlerini AcpiBridge'e iletmez (14.11.2026 olculdu). Yeniden
     # baslatmaya dek kalicidir; her acilista gonderilir.
-    if App.dchu.available:
+    if getattr(App.dchu, "vendor", "") == "clevo":
         try:
             App.dchu.set_wmi(0x46, 0)
         except Exception:
@@ -998,7 +1021,7 @@ def serve():
     App.engine.settings = core.snapshot(App.cfg)
     App.engine.start()
     App.sensors.start()
-    if hw.is_admin() and App.dchu.available:  # yalnizca Clevo/Monster: Monster Fn programlari engellenir
+    if hw.is_admin() and getattr(App.dchu, "vendor", "") == "clevo":  # yalnizca Clevo/Monster: Monster Fn programlari engellenir
         threading.Thread(target=fn_block_loop, daemon=True).start()
     if cc.get("profile") in profiller.BY_ID:  # yeniden baslatmadan sonra denetleyici ayarlari geri gelsin
         threading.Thread(target=App.manager.apply, args=(cc["profile"], "reason.startup"), daemon=True).start()

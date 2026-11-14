@@ -428,7 +428,7 @@ class Engine(threading.Thread):
             last = now
             mode, pal, speed, source, bright = self.settings
             value = None
-            kb_ok = getattr(self.kb, "available", True)
+            kb_ok = getattr(self.kb, "kb_available", getattr(self.kb, "available", True))
             if not kb_ok and mode in ("ses", "ekran", "sistem", "oyun"):
                 mode = "sabit"  # klavye isigi yok: ses/ekran ornekleme ve olcum bosuna calismasin
             if mode != "oyun" and game is not None:

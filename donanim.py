@@ -45,6 +45,7 @@ NO_WINDOW = 0x08000000
 
 POWER_MODES = {0: "Sessiz", 1: "Güç tasarrufu", 2: "Performans", 3: "Eğlence"}
 FAN_AUTO, FAN_MAX, FAN_CUSTOM = 0, 1, 6
+FAN_FIXED = 7  # sabit yuzde (Clevo'da yok; Gigabyte arka ucu)
 
 
 def is_admin():
@@ -199,7 +200,10 @@ def peer_in_my_session(client_port, server_port):
 # ============================================================================= gomulu denetleyici
 class DCHU:
     """InsydeDCHU.dll sarmalayicisi. Tum cagrilar tek kilitten gecer (motor, sensor ve sunucu ayni anda cagirir)."""
-    available = True
+    available = True      # fan ve guc modu denetlenebilir
+    kb_available = True   # klavye isigi denetlenebilir
+    vendor = "clevo"      # Clevo'ya ozel adimlar (Fn olaylari, IFEO, Monster programlari) yalnizca bunda
+    caps = frozenset(("power", "fan_auto", "fan_max", "fan_curve", "kb"))
 
     def __init__(self):
         # Surumler farkli islev kumesi tasir (ornek: surucu deposundaki 1.0.0.1'de SetDCHU_DataEx yok). Yalnizca
@@ -354,6 +358,9 @@ class NullDCHU:
     bos, yazmalar Unsupported verir ve donanima HICBIR komut gitmez. Profil adimlari bunu raporda
     'desteklenmiyor' olarak gosterir; geri kalan her sey calisir."""
     available = False
+    kb_available = False
+    vendor = ""
+    caps = frozenset()
     path = ""
 
     def __init__(self, reason="", clevo=False):
@@ -421,13 +428,24 @@ def clevo_present():
 
 
 def open_dchu():
-    """Gercek denetleyici ya da (Clevo aygiti yoksa / kitaplik yoksa / yuklenemezse) NullDCHU."""
-    if not clevo_present():
-        return NullDCHU(ceviri.t("err.notClevo"), clevo=False)
+    """Gercek denetleyici ya da (Clevo aygiti yoksa / kitaplik yoksa / yuklenemezse) NullDCHU.
+
+    Sira: once Clevo/Monster koprusu. Clevo tabanli (ODM) Gigabyte/Aorus modellerinde de ACPI\\CLV aygiti
+    vardir ve Clevo yolu zaten calisir; o zaman Gigabyte WMI'sine hic bakilmaz. Clevo degilse Gigabyte
+    (uretici GIGABYTE/AORUS VE GB_WMIACPI siniflari) denenir; o da yoksa NullDCHU."""
+    if clevo_present():
+        try:
+            return DCHU()
+        except Exception as exc:
+            return NullDCHU(str(exc), clevo=True)
     try:
-        return DCHU()
-    except Exception as exc:
-        return NullDCHU(str(exc), clevo=True)
+        import gigabyte_aorus
+        gb = gigabyte_aorus.open_backend()
+        if gb is not None:
+            return gb
+    except Exception:
+        pass  # tespit hatasi: suphede donanima dokunulmaz
+    return NullDCHU(ceviri.t("err.notClevo"), clevo=False)
 
 
 def validate_curve(pts, t1, d1):
