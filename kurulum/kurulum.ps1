@@ -206,6 +206,16 @@ function Remove-OldCC($inv, [bool]$clevo) {
         Ok ("Durduruldu: " + (($inv.Procs | ForEach-Object Name | Select-Object -Unique) -join ', '))
     } else { Info 'Çalışan eski süreç yok' }
 
+    if ($clevo) {
+        # Paketler kaldırılmadan ÖNCE (yollar diskteyken): Monster programları IFEO'da TAM YOLLARIYLA engellenir.
+        # Ad ile engel kullanılmaz; aynı adı taşıyan başka bir yazılımı da durdururdu. Paket geri kurulursa
+        # yönetici motor yeni yolu açılışta ve 30 dakikada bir engeller (engelle.py).
+        Step 'Eski Fn / Control Center programları tam yollarıyla engelleniyor'
+        $bp = Start-Process (Join-Path $Payload 'FCUKControlCenter.exe') -ArgumentList '--block-fn' -Wait -PassThru
+        if ($bp.ExitCode -eq 0) { Ok ('Engellendi: ' + ($Blocked -join ', ') + ' (yalnızca Monster klasörlerindeki kopyalar)') }
+        else { Warn "Tam yol engeli yazılamadı (kod $($bp.ExitCode)); motor ilk açılışta yeniden dener" }
+    }
+
     Step 'Eski Control Center uygulama paketleri kaldırılıyor'
     foreach ($a in $inv.AppxReplaced) {
         $b = Join-Path $Backup ("paket\" + $a.PackageFullName)
@@ -213,7 +223,7 @@ function Remove-OldCC($inv, [bool]$clevo) {
         try { Remove-AppxPackage -Package $a.PackageFullName -AllUsers -ErrorAction Stop; Ok "Kaldırıldı: $($a.Name) ($($Replaced[$a.Name]))" }
         catch {
             try { Remove-AppxPackage -Package $a.PackageFullName -ErrorAction Stop; Ok "Kaldırıldı (bu kullanıcı): $($a.Name)" }
-            catch { Warn "Paket kaldırılamadı: $($a.Name): $($_.Exception.Message). Adıyla engellendiği için çalışmayacak." }
+            catch { Warn "Paket kaldırılamadı: $($a.Name): $($_.Exception.Message). Tam yoluyla engellendiği için çalışmayacak." }
         }
     }
     foreach ($p in $inv.Provisioned) {
@@ -223,17 +233,6 @@ function Remove-OldCC($inv, [bool]$clevo) {
     if (-not $inv.AppxReplaced.Count -and -not $inv.Provisioned.Count) { Info 'Kaldırılacak uygulama paketi yok' }
     foreach ($a in $inv.AppxKept) { Info "Dokunulmadı: $($a.Name) - $($Kept[$a.Name])" }
 
-    if ($clevo) {
-        Step 'Eski Fn / Control Center programları adlarıyla engelleniyor'
-        foreach ($name in $Blocked) {
-            $k = Join-Path $Ifeo $name
-            New-Item -Path $k -Force | Out-Null
-            Remove-Item (Join-Path $k 'KendiCC') -Recurse -ErrorAction SilentlyContinue
-            Remove-ItemProperty -Path $k -Name UseFilter -ErrorAction SilentlyContinue
-            New-ItemProperty -Path $k -Name Debugger -Value "$env:SystemRoot\System32\systray.exe" -PropertyType String -Force | Out-Null
-        }
-        Ok ("Engellendi: " + ($Blocked -join ', '))
-    }
 
     Step 'Eski Control Center hizmetleri, görevleri ve açılış kayıtları temizleniyor'
     foreach ($s in $inv.Services) {
@@ -349,8 +348,16 @@ if ($Mode -eq 'Uninstall') {
     Step 'Eski Control Center engelleri kaldırılıyor'
     foreach ($name in $Blocked) {
         $k = Join-Path $Ifeo $name
+        if (-not (Test-Path $k)) { continue }
+        # Bizim tam yol filtrelerimiz (FCUKCC..., önceki sürümlerde KendiCC...) ve eski ad engeli; başkalarınınkine dokunulmaz
+        Get-ChildItem $k -ErrorAction SilentlyContinue | Where-Object { $_.PSChildName -like 'FCUKCC*' -or $_.PSChildName -like 'KendiCC*' } |
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
         $p = Get-ItemProperty $k -ErrorAction SilentlyContinue
         if ($p -and "$($p.Debugger)" -like '*\systray.exe') { Remove-ItemProperty -Path $k -Name Debugger -ErrorAction SilentlyContinue }
+        if (-not (Get-ChildItem $k -ErrorAction SilentlyContinue)) {
+            Remove-ItemProperty -Path $k -Name UseFilter -ErrorAction SilentlyContinue
+            if (-not (Get-Item $k).Property) { Remove-Item $k -Force -ErrorAction SilentlyContinue }
+        }
     }
     Ok 'Üretici Fn programları yeniden çalışabilir (üretici Control Center yeniden kurulabilir)'
     Remove-Shortcuts

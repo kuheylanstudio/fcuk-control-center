@@ -968,6 +968,8 @@ def serve():
     App.engine.settings = core.snapshot(App.cfg)
     App.engine.start()
     App.sensors.start()
+    if hw.is_admin() and App.dchu.available:  # yalnizca Clevo/Monster: Monster Fn programlari engellenir
+        threading.Thread(target=fn_block_loop, daemon=True).start()
     if cc.get("profile") in profiller.BY_ID:  # yeniden baslatmadan sonra denetleyici ayarlari geri gelsin
         threading.Thread(target=App.manager.apply, args=(cc["profile"], "reason.startup"), daemon=True).start()
     App.server.serve_forever()
@@ -1055,9 +1057,34 @@ def saved_lang():
     return "auto"
 
 
+def fn_block_once():
+    """Monster Fn programlarini tam yollariyla engeller (engelle.py). Yonetici ister."""
+    try:
+        import engelle
+        n, lines = engelle.refresh()
+        for line in lines:
+            log("IFEO " + line)
+        return n
+    except Exception:
+        log("IFEO engelleme hatasi: " + traceback.format_exc().replace("\n", " | "))
+        return -1
+
+
+def fn_block_loop():
+    """Windows paketi yeni bir surum klasorune geri kurabilir: yol filtresi acilista ve 30 dk'da bir yenilenir."""
+    while App.engine is None or App.engine.running:
+        fn_block_once()
+        for _ in range(1800):
+            if App.engine is not None and not App.engine.running:
+                return
+            time.sleep(1)
+
+
 def run_mode(admin):
     if "--install-task" in sys.argv:
         return install_task()
+    if "--block-fn" in sys.argv:  # kur.ps1'den, yonetici
+        return 0 if admin and fn_block_once() >= 0 else 5
     if "--tray" in sys.argv:
         import tepsi
         tepsi.run(BASE, open_window, start_engine)

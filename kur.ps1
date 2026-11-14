@@ -63,24 +63,22 @@ try {
     # Monster "Fn hotkeys and OSD" paketi (FnKey + eski CC arayuzu) artik gereksiz: Fn tuslarini ve OSD'yi
     # bizim tepsi sureci yapiyor (fntus.py). Ama AcpiBridge1 surucusu paketi Windows'a "donanim destek
     # uygulamasi" olarak bildiriyor (INF AddSoftware) ve Windows onu Store'dan GERI KURABILIR; CCDCHUService de
-    # her oturumda FnKey'i baslatmaya calisir. Bu yuzden: 1) Monster'a ozgu programlar ADLARIYLA engellenir
-    # (paket geri gelse de calismaz; Windows onlari systray.exe ile "acar", hemen biter), 2) paket kaldirilir.
-    # Geri almak: IFEO altindaki bu adlarin Debugger degerini silmek; paket yedegi yedek\FnPaketi.
+    # her oturumda FnKey'i baslatmaya calisir. Bu yuzden: 1) Monster programlari IFEO'da TAM YOLLARIYLA
+    # engellenir (engelle.py; paket kaldirilmadan ONCE, yollar diskteyken), 2) paket kaldirilir. Ad ile engel
+    # kullanilmaz: ayni adi tasiyan baska bir yazilimi da durdururdu. Paket yeni bir surum klasorune geri
+    # gelirse yonetici motor yeni yolu acilista ve 30 dakikada bir engeller.
+    # Geri almak: IFEO altindaki bu adlarin FCUKCC... alt anahtarlarini silmek; paket yedegi yedek\FnPaketi.
     # Asagidaki bolum YALNIZCA Clevo tabanli bilgisayarlarda (AcpiBridge aygiti ACPI\CLV0001) calisir.
     $clevo = Get-PnpDevice -InstanceId "ACPI\CLV0001*" -ErrorAction SilentlyContinue
     if ($clevo) {
-        $ifeo = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options"
-        # AddFn.exe: CCDCHUService'in calistirdigi, paketi yeniden kaydeden yardimci (prefetch'te goruldu)
-        foreach ($name in "FnKey.exe", "LaunchFnkey.exe", "AddFn.exe", "CC40.exe", "LoadUI.exe", "PopUI.exe",
-                          "cc30wk.exe", "ControlGPU.exe") {
-            $k = Join-Path $ifeo $name
-            New-Item -Path $k -Force | Out-Null
-            Remove-Item (Join-Path $k "KendiCC") -Recurse -ErrorAction SilentlyContinue       # eski tam-yol filtresi
-            Remove-ItemProperty -Path $k -Name UseFilter -ErrorAction SilentlyContinue
-            New-ItemProperty -Path $k -Name Debugger -Value "$env:SystemRoot\System32\systray.exe" -Force | Out-Null
-            Log "engellendi (ad ile): $name"
-        }
-        Get-Process FnKey, cc30wk, ControlGPU, CC40, LoadUI -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+        $p = Start-Process $exe -ArgumentList "--block-fn" -Wait -PassThru
+        if ($p.ExitCode -eq 0) { Log "Fn programlari tam yollariyla engellendi (ayrinti: veri\crash.log)" }
+        else { Log "UYARI: Fn engelleme basarisiz (kod $($p.ExitCode)); ayrinti: veri\crash.log" }
+        # Calisan kopyalar yalnizca Monster klasorlerindeyse durdurulur (ayni adli baska programlara dokunulmaz)
+        Get-Process FnKey, LaunchFnkey, AddFn, cc30wk, ControlGPU, CC40, LoadUI, PopUI -ErrorAction SilentlyContinue |
+            Where-Object { $_.Path -and ($_.Path -like "*\WindowsApps\CLEVOCO.*" -or $_.Path -like "*\ControlCenter\*" -or
+                                         $_.Path -like "*\DriverStore\*") } |
+            Stop-Process -Force -ErrorAction SilentlyContinue
         $yedek = Join-Path $src "yedek"
         $pkgs = Get-AppxPackage -AllUsers -Name "CLEVOCO.FnhotkeysandOSD" -ErrorAction SilentlyContinue
         foreach ($p in $pkgs) {

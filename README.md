@@ -35,7 +35,9 @@ yerine geçer:
   kaldırır ve her birinin yedeğini alır:
   - Fn tuşu / OSD paketi, Control Center 3.0, fan, klavye ışığı ve enerji tasarrufu uygulama paketleri
   - `Program Files (x86)\ControlCenter` klasörü, InstallShield kaydı, kısayollar, açılış kayıtları ve görevler
-- Eski Fn programları adlarıyla engellenir. Windows paketi geri kursa bile çalışmazlar.
+- Eski Fn programları **tam yollarıyla** engellenir (IFEO yol filtresi): yalnızca Monster paketindeki, eski
+  Control Center klasöründeki ve CCDCHUService klasöründeki kopyalar. Aynı adı taşıyan başka yazılımlara dokunulmaz.
+  Windows paketi geri kurarsa yönetici motor yeni yolu açılışta ve 30 dakikada bir engeller.
 - **Korunanlar:** AcpiBridge sürücüleri ve CCDCHUService hizmeti. Kurulum önce bir geri yükleme noktası oluşturur
   ve sürücüleri dışa aktarır. Sonunda sürücülerin yerinde olduğunu doğrular; eksik çıkarsa yedekten geri kurar.
 - Karşılığı bu uygulamada olmayan paketlere dokunulmaz: CPU/GPU hız aşırtma, Flexikey ve pil yardımcı programı.
@@ -129,6 +131,7 @@ nvidia.py          NVIDIA sürücü ayarları (NVAPI DRS), kart bilgisi (NVML)
 islemci.py         modele göre işlemci ayarları (Windows güç planı)
 profiller.py       beş performans profili, ısı koruması, fiş/pil kuralları
 klavye_rgb.py      klavye ışık motoru
+engelle.py         eski Monster Fn programlarını tam yollarıyla engeller (IFEO yol filtresi)
 fntus.py, tepsi.py Fn tuşları, ekran bildirimi ve tepsi simgesi (ayrı, normal yetkili süreç)
 ceviri.py, ui/lang dil dosyaları
 ui/index.html      arayüz (Edge --app penceresi)
