@@ -62,13 +62,13 @@ yazmayı gerektirir. Uygulama hiçbir çekirdek sürücüsü kurmaz.
 
 ### Güvenlik ve doğrulama
 
-- **VirusTotal:** her sürümün kurulum dosyası yayımlandığı anda GitHub Actions ile VirusTotal'a yüklenir; sonucun
-  bağlantısı sürüm notlarının sonunda ve yukarıdaki rozettedir. PyInstaller ile paketlenen programları birkaç
+- **VirusTotal:** [2.1.0 kurulum dosyasının tarama raporu](https://www.virustotal.com/gui/file/618441dcfe30efc3c18559caaa8caffa1c929b44db658d7c1bee7dbb7763e7ef)
+  (yukarıdaki rozet de aynı rapora gider). Yeni sürümler yayımlandığında GitHub Actions ile VirusTotal'a
+  yüklenir; rapor bağlantısı sürüm notlarının sonuna eklenir. PyInstaller ile paketlenen programları birkaç
   antivirüs motoru bazen yanlışlıkla işaretler (genel "Trojan/Wacatac" vb. adlarla); kaynak kodun tamamı bu depodadır.
 - **SHA-256:** indirdiğiniz dosyanın [sürüm sayfasındaki](https://github.com/kuheylanstudio/fcuk-control-center/releases/latest)
   özetle aynı olduğunu denetleyin: `Get-FileHash FCUK-Control-Center-Setup-2.1.0.exe`
-- **Kod imzası:** 2.1.0 ve önceki sürümler kod imzalı değildir; SmartScreen bu yüzden uyarır. İmzalı sürümlerde
-  dosyaya sağ tık → Özellikler → **Dijital İmzalar** sekmesinde imzalayan görünür.
+- **Kod imzası:** kurulum programı kod imzalı değildir; SmartScreen uyarısı bu yüzdendir.
 
 İndirilen kurulum programı üreticiye ait DLL'i **içermez**. Clevo / Monster dizüstülerde uygulama `InsydeDCHU.dll`'i
 Windows sürücü deposundaki AcpiBridge sürücüsünden kullanır; ayrıca bir şey yapmanız gerekmez.
@@ -129,18 +129,6 @@ powershell -ExecutionPolicy Bypass -File setup_olustur.ps1   # çıktı: dist\se
 Bu şekilde derlenen setup.exe üreticiye ait DLL'i içerir; kendi bilgisayarınız için kullanın, herkese açık
 dağıtmayın. Dağıtılabilir (DLL'siz) paket için: `setup_olustur.ps1 -Dagitim` (çıktı:
 `dist\FCUK-Control-Center-Setup-2.1.0.exe`). İndirme düğmesindeki dosya budur.
-
-#### Kod imzalama
-
-`-Imzala` uygulama exe'sini ve kurulum dosyasını Authenticode ile imzalar (SHA-256, RFC 3161 zaman damgası):
-
-```powershell
-setup_olustur.ps1 -Dagitim -Imzala -Sertifika <sertifika parmak izi>   # ya da $env:FCUK_IMZA_SERTIFIKA
-```
-
-Sertifika Windows sertifika deposundan seçilir (Certum SimplySign gibi bulut sertifikalarında önce SimplySign
-Desktop'ta oturum açın). `signtool.exe` Windows SDK'nın "Signing Tools" bileşeniyle gelir. Betik her imzayı
-`signtool verify` ile denetler; README'deki VirusTotal bağlantısı imzalı dosyanın SHA-256'sına güncellenir.
 
 ### Kaynaktan
 
