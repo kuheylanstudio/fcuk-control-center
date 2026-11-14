@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
+# FCUK Control Center
+# Bu dosya Anthropic'in Claude Opus 5.5 yapay zeka modeliyle yazilmistir. MIT lisansi, bkz. LICENSE.
 """Donanim katmani: Monster/Clevo gomulu denetleyicisi (InsydeDCHU.dll), Windows sayaclari,
 NVIDIA (NVML), ekran yenileme hizi ve ses seviyesi.
+
+InsydeDCHU.dll yoksa (Clevo tabanli olmayan bilgisayar) NullDCHU devreye girer: fan, guc modu ve klavye
+isigi kapanir; izleme ve diger tum ozellikler calisir.
 
 DCHU komutlari Control Center v6.093'un kendi kodundan cikarildi:
   SetWMI(121, mod, alt=25)  guc modu   0 sessiz, 1 guc tasarrufu, 2 performans, 3 eglence
@@ -17,6 +22,8 @@ import threading
 import time
 from collections import deque
 from ctypes import wintypes as wt
+
+import ceviri
 
 c_void_p = ctypes.c_void_p
 c_int = ctypes.c_int
@@ -54,12 +61,12 @@ def run(args, timeout=8):
 # ============================================================================= gomulu denetleyici
 class DCHU:
     """InsydeDCHU.dll sarmalayicisi. Tum cagrilar tek kilitten gecer (motor, sensor ve sunucu ayni anda cagirir)."""
+    available = True
 
     def __init__(self):
         path = next((p for p in DLL_CANDIDATES if os.path.exists(p)), None)
         if not path:
-            raise RuntimeError("InsydeDCHU.dll bulunamadı. Uygulama klasöründe lib\\InsydeDCHU.dll olmalı "
-                               "ya da Control Center kurulu olmalı.")
+            raise RuntimeError(ceviri.t("err.dll"))
         self.path = path
         os.add_dll_directory(os.path.dirname(path))
         d = ctypes.WinDLL(path)
@@ -140,7 +147,7 @@ class DCHU:
 
     def set_power_mode(self, mode):
         if mode not in POWER_MODES:
-            raise ValueError("bilinmeyen güç modu")
+            raise ValueError(ceviri.t("err.unknownPower"))
         self.write_app(1, 1, bytes([mode]))
         self.set_wmi(121, mode, 25)
         # Control Center'in yaptigi gibi enerji tercihi ipucu: performans 0, tasarruf 1, digerleri 2
@@ -187,6 +194,44 @@ class DCHU:
                 out[o + j * 2 + 1] = r & 0xFF
         self.set_data(14, out)
         self.set_fan_mode(FAN_CUSTOM)
+
+
+class NullDCHU:
+    """Gomulu denetleyici kitapligi olmayan bilgisayarlar icin: okumalar bos, yazmalar acik bir hata verir.
+    Profil adimlari bu hatayi raporda 'desteklenmiyor' olarak gosterir; geri kalan her sey calisir."""
+    available = False
+    path = ""
+
+    def __init__(self, reason=""):
+        self.reason = reason
+
+    def _no(self, *args, **kwargs):
+        raise RuntimeError(ceviri.t("err.noEc"))
+
+    set_wmi = set_data = write_app = set_power_mode = set_fan_mode = set_fan_curve = _no
+
+    def set_color(self, r, g, b):  # klavye motoru her karede cagirir: sessizce yok say
+        return 0
+
+    def status(self):
+        return {}
+
+    def power_mode(self):
+        return None
+
+    def fan_mode(self):
+        return None
+
+    def fan_default(self):
+        return None
+
+
+def open_dchu():
+    """Gercek denetleyici ya da (kitaplik yoksa / yuklenemezse) NullDCHU."""
+    try:
+        return DCHU()
+    except Exception as exc:
+        return NullDCHU(str(exc))
 
 
 def validate_curve(pts, t1, d1):
@@ -297,6 +342,15 @@ def gpu_adapters():
     return out
 
 
+THROTTLE = [  # nvmlClocksEventReasons bitleri: kart neden en yuksek saatinde degil
+    0x1, 0x2, 0x4, 0x8, 0x20, 0x40, 0x80, 0x100,  # metinleri ui/lang: "throttle.<bit, ondalik>"
+]
+
+
+def throttle_text(mask):
+    return [ceviri.t("throttle.%d" % bit) for bit in THROTTLE if mask & bit]
+
+
 class _NvMem(ctypes.Structure):
     _fields_ = [("total", ctypes.c_ulonglong), ("free", ctypes.c_ulonglong), ("used", ctypes.c_ulonglong)]
 
@@ -334,6 +388,15 @@ class NVML:
         if L.nvmlDeviceGetMemoryInfo(h, ctypes.byref(m)) == 0:
             out["vram_used"] = round(m.used / 2 ** 20)
             out["vram_total"] = round(m.total / 2 ** 20)
+        if L.nvmlDeviceGetTemperature(h, 0, ctypes.byref(v)) == 0:
+            out["temp_nv"] = v.value
+        if L.nvmlDeviceGetCurrPcieLinkGeneration(h, ctypes.byref(v)) == 0:
+            gen = v.value
+            if L.nvmlDeviceGetCurrPcieLinkWidth(h, ctypes.byref(v)) == 0:
+                out["pcie"] = "Gen%d ×%d" % (gen, v.value)
+        reasons = ctypes.c_ulonglong()
+        if L.nvmlDeviceGetCurrentClocksEventReasons(h, ctypes.byref(reasons)) == 0:
+            out["throttle"] = reasons.value
         return out
 
 
@@ -487,22 +550,47 @@ class Sensors(threading.Thread):
                         ("cpu_temp", "gpu_temp", "cpu_power", "cpu_load", "gpu_load", "cpu_rpm", "gpu_rpm", "cpu_mhz")}
         self.listeners = []  # her olcumden sonra cagrilir (profil bekcisi)
         self.base = base_mhz()
-        nv = [a for a in gpu_adapters() if a[1] == 0x10DE]
+        adapters = gpu_adapters()
+        nv = [a for a in adapters if a[1] == 0x10DE]
         self.gpu_name = nv[0][0] if nv else ""
         self.nv_luid = nv[0][2].lower() if nv else ""
+        other = [a for a in adapters if a[1] != 0x10DE]  # tumlesik grafik (Intel / AMD)
+        self.igpu_name = other[0][0] if other else ""
+        self.igpu_luid = other[0][2].lower() if other else ""
         self.nvml = None
+        self.disk_ids = lambda: []  # envanter hazir olunca control_center baglar
+        self.disks = {}
+
+    def _disk_health(self, now):
+        """Disk sicakligi ve NVMe sagligi: 30 sn'de bir (IOCTL ucuz ama SMART gunlugu her saniye gereksiz)."""
+        if now < getattr(self, "_disk_next", 0):
+            return
+        self._disk_next = now + 30
+        import envanter
+        for n in self.disk_ids():
+            try:
+                self.disks[str(n)] = envanter.disk_health(n)
+            except Exception:
+                pass
 
     def run(self):
         import psutil
-        pdh = Pdh({
+        counters = {
             "perf": r"\Processor Information(*)\% Processor Performance",
             "nominal": r"\Processor Information(*)\Processor Frequency",  # P 2000, E 1500 MHz
             "util": r"\Processor Information(*)\% Processor Utility",
             "energy": r"\Energy Meter(*)\Power",
             "gpu": r"\GPU Engine(*)\Utilization Percentage",
-        })
+        }
+        if not self.dchu.available:  # denetleyici yoksa islemci sicakligi icin ACPI isi bolgesi (Kelvin)
+            counters["tz"] = r"\Thermal Zone Information(*)\Temperature"
+        pdh = Pdh(counters)
         last_net = psutil.net_io_counters()
         last_disk = psutil.disk_io_counters()
+        try:
+            last_per = psutil.disk_io_counters(perdisk=True) or {}
+        except Exception:
+            last_per = {}
         last_t = time.monotonic()
         nv_awake_until = 0.0
         while self.running:
@@ -541,6 +629,12 @@ class Sensors(threading.Thread):
                 peak = max(nvb.values(), default=0.0)
                 s["gpu_load"] = round(min(peak, 100), 1)
                 s["gpu_active"] = peak > 0.5
+                if self.igpu_luid:
+                    s["igpu_load"] = round(min(max(busy.get(self.igpu_luid, {}).values(), default=0.0), 100), 1)
+                tz = [v for v in c.get("tz", {}).values() if v > 200]
+                if tz and "cpu_temp" not in s:
+                    s["cpu_temp"] = round(max(tz) - 273.15)
+                    s["cpu_temp_src"] = "acpi"
             except Exception as exc:
                 s["pdh_error"] = str(exc)
             if s.get("gpu_active"):
@@ -552,6 +646,10 @@ class Sensors(threading.Thread):
                     s.update({"gpu_" + k: v for k, v in self.nvml.read().items()})
                 except Exception:
                     pass
+                if "gpu_throttle" in s:
+                    s["gpu_throttle_txt"] = throttle_text(s["gpu_throttle"])
+                if "gpu_temp" not in s and "gpu_temp_nv" in s:
+                    s["gpu_temp"] = s["gpu_temp_nv"]
                 s["gpu_state"] = "active"
             else:
                 s["gpu_state"] = "sleep"
@@ -573,6 +671,23 @@ class Sensors(threading.Thread):
                 s["disk_used"], s["disk_total"] = round(du.used / 2 ** 30), round(du.total / 2 ** 30)
             except OSError:
                 pass
+            try:  # disk basina okuma/yazma hizi ve doluluk (PhysicalDriveN)
+                per = psutil.disk_io_counters(perdisk=True) or {}
+                io = {}
+                for name, cur in per.items():
+                    prev = last_per.get(name)
+                    if prev and name.startswith("PhysicalDrive"):
+                        io[name[13:]] = {"r": round((cur.read_bytes - prev.read_bytes) / dt / 2 ** 20, 1),
+                                         "w": round((cur.write_bytes - prev.write_bytes) / dt / 2 ** 20, 1),
+                                         "busy": round(min(100.0, (cur.read_time + cur.write_time - prev.read_time
+                                                                   - prev.write_time) / (dt * 10.0)), 0)}
+                s["disk_io"] = io
+                last_per = per
+            except Exception:
+                pass
+            self._disk_health(t0)
+            if self.disks:
+                s["disks"] = self.disks
             s["battery"] = power_status()
             for k, h in self.history.items():
                 if k in s:

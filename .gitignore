@@ -9,3 +9,11 @@ dist/
 
 # Orijinal Monster CC yedeği (büyük, yerel kalsın)
 yedek/
+
+# Ureticiye ait kitapliklar: depoya GIRMEZ (lib/README.md'ye bakin)
+lib/*.dll
+lib/*.exe
+
+# Yerel ve gecici
+*.log
+.claude/

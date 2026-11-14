@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# FCUK Control Center
+# Bu dosya Anthropic'in Claude Opus 5.5 yapay zeka modeliyle yazilmistir. MIT lisansi, bkz. LICENSE.
 """Sistem tepsisi simgesi: ayri, NORMAL yetkili hafif bir surec (pythonw control_center.py --tray).
 
 Neden ayri surec: motor yonetici olarak calisir. Windows (UIPI) normal yetkili Gezgin'den yonetici
@@ -16,8 +18,10 @@ import time
 import urllib.request
 from ctypes import wintypes as wt
 
+import ceviri
 import fntus
 import klavye_rgb as core
+from ceviri import t
 
 u32 = ctypes.WinDLL("user32", use_last_error=True)
 k32 = ctypes.WinDLL("kernel32", use_last_error=True)
@@ -46,7 +50,6 @@ ERROR_ALREADY_EXISTS = 183
 LEVELS = {"tam_sessiz": 1, "sessiz_kullanim": 2, "sessiz_oyun": 3, "performans": 4, "ultra": 5}
 COLORS = {0: (129, 138, 153), 1: (88, 166, 255), 2: (64, 200, 200), 3: (92, 214, 120),
           4: (255, 180, 84), 5: (255, 107, 107)}
-FAN_TXT = {0: "otomatik", 1: "maksimum", 6: "profil eğrisi"}
 
 
 class GUID(ctypes.Structure):
@@ -193,7 +196,7 @@ class Tray:
         wc.lpszClassName = "KendiControlCenterTray"
         u32.RegisterClassExW(ctypes.byref(wc))
         # Gorunmez ust duzey pencere (yalnizca-mesaj penceresi TaskbarCreated yayinini alamaz)
-        self.hwnd = u32.CreateWindowExW(0, wc.lpszClassName, "Kendi Control Center", 0, 0, 0, 0, 0,
+        self.hwnd = u32.CreateWindowExW(0, wc.lpszClassName, "FCUK Control Center", 0, 0, 0, 0, 0,
                                         None, None, hinst, None)
         self.nid = NOTIFYICONDATAW()
         self.nid.cbSize = ctypes.sizeof(NOTIFYICONDATAW)
@@ -222,17 +225,17 @@ class Tray:
         try:
             r = self.api.post("/api/kb", {"action": action}, timeout=5)
             if action == "next":
-                self._osd_later("Klavye", r.get("mode_label", ""), state=True)
+                self._osd_later(t("osd.kb"), r.get("mode_label", ""), state=True)
             else:
                 b = r.get("brightness", 0)
-                self._osd_later("Klavye ışığı", "Kapalı" if b == 0 else "%%%d" % b, b, b > 0)
+                self._osd_later(t("osd.kbLight"), t("osd.off") if b == 0 else ceviri.pct(b), b, b > 0)
         except (OSError, ValueError):
-            self._osd_later("Klavye ışığı", "Motor yanıt vermiyor", state=False)
+            self._osd_later(t("osd.kbLight"), t("tray.engineDown"), state=False)
 
     def _touchpad(self):
         time.sleep(0.4)  # donanim cevirsin, Windows durumu yazsin
         on = fntus.touchpad_enabled()
-        self._osd_later("Touchpad", "" if on is None else ("Açık" if on else "Kapalı"), state=on)
+        self._osd_later(t("osd.touchpad"), "" if on is None else t("osd.on" if on else "osd.off"), state=on)
 
     def fn_key(self, code):
         bg = lambda f, *a: threading.Thread(target=f, args=a, daemon=True).start()
@@ -241,11 +244,11 @@ class Tray:
         elif code == fntus.FN_SCREEN_OFF:
             bg(fntus.screen_off)
         elif code == fntus.FN_CAMERA_OFF:
-            self.osd.show("Kamera", "Kapalı", state=False)
+            self.osd.show(t("osd.camera"), t("osd.off"), state=False)
         elif code == fntus.FN_CAMERA_ON:
-            self.osd.show("Kamera", "Açık", state=True)
+            self.osd.show(t("osd.camera"), t("osd.on"), state=True)
         elif code == fntus.FN_AIRPLANE:
-            self.osd.show("Uçak modu", "Değiştirildi")
+            self.osd.show(t("osd.airplane"), t("osd.changed"))
         elif code in (fntus.FN_KB_TOGGLE, fntus.FN_KB_UP, fntus.FN_KB_DOWN, fntus.FN_KB_NEXT):
             bg(self._kb, {fntus.FN_KB_TOGGLE: "toggle", fntus.FN_KB_UP: "up",
                           fntus.FN_KB_DOWN: "down", fntus.FN_KB_NEXT: "next"}[code])
@@ -288,21 +291,23 @@ class Tray:
     def _tip(self):
         s = self.state
         if not s:
-            return "Kendi Control Center\n" + ("Motor yanıt vermiyor" if self.seen_engine else "Motor başlatılıyor…")
-        line = "Profil: " + (self._name(s.get("profile")) or "yok")
+            return "FCUK Control Center\n" + (t("tray.engineDown") if self.seen_engine else t("tray.engineStarting"))
+        line = t("tray.profile", name=self._name(s.get("profile")) or t("tray.none"))
         if s.get("guard"):
-            line += " (koruma)"
-        t = "İşlemci %s °C" % s.get("cpu_temp", "?")
+            line += " (%s)" % t("tray.guard")
+        cpu = t("tray.cpu", t=s.get("cpu_temp", "?"))
         if s.get("cpu_power") is not None:
-            t += " · %s W" % s["cpu_power"]
-        g = "Ekran kartı " + ("%s °C" % s.get("gpu_temp", "?") if s.get("gpu_state") == "active" else "uykuda")
-        return "\n".join(["Kendi Control Center", line, t, g])[:127]
+            cpu += " · %s W" % s["cpu_power"]
+        g = t("tray.gpu", t=s.get("gpu_temp", "?")) if s.get("gpu_state") == "active" else t("tray.gpuAsleep")
+        return "\n".join(["FCUK Control Center", line, cpu, g])[:127]
 
     # -- yoklama (ayri is parcacigi; simgeyi ana is parcacigi gunceller)
     def poll(self):
         while self.running:
             try:
                 self.state = self.api.get("/api/tray")
+                if self.state.get("lang") and self.state["lang"] != ceviri.lang():
+                    ceviri.set_lang(self.state["lang"])  # arayuzden dil degisti
                 self.seen_engine = True
                 self.down_since = None
             except (OSError, ValueError):
@@ -319,7 +324,7 @@ class Tray:
     def menu(self):
         s = self.state
         m = u32.CreatePopupMenu()
-        u32.AppendMenuW(m, MF_STRING, self.ID_OPEN, "Kendi Control Center'ı aç")
+        u32.AppendMenuW(m, MF_STRING, self.ID_OPEN, t("tray.open"))
         u32.AppendMenuW(m, MF_SEPARATOR, 0, None)
         if s:
             for i, p in enumerate(s.get("profiles", [])):
@@ -329,20 +334,20 @@ class Tray:
                     flags |= MF_CHECKED
                 if p.get("ac_only") and not s.get("ac", True):
                     flags |= MF_GRAYED
-                    label += " (yalnızca fişte)"
+                    label += " (%s)" % t("tray.acOnly")
                 u32.AppendMenuW(m, flags, self.ID_PROFILE + i, label)
             u32.AppendMenuW(m, MF_SEPARATOR, 0, None)
             fan = u32.CreatePopupMenu()
             fm = s.get("fan_mode")
-            for cid, label, on in ((self.ID_FAN_PROFILE, "Profilin eğrisi", fm == 6),
-                                   (self.ID_FAN_AUTO, "Otomatik (denetleyici)", fm == 0),
-                                   (self.ID_FAN_MAX, "Maksimum", fm == 1)):
+            for cid, label, on in ((self.ID_FAN_PROFILE, t("tray.fanProfile"), fm == 6),
+                                   (self.ID_FAN_AUTO, t("tray.fanAuto"), fm == 0),
+                                   (self.ID_FAN_MAX, t("tray.fanMax"), fm == 1)):
                 u32.AppendMenuW(fan, MF_STRING | MF_RADIOCHECK | (MF_CHECKED if on else 0), cid, label)
-            u32.AppendMenuW(m, MF_POPUP, fan, "Fan: " + FAN_TXT.get(fm, "?"))
+            u32.AppendMenuW(m, MF_POPUP, fan, t("tray.fan", mode=t("trayfan.%s" % fm) if fm in (0, 1, 6) else "?"))
         else:
-            u32.AppendMenuW(m, MF_STRING, self.ID_START, "Motoru başlat")
+            u32.AppendMenuW(m, MF_STRING, self.ID_START, t("tray.start"))
         u32.AppendMenuW(m, MF_SEPARATOR, 0, None)
-        u32.AppendMenuW(m, MF_STRING, self.ID_QUIT, "Çık")
+        u32.AppendMenuW(m, MF_STRING, self.ID_QUIT, t("tray.quit"))
         pt = wt.POINT()
         u32.GetCursorPos(ctypes.byref(pt))
         u32.SetForegroundWindow(self.hwnd)  # yoksa menu disina tiklayinca kapanmaz
@@ -387,20 +392,20 @@ class Tray:
             r = self.api.post("/api/profile", {"id": p["id"]})
             bad = [x for x in r.get("report", []) if not x.get("ok")]
             if bad:
-                self.notify(p["name"] + " kısmen uygulandı", "; ".join("%s: %s" % (x["step"], x["msg"]) for x in bad))
+                self.notify(t("tray.partial", name=p["name"]), "; ".join("%s: %s" % (x["step"], x["msg"]) for x in bad))
             else:
-                self.notify(p["name"], "Profil uygulandı.")
+                self.notify(p["name"], t("tray.applied"))
         except (OSError, ValueError) as exc:
-            self.notify("Profil uygulanamadı", str(exc))
+            self.notify(t("tray.applyFail"), str(exc))
         self._refresh_now()
 
     def _fan(self, mode):
         try:
             r = self.api.post("/api/fan", {"mode": mode})
             if r.get("error"):
-                self.notify("Fan", r["error"])
+                self.notify(t("step.fan"), r["error"])
         except (OSError, ValueError) as exc:
-            self.notify("Fan ayarlanamadı", str(exc))
+            self.notify(t("tray.fanFail"), str(exc))
         self._refresh_now()
 
     # -- mesajlar

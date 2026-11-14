@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kendi Control Center</title>
+<title>FCUK Control Center</title>
 <style>
 /* Tasarim belirtecleri: tek kaynak MASTER.md. */
 :root{
@@ -305,87 +305,87 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
   <header class="top">
     <div class="brand">
       <span class="mark" aria-hidden="true"></span>
-      <h1>Kendi Control Center</h1>
+      <h1>FCUK Control Center</h1>
       <span class="device" id="device"></span>
     </div>
     <div class="top-actions">
-      <span class="chip warn" id="guardChip" hidden>Isı koruması</span>
-      <span class="chip" id="profChip" title="Etkin profil">Profil yok</span>
-      <span class="chip" id="adminChip" title="Motorun yetkisi">Standart</span>
+      <span class="chip warn" id="guardChip" data-i18n="chip.guard" hidden>Isı koruması</span>
+      <span class="chip" id="profChip" data-i18n-title="chip.profile.title" title="Etkin profil">Profil yok</span>
+      <span class="chip" id="adminChip" data-i18n-title="chip.admin.title" title="Motorun yetkisi">Standart</span>
     </div>
   </header>
 
   <div class="shell">
-    <nav class="rail" aria-label="Bölümler">
-      <button class="nav" type="button" data-view="genel" aria-current="page">Genel bakış<small>Canlı ölçümler</small></button>
-      <button class="nav" type="button" data-view="performans">Performans<small>Beş profil</small></button>
-      <button class="nav" type="button" data-view="fan">Fanlar<small>Eğri ve devir</small></button>
-      <button class="nav" type="button" data-view="ses">Ses ve ekran<small>Seviye, mikrofon, Hz</small></button>
-      <button class="nav" type="button" data-view="klavye">Klavye<small>RGB modları</small></button>
-      <button class="nav" type="button" data-view="ayarlar">Ayarlar<small>Yönetici, açılış</small></button>
+    <nav class="rail" data-i18n-aria="nav.aria" aria-label="Bölümler">
+      <button class="nav" type="button" data-view="genel" aria-current="page"><span data-i18n="nav.genel">Genel bakış</span><small data-i18n="nav.genel.sub">Canlı ölçümler</small></button>
+      <button class="nav" type="button" data-view="performans"><span data-i18n="nav.performans">Performans</span><small data-i18n="nav.performans.sub">Beş profil</small></button>
+      <button class="nav" type="button" data-view="fan"><span data-i18n="nav.fan">Fanlar</span><small data-i18n="nav.fan.sub">Eğri ve devir</small></button>
+      <button class="nav" type="button" data-view="ses"><span data-i18n="nav.ses">Ses ve ekran</span><small data-i18n="nav.ses.sub">Seviye, mikrofon, Hz</small></button>
+      <button class="nav" type="button" data-view="klavye"><span data-i18n="nav.klavye">Klavye</span><small data-i18n="nav.klavye.sub">RGB modları</small></button>
+      <button class="nav" type="button" data-view="ayarlar"><span data-i18n="nav.ayarlar">Ayarlar</span><small data-i18n="nav.ayarlar.sub">Dil, yönetici, açılış</small></button>
       <div class="foot"><span class="note" id="verNote"></span></div>
     </nav>
 
     <!-- Genel bakis -->
-    <section class="view" id="v-genel" aria-label="Genel bakış">
+    <section class="view" id="v-genel" data-i18n-aria="nav.genel" aria-label="Genel bakış">
       <div class="page">
-        <div class="prof-row" id="quickProfiles" aria-label="Hızlı profil seçimi"></div>
+        <div class="prof-row" id="quickProfiles" data-i18n-aria="ov.quick.aria" aria-label="Hızlı profil seçimi"></div>
         <div class="tiles">
           <article class="tile">
-            <div class="tile-top"><span class="lbl">İşlemci</span><span class="state" id="cpuState"></span></div>
+            <div class="tile-top"><span class="lbl" data-i18n="ov.cpu">İşlemci</span><span class="state" id="cpuState"></span></div>
             <div><span class="big" id="cpuTemp">–</span><span class="unit">°C</span></div>
             <canvas class="spark" id="sparkCpuTemp" aria-hidden="true"></canvas>
             <div class="kvs">
-              <div class="kv">Güç<b id="cpuPow">–</b></div>
-              <div class="kv">Yük<b id="cpuLoad">–</b></div>
-              <div class="kv">En hızlı çekirdek<b id="cpuMhz">–</b></div>
-              <div class="kv">Dahili grafik<b id="igpuPow">–</b></div>
+              <div class="kv"><span data-i18n="ov.power">Güç</span><b id="cpuPow">–</b></div>
+              <div class="kv"><span data-i18n="ov.load">Yük</span><b id="cpuLoad">–</b></div>
+              <div class="kv"><span data-i18n="ov.fastestCore">En hızlı çekirdek</span><b id="cpuMhz">–</b></div>
+              <div class="kv"><span data-i18n="ov.igpu">Dahili grafik</span><b id="igpuPow">–</b></div>
             </div>
           </article>
           <article class="tile">
-            <div class="tile-top"><span class="lbl">Ekran kartı</span><span class="state" id="gpuState">–</span></div>
+            <div class="tile-top"><span class="lbl" data-i18n="ov.gpu">Ekran kartı</span><span class="state" id="gpuState">–</span></div>
             <div><span class="big" id="gpuTemp">–</span><span class="unit">°C</span></div>
             <canvas class="spark" id="sparkGpuTemp" aria-hidden="true"></canvas>
             <div class="kvs">
-              <div class="kv">Güç<b id="gpuPow">–</b></div>
-              <div class="kv">Yük<b id="gpuLoad">–</b></div>
-              <div class="kv">Saat<b id="gpuClock">–</b></div>
-              <div class="kv">Bellek<b id="gpuVram">–</b></div>
+              <div class="kv"><span data-i18n="ov.power">Güç</span><b id="gpuPow">–</b></div>
+              <div class="kv"><span data-i18n="ov.load">Yük</span><b id="gpuLoad">–</b></div>
+              <div class="kv"><span data-i18n="ov.clock">Saat</span><b id="gpuClock">–</b></div>
+              <div class="kv"><span data-i18n="ov.vram">Bellek</span><b id="gpuVram">–</b></div>
             </div>
           </article>
           <article class="tile">
-            <div class="tile-top"><span class="lbl">Fanlar</span><span class="state" id="fanModeTxt">–</span></div>
+            <div class="tile-top"><span class="lbl" data-i18n="ov.fans">Fanlar</span><span class="state" id="fanModeTxt">–</span></div>
             <div><span class="big" id="fanCpuRpm">–</span><span class="unit">rpm</span></div>
             <canvas class="spark" id="sparkFan" aria-hidden="true"></canvas>
             <div class="kvs">
-              <div class="kv">İşlemci fanı<b id="fanCpuDuty">–</b></div>
-              <div class="kv">Kart fanı<b id="fanGpu">–</b></div>
+              <div class="kv"><span data-i18n="ov.cpuFan">İşlemci fanı</span><b id="fanCpuDuty">–</b></div>
+              <div class="kv"><span data-i18n="ov.gpuFan">Kart fanı</span><b id="fanGpu">–</b></div>
             </div>
           </article>
           <article class="tile">
-            <div class="tile-top"><span class="lbl">İşlemci paket gücü</span></div>
+            <div class="tile-top"><span class="lbl" data-i18n="ov.pkgPower">İşlemci paket gücü</span></div>
             <div><span class="big" id="powBig">–</span><span class="unit">W</span></div>
             <canvas class="spark" id="sparkPow" aria-hidden="true"></canvas>
             <div class="kvs">
-              <div class="kv">3 dk ortalama<b id="powAvg">–</b></div>
-              <div class="kv">3 dk tepe<b id="powMax">–</b></div>
+              <div class="kv"><span data-i18n="ov.avg3">3 dk ortalama</span><b id="powAvg">–</b></div>
+              <div class="kv"><span data-i18n="ov.max3">3 dk tepe</span><b id="powMax">–</b></div>
             </div>
           </article>
           <article class="tile">
-            <div class="tile-top"><span class="lbl">Sistem</span></div>
+            <div class="tile-top"><span class="lbl" data-i18n="ov.system">Sistem</span></div>
             <div class="kvs">
-              <div class="kv">Bellek<b id="ram">–</b></div>
-              <div class="kv">Disk C:<b id="disk">–</b></div>
-              <div class="kv">Okuma<b id="diskR">–</b></div>
-              <div class="kv">Yazma<b id="diskW">–</b></div>
-              <div class="kv">İndirme<b id="netD">–</b></div>
-              <div class="kv">Yükleme<b id="netU">–</b></div>
-              <div class="kv">Pil<b id="bat">–</b></div>
-              <div class="kv">Kaynak<b id="acTxt">–</b></div>
+              <div class="kv"><span data-i18n="ov.ram">Bellek</span><b id="ram">–</b></div>
+              <div class="kv"><span data-i18n="ov.disk">Disk C:</span><b id="disk">–</b></div>
+              <div class="kv"><span data-i18n="ov.read">Okuma</span><b id="diskR">–</b></div>
+              <div class="kv"><span data-i18n="ov.write">Yazma</span><b id="diskW">–</b></div>
+              <div class="kv"><span data-i18n="ov.down">İndirme</span><b id="netD">–</b></div>
+              <div class="kv"><span data-i18n="ov.up">Yükleme</span><b id="netU">–</b></div>
+              <div class="kv"><span data-i18n="ov.battery">Pil</span><b id="bat">–</b></div>
+              <div class="kv"><span data-i18n="ov.source">Kaynak</span><b id="acTxt">–</b></div>
             </div>
           </article>
           <article class="tile wide">
-            <div class="tile-top"><span class="lbl">Çekirdekler</span><span class="hint">Çubuk yükü, sayı anlık MHz'i gösterir</span></div>
+            <div class="tile-top"><span class="lbl" data-i18n="ov.cores">Çekirdekler</span><span class="hint" data-i18n="ov.cores.hint">Çubuk yükü, sayı anlık MHz'i gösterir</span></div>
             <div class="cores" id="cores"></div>
           </article>
         </div>
@@ -393,59 +393,59 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
     </section>
 
     <!-- Performans -->
-    <section class="view" id="v-performans" aria-label="Performans" hidden>
+    <section class="view" id="v-performans" data-i18n-aria="nav.performans" aria-label="Performans" hidden>
       <div class="page">
         <header class="page-head">
-          <h2>Performans profilleri</h2>
-          <p>Her profil aynı anda denetleyicinin güç modunu, fan eğrisini, işlemcinin turbo ve frekans tavanlarını, ekran kartı saatini ve ekran yenileme hızını ayarlar. Etkisini aşağıdaki canlı ölçümde görürsün.</p>
+          <h2 data-i18n="perf.title">Performans profilleri</h2>
+          <p data-i18n="perf.intro">Her profil aynı anda denetleyicinin güç modunu, fan eğrisini, işlemcinin turbo ve frekans tavanlarını, ekran kartı saatini ve ekran yenileme hızını ayarlar. Etkisini aşağıdaki canlı ölçümde görürsün.</p>
         </header>
         <div class="strip-live">
-          <div class="cell"><span class="lbl">İşlemci gücü</span><b id="lvPow">–</b></div>
-          <div class="cell"><span class="lbl">En hızlı çekirdek</span><b id="lvMhz">–</b></div>
-          <div class="cell"><span class="lbl">İşlemci</span><b id="lvCpuT">–</b></div>
-          <div class="cell"><span class="lbl">Ekran kartı</span><b id="lvGpuT">–</b></div>
-          <div class="cell"><span class="lbl">Fan</span><b id="lvFan">–</b></div>
+          <div class="cell"><span class="lbl" data-i18n="perf.cpuPower">İşlemci gücü</span><b id="lvPow">–</b></div>
+          <div class="cell"><span class="lbl" data-i18n="ov.fastestCore">En hızlı çekirdek</span><b id="lvMhz">–</b></div>
+          <div class="cell"><span class="lbl" data-i18n="ov.cpu">İşlemci</span><b id="lvCpuT">–</b></div>
+          <div class="cell"><span class="lbl" data-i18n="ov.gpu">Ekran kartı</span><b id="lvGpuT">–</b></div>
+          <div class="cell"><span class="lbl" data-i18n="perf.fan">Fan</span><b id="lvFan">–</b></div>
         </div>
         <div class="cards" id="profileCards"></div>
         <div class="split">
           <div class="tile">
-            <span class="lbl">Son uygulama</span>
-            <ul class="report" id="report"><li class="empty">Henüz profil uygulanmadı.</li></ul>
+            <span class="lbl" data-i18n="perf.lastApply">Son uygulama</span>
+            <ul class="report" id="report"><li class="empty" data-i18n="perf.noneYet">Henüz profil uygulanmadı.</li></ul>
           </div>
           <div class="tile form">
-            <span class="lbl">Otomatik geçiş</span>
-            <div class="frow"><label for="ruleBat">Pile geçince</label><select id="ruleBat"></select></div>
-            <div class="frow"><label for="ruleAc">Fişe takılınca</label><select id="ruleAc"></select></div>
-            <label class="switch"><input type="checkbox" id="ruleHz"><span class="track" aria-hidden="true"></span><span>Profiller ekran yenileme hızını da değiştirsin</span></label>
-            <div class="frow"><span class="hint">Fabrika durumu: Eğlence modu, otomatik fan, Dengeli güç planı.</span><button class="btn danger" id="factory" type="button">Fabrika</button></div>
+            <span class="lbl" data-i18n="perf.auto">Otomatik geçiş</span>
+            <div class="frow"><label for="ruleBat" data-i18n="perf.onBattery">Pile geçince</label><select id="ruleBat"></select></div>
+            <div class="frow"><label for="ruleAc" data-i18n="perf.onAc">Fişe takılınca</label><select id="ruleAc"></select></div>
+            <label class="switch"><input type="checkbox" id="ruleHz"><span class="track" aria-hidden="true"></span><span data-i18n="perf.refreshToo">Profiller ekran yenileme hızını da değiştirsin</span></label>
+            <div class="frow"><span class="hint" data-i18n="perf.factoryHint">Fabrika durumu: Eğlence modu, otomatik fan, Dengeli güç planı.</span><button class="btn danger" id="factory" type="button" data-i18n="perf.factory">Fabrika</button></div>
           </div>
         </div>
       </div>
     </section>
 
     <!-- Fanlar -->
-    <section class="view" id="v-fan" aria-label="Fanlar" hidden>
+    <section class="view" id="v-fan" data-i18n-aria="nav.fan" aria-label="Fanlar" hidden>
       <div class="page">
         <header class="page-head">
-          <h2>Fanlar</h2>
-          <p>Eğriyi gömülü denetleyici çalıştırır, uygulama kapalıyken de geçerli kalır. İlk nokta (45 °C) ve son nokta (100 °C'de %100) denetleyicide sabittir; hiçbir eğri soğutmayı tamamen kesemez. Isı koruması: işlemci 93 °C'yi ya da kart 87 °C'yi 5 saniye aşarsa fanlar fabrika tablosuna döner, soğuyunca eğri geri gelir.</p>
+          <h2 data-i18n="nav.fan">Fanlar</h2>
+          <p data-i18n="fan.intro">Eğriyi gömülü denetleyici çalıştırır, uygulama kapalıyken de geçerli kalır. İlk nokta (45 °C) ve son nokta (100 °C'de %100) denetleyicide sabittir; hiçbir eğri soğutmayı tamamen kesemez. Isı koruması: işlemci 93 °C'yi ya da kart 87 °C'yi 5 saniye aşarsa fanlar fabrika tablosuna döner, soğuyunca eğri geri gelir.</p>
         </header>
         <div class="split">
           <div class="tile">
-            <div class="tile-top"><span class="lbl">İşlemci fan eğrisi</span><span class="legend"><span><i></i>Fabrika</span><span><i class="m"></i>Etkin</span><span><i class="d"></i>Şu an</span></span></div>
-            <svg class="curve" id="curve" viewBox="0 0 440 230" role="img" aria-label="Sıcaklığa göre fan görevi eğrisi"></svg>
+            <div class="tile-top"><span class="lbl" data-i18n="fan.curve">İşlemci fan eğrisi</span><span class="legend"><span><i></i><span data-i18n="fan.legend.factory">Fabrika</span></span><span><i class="m"></i><span data-i18n="fan.legend.active">Etkin</span></span><span><i class="d"></i><span data-i18n="fan.legend.now">Şu an</span></span></span></div>
+            <svg class="curve" id="curve" viewBox="0 0 440 230" role="img" data-i18n-aria="fan.curve.aria" aria-label="Sıcaklığa göre fan görevi eğrisi"></svg>
           </div>
           <div class="form">
             <div class="tiles" style="grid-template-columns:1fr 1fr">
-              <div class="tile"><span class="lbl">İşlemci fanı</span><div><span class="big" id="fRpm1">–</span><span class="unit">rpm</span></div><div class="kv">Görev<b id="fDuty1">–</b></div><div class="kv">Sıcaklık<b id="fT1">–</b></div></div>
-              <div class="tile"><span class="lbl">Kart fanı</span><div><span class="big" id="fRpm2">–</span><span class="unit">rpm</span></div><div class="kv">Görev<b id="fDuty2">–</b></div><div class="kv">Sıcaklık<b id="fT2">–</b></div></div>
+              <div class="tile"><span class="lbl" data-i18n="ov.cpuFan">İşlemci fanı</span><div><span class="big" id="fRpm1">–</span><span class="unit">rpm</span></div><div class="kv"><span data-i18n="fan.duty">Görev</span><b id="fDuty1">–</b></div><div class="kv"><span data-i18n="fan.temp">Sıcaklık</span><b id="fT1">–</b></div></div>
+              <div class="tile"><span class="lbl" data-i18n="ov.gpuFan">Kart fanı</span><div><span class="big" id="fRpm2">–</span><span class="unit">rpm</span></div><div class="kv"><span data-i18n="fan.duty">Görev</span><b id="fDuty2">–</b></div><div class="kv"><span data-i18n="fan.temp">Sıcaklık</span><b id="fT2">–</b></div></div>
             </div>
             <fieldset class="field">
-              <legend class="lbl">Fan denetimi</legend>
+              <legend class="lbl" data-i18n="fan.control">Fan denetimi</legend>
               <div class="seg auto">
-                <label><input type="radio" name="fanm" value="profile"><span>Profile göre</span></label>
-                <label><input type="radio" name="fanm" value="auto"><span>Fabrika</span></label>
-                <label><input type="radio" name="fanm" value="max"><span>Maksimum</span></label>
+                <label><input type="radio" name="fanm" value="profile"><span data-i18n="fan.byProfile">Profile göre</span></label>
+                <label><input type="radio" name="fanm" value="auto"><span data-i18n="fan.factoryOpt">Fabrika</span></label>
+                <label><input type="radio" name="fanm" value="max"><span data-i18n="fan.max">Maksimum</span></label>
               </div>
             </fieldset>
             <p class="hint" id="guardTxt"></p>
@@ -455,86 +455,91 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
     </section>
 
     <!-- Ses ve ekran -->
-    <section class="view" id="v-ses" aria-label="Ses ve ekran" hidden>
+    <section class="view" id="v-ses" data-i18n-aria="nav.ses" aria-label="Ses ve ekran" hidden>
       <div class="page">
-        <header class="page-head"><h2>Ses ve ekran</h2></header>
+        <header class="page-head"><h2 data-i18n="nav.ses">Ses ve ekran</h2></header>
         <div class="tiles">
           <div class="tile form">
-            <div class="field-top"><label class="lbl" for="vol">Hoparlör</label><output id="volOut"></output></div>
+            <div class="field-top"><label class="lbl" for="vol" data-i18n="audio.speaker">Hoparlör</label><output id="volOut"></output></div>
             <input type="range" id="vol" min="0" max="100" step="1">
-            <label class="switch"><input type="checkbox" id="volMute"><span class="track" aria-hidden="true"></span><span>Sessiz</span></label>
+            <label class="switch"><input type="checkbox" id="volMute"><span class="track" aria-hidden="true"></span><span>Sessiz</span data-i18n="audio.mute"></label>
           </div>
           <div class="tile form">
-            <div class="field-top"><label class="lbl" for="mic">Mikrofon</label><output id="micOut"></output></div>
+            <div class="field-top"><label class="lbl" for="mic" data-i18n="audio.mic">Mikrofon</label><output id="micOut"></output></div>
             <input type="range" id="mic" min="0" max="100" step="1">
-            <label class="switch"><input type="checkbox" id="micMute"><span class="track" aria-hidden="true"></span><span>Mikrofon kapalı</span></label>
+            <label class="switch"><input type="checkbox" id="micMute"><span class="track" aria-hidden="true"></span><span data-i18n="audio.micOff">Mikrofon kapalı</span></label>
           </div>
           <div class="tile form">
-            <div class="field-top"><span class="lbl">Ekran yenileme hızı</span><output id="hzOut"></output></div>
+            <div class="field-top"><span class="lbl" data-i18n="audio.refresh">Ekran yenileme hızı</span><output id="hzOut"></output></div>
             <div class="seg auto" id="hzSeg"></div>
-            <p class="hint">60 Hz ekran kartını ve paneli daha az yorar. Tam Sessiz bunu kendisi seçer.</p>
+            <p class="hint" data-i18n="audio.refreshHint">60 Hz ekran kartını ve paneli daha az yorar. Tam Sessiz bunu kendisi seçer.</p>
           </div>
         </div>
       </div>
     </section>
 
     <!-- Klavye -->
-    <section class="view" id="v-klavye" aria-label="Klavye" hidden>
+    <section class="view" id="v-klavye" data-i18n-aria="nav.klavye" aria-label="Klavye" hidden>
       <div class="grid">
-        <nav class="modes" aria-label="Modlar"><ul id="modeList"></ul></nav>
-        <section class="stage" aria-label="Canlı klavye">
+        <nav class="modes" data-i18n-aria="kb.modes.aria" aria-label="Modlar"><ul id="modeList"></ul></nav>
+        <section class="stage" data-i18n-aria="kb.stage.aria" aria-label="Canlı klavye">
           <div class="kb-wrap">
             <div class="kb-glow" aria-hidden="true"></div>
-            <div class="chassis"><div class="kb" id="kb" role="img" aria-label="Klavyenin şu anki rengini gösteren çizim"></div></div>
+            <div class="chassis"><div class="kb" id="kb" role="img" data-i18n-aria="kb.drawing.aria" aria-label="Klavyenin şu anki rengini gösteren çizim"></div></div>
           </div>
           <div class="readout">
-            <div class="cell"><span class="lbl">Şu anki renk</span><output class="hex" id="hex" aria-live="off">#000000</output></div>
-            <div class="cell" id="infoCell" hidden><span class="lbl">Ölçüm</span><div class="info" id="info"></div></div>
+            <div class="cell"><span class="lbl" data-i18n="kb.current">Şu anki renk</span><output class="hex" id="hex" aria-live="off">#000000</output></div>
+            <div class="cell" id="infoCell" hidden><span class="lbl" data-i18n="kb.measure">Ölçüm</span><div class="info" id="info"></div></div>
             <div class="cell grow">
-              <div class="field-top"><label class="lbl" for="bright">Parlaklık</label><output id="brightOut" for="bright"></output></div>
+              <div class="field-top"><label class="lbl" for="bright" data-i18n="kb.brightness">Parlaklık</label><output id="brightOut" for="bright"></output></div>
               <input type="range" id="bright" min="0" max="100" step="1">
             </div>
-            <button class="btn" id="freeze" type="button" aria-pressed="false">Önizlemeyi durdur</button>
+            <button class="btn" id="freeze" type="button" aria-pressed="false" data-i18n="kb.freeze">Önizlemeyi durdur</button>
           </div>
         </section>
-        <section class="settings" aria-label="Mod ayarları"><div class="set-body" id="setBody"></div></section>
-        <section class="presets" aria-label="Kayıtlı modlarım">
-          <h2>Kayıtlı modlarım</h2>
+        <section class="settings" data-i18n-aria="kb.settings.aria" aria-label="Mod ayarları"><div class="set-body" id="setBody"></div></section>
+        <section class="presets" data-i18n-aria="kb.presets" aria-label="Kayıtlı modlarım">
+          <h2 data-i18n="kb.presets">Kayıtlı modlarım</h2>
           <div class="preset-list" id="presetList"></div>
-          <p class="empty" id="presetEmpty">Henüz kayıtlı mod yok. Beğendiğin ayara ad verip kaydet.</p>
+          <p class="empty" id="presetEmpty" data-i18n="kb.presetsEmpty">Henüz kayıtlı mod yok. Beğendiğin ayara ad verip kaydet.</p>
           <form class="preset-form" id="presetForm">
-            <input type="text" id="presetName" maxlength="40" placeholder="Bu ayara ad ver" aria-label="Kaydedilecek modun adı" autocomplete="off">
-            <button class="btn solid" id="presetSave" type="submit" disabled>Kaydet</button>
+            <input type="text" id="presetName" maxlength="40" data-i18n-ph="kb.presetPh" placeholder="Bu ayara ad ver" data-i18n-aria="kb.presetAria" aria-label="Kaydedilecek modun adı" autocomplete="off">
+            <button class="btn solid" id="presetSave" type="submit" disabled data-i18n="kb.save">Kaydet</button>
           </form>
         </section>
       </div>
     </section>
 
     <!-- Ayarlar -->
-    <section class="view" id="v-ayarlar" aria-label="Ayarlar" hidden>
+    <section class="view" id="v-ayarlar" data-i18n-aria="nav.ayarlar" aria-label="Ayarlar" hidden>
       <div class="page">
-        <header class="page-head"><h2>Ayarlar</h2></header>
+        <header class="page-head"><h2 data-i18n="nav.ayarlar">Ayarlar</h2></header>
         <div class="tiles">
           <div class="tile form">
-            <span class="lbl">Yönetici modu</span>
+            <label class="lbl" for="langSel" data-i18n="set.lang">Dil</label>
+            <select id="langSel"></select>
+            <p class="hint" data-i18n="set.langHint">Otomatik seçimde dil, Windows'taki ülke veya bölge ayarına göre belirlenir.</p>
+          </div>
+          <div class="tile form">
+            <span class="lbl" data-i18n="set.admin">Yönetici modu</span>
             <p id="adminTxt"></p>
-            <div><button class="btn solid" id="adminBtn" type="button">Yönetici modunu kur</button></div>
+            <div><button class="btn solid" id="adminBtn" type="button" data-i18n="set.adminInstall">Yönetici modunu kur</button></div>
           </div>
           <div class="tile form">
-            <span class="lbl">Açılış</span>
-            <label class="switch"><input type="checkbox" id="autostart"><span class="track" aria-hidden="true"></span><span>Windows açılışında arka planda başlat</span></label>
-            <p class="hint">Açılışta son seçtiğin profil yeniden uygulanır; denetleyici bazı ayarları yeniden başlatmada sıfırlar.</p>
+            <span class="lbl" data-i18n="set.startup">Açılış</span>
+            <label class="switch"><input type="checkbox" id="autostart"><span class="track" aria-hidden="true"></span><span data-i18n="set.autostart">Windows açılışında arka planda başlat</span></label>
+            <p class="hint" data-i18n="set.startupHint">Açılışta son seçtiğin profil yeniden uygulanır; denetleyici bazı ayarları yeniden başlatmada sıfırlar.</p>
           </div>
           <div class="tile form">
-            <span class="lbl">Motor</span>
-            <p class="hint">Kapatınca profil, fan eğrisi ve klavye son halinde kalır. Canlı ölçüm, otomatik geçiş ve ısı koruması durur.</p>
-            <div><button class="btn danger" id="quit" type="button">Motoru kapat</button></div>
+            <span class="lbl" data-i18n="set.engine">Motor</span>
+            <p class="hint" data-i18n="set.engineHint">Kapatınca profil, fan eğrisi ve klavye son halinde kalır. Canlı ölçüm, otomatik geçiş ve ısı koruması durur.</p>
+            <div><button class="btn danger" id="quit" type="button" data-i18n="set.quit">Motoru kapat</button></div>
           </div>
           <div class="tile">
-            <span class="lbl">Hakkında</span>
-            <div class="kv">Sürüm<b id="aboutVer">–</b></div>
-            <div class="kv">Ekran kartı<b id="aboutGpu">–</b></div>
-            <div class="kv">Donanım kitaplığı<b id="aboutDll" style="white-space:normal;text-align:right;word-break:break-all">–</b></div>
+            <span class="lbl" data-i18n="set.about">Hakkında</span>
+            <div class="kv"><span data-i18n="set.version">Sürüm</span><b id="aboutVer">–</b></div>
+            <div class="kv"><span data-i18n="ov.gpu">Ekran kartı</span><b id="aboutGpu">–</b></div>
+            <div class="kv"><span data-i18n="set.dll">Donanım kitaplığı</span><b id="aboutDll" style="white-space:normal;text-align:right;word-break:break-all">–</b></div>
           </div>
         </div>
       </div>
@@ -542,12 +547,12 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
   </div>
 </div>
 
-<div class="picker closed" id="picker" role="dialog" aria-label="Renk seçici">
-  <div class="sv" id="sv" tabindex="0" role="slider" aria-label="Doygunluk ve parlaklık, ok tuşlarıyla ayarla" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="svDot"></i></div>
-  <input type="range" class="hue" id="hue" min="0" max="360" step="1" aria-label="Renk tonu">
+<div class="picker closed" id="picker" role="dialog" data-i18n-aria="picker.aria" aria-label="Renk seçici">
+  <div class="sv" id="sv" tabindex="0" role="slider" data-i18n-aria="picker.sv" aria-label="Doygunluk ve parlaklık, ok tuşlarıyla ayarla" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="svDot"></i></div>
+  <input type="range" class="hue" id="hue" min="0" max="360" step="1" data-i18n-aria="picker.hue" aria-label="Renk tonu">
   <div class="row">
-    <input type="text" id="hexIn" maxlength="7" spellcheck="false" aria-label="Renk kodu">
-    <button class="btn solid" id="pickDone" type="button">Tamam</button>
+    <input type="text" id="hexIn" maxlength="7" spellcheck="false" data-i18n-aria="picker.hex" aria-label="Renk kodu">
+    <button class="btn solid" id="pickDone" type="button" data-i18n="picker.done">Tamam</button>
   </div>
 </div>
 <div class="banner closed" id="banner" role="status"></div>
@@ -560,11 +565,27 @@ const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls)
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const reduce = matchMedia('(prefers-reduced-motion: reduce)');
 const T_FAST = 200;
-const PAL_HINT = { one: 'Tek renk', steps: 'Sırayla, soldan sağa', loop: 'Soldan sağa, sonra başa döner', range: 'Sol düşük, sağ yüksek' };
+/* ---------- dil: metinler motorun gomdugu window.I18N'den (ui/lang/<kod>.json) ---------- */
+const I18N = window.I18N || {};
+const LOCALE = I18N.locale || 'tr-TR';
+function t(key, vars) {
+  let s = I18N[key] != null ? I18N[key] : key;
+  if (vars) s = s.replace(/\{(\w+)\}/g, (m, n) => (n in vars ? vars[n] : m));
+  return s;
+}
+const pct = v => t('fmt.pct', { v });
+function applyI18n(root = document) {
+  root.querySelectorAll('[data-i18n]').forEach(n => { n.textContent = t(n.dataset.i18n); });
+  root.querySelectorAll('[data-i18n-title]').forEach(n => { n.title = t(n.dataset.i18nTitle); });
+  root.querySelectorAll('[data-i18n-aria]').forEach(n => n.setAttribute('aria-label', t(n.dataset.i18nAria)));
+  root.querySelectorAll('[data-i18n-ph]').forEach(n => { n.placeholder = t(n.dataset.i18nPh); });
+}
+if (window.I18N) applyI18n();
+const PAL_HINT = { one: t('pal.one'), steps: t('pal.steps'), loop: t('pal.loop'), range: t('pal.range') };
 const SPECTRUM = 'var(--spectrum)';
 const LEVEL = { tam_sessiz: 1, sessiz_kullanim: 2, sessiz_oyun: 3, performans: 4, ultra: 5 };
-const FAN_MODE_TXT = { 0: 'Fabrika tablosu', 1: 'Maksimum', 6: 'Özel eğri' };
-const NO_LINK = 'Motorla bağlantı yok. Control Center.bat ile yeniden başlat.';
+const FAN_MODE_TXT = { 0: t('fanmode.0'), 1: t('fanmode.1'), 6: t('fanmode.6') };
+const NO_LINK = t('err.noLink');
 
 let meta = null, cfg = null, cc = null, frozen = false, pending = null, quitting = false, saveTimer = 0;
 let view = 'genel', sensor = null, busy = false;
@@ -594,7 +615,7 @@ function ink(c) {
   while (luminance(out) < .24 && k < 1) { k += .06; out = c.map(v => Math.round(v + (255 - v) * k)); }
   return out;
 }
-const fmt = (v, d = 0) => v == null || Number.isNaN(+v) ? '–' : Number(v).toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const fmt = (v, d = 0) => v == null || Number.isNaN(+v) ? '–' : Number(v).toLocaleString(LOCALE, { minimumFractionDigits: d, maximumFractionDigits: d });
 const setText = (id, t) => { const n = document.getElementById(id); if (n && n.textContent !== t) n.textContent = t; };
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
@@ -609,7 +630,7 @@ async function api(path, body) {
 function save() {
   paintStrips();
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => api('/api/config', cfg).catch(() => banner('Ayar kaydedilemedi: motorla bağlantı yok.')), 80);
+  saveTimer = setTimeout(() => api('/api/config', cfg).catch(() => banner(t('err.saveCfg'))), 80);
 }
 let bannerTimer = 0;
 function banner(text, info) {
@@ -645,7 +666,7 @@ function paintLive() {
   $('#hex').textContent = rgbToHex(d.c);
   const info = $('#info');
   info.classList.toggle('err', !!d.err);
-  info.textContent = d.err ? 'Hata: ' + d.err : d.info;
+  info.textContent = d.err ? t('kb.error', { err: d.err }) : d.info;
   $('#infoCell').hidden = !(d.err || d.info);
   const m = $('#meter');
   if (m && d.v != null) {
@@ -687,18 +708,18 @@ function renderSensors(s) {
     setText('cpuTemp', fmt(s.cpu_temp)); tempCls('cpuTemp', s.cpu_temp);
     setText('gpuTemp', fmt(s.gpu_temp)); tempCls('gpuTemp', s.gpu_temp);
     setText('cpuPow', W(s.cpu_power));
-    setText('cpuLoad', '%' + fmt(s.cpu_load));
+    setText('cpuLoad', pct(fmt(s.cpu_load)));
     setText('cpuMhz', fmt(s.cpu_mhz) + ' MHz');
     setText('igpuPow', W(s.igpu_power));
     const awake = s.gpu_state === 'active';
-    const st = $('#gpuState'); st.textContent = awake ? 'Çalışıyor' : 'Uykuda'; st.classList.toggle('on', awake);
+    const st = $('#gpuState'); st.textContent = awake ? t('gpu.active') : t('gpu.asleep'); st.classList.toggle('on', awake);
     setText('gpuPow', awake ? W(s.gpu_power) : '–');
-    setText('gpuLoad', '%' + fmt(s.gpu_load));
+    setText('gpuLoad', pct(fmt(s.gpu_load)));
     setText('gpuClock', awake && s.gpu_clock != null ? fmt(s.gpu_clock) + ' MHz' : '–');
     setText('gpuVram', awake && s.gpu_vram_total ? fmt(s.gpu_vram_used / 1024, 1) + ' / ' + fmt(s.gpu_vram_total / 1024, 1) + ' GB' : '–');
     setText('fanCpuRpm', fmt(s.cpu_rpm));
-    setText('fanCpuDuty', '%' + fmt(s.cpu_duty));
-    setText('fanGpu', fmt(s.gpu_rpm) + ' rpm · %' + fmt(s.gpu_duty));
+    setText('fanCpuDuty', pct(fmt(s.cpu_duty)));
+    setText('fanGpu', fmt(s.gpu_rpm) + ' rpm · ' + pct(fmt(s.gpu_duty)));
     setText('powBig', fmt(s.cpu_power, 1));
     const ph = hist.cpu_power;
     if (ph.length) {
@@ -712,8 +733,8 @@ function renderSensors(s) {
     const kb = v => v == null ? '–' : v >= 1024 ? fmt(v / 1024, 1) + ' MB/s' : fmt(v) + ' KB/s';
     setText('netD', kb(s.net_down)); setText('netU', kb(s.net_up));
     const b = s.battery || {};
-    setText('bat', b.percent == null ? '–' : '%' + b.percent);
-    setText('acTxt', b.ac ? 'Fiş' : 'Pil');
+    setText('bat', b.percent == null ? '–' : pct(b.percent));
+    setText('acTxt', b.ac ? t('ac.plug') : t('ac.battery'));
     renderCores(s.cores || []);
     spark('sparkCpuTemp', hist.cpu_temp, 30, 100);
     spark('sparkGpuTemp', hist.gpu_temp, 30, 100);
@@ -726,8 +747,8 @@ function renderSensors(s) {
     setText('lvGpuT', fmt(s.gpu_temp) + ' °C');
     setText('lvFan', fmt(s.cpu_rpm) + ' rpm');
   } else if (view === 'fan') {
-    setText('fRpm1', fmt(s.cpu_rpm)); setText('fDuty1', '%' + fmt(s.cpu_duty)); setText('fT1', fmt(s.cpu_temp) + ' °C');
-    setText('fRpm2', fmt(s.gpu_rpm)); setText('fDuty2', '%' + fmt(s.gpu_duty)); setText('fT2', fmt(s.gpu_temp) + ' °C');
+    setText('fRpm1', fmt(s.cpu_rpm)); setText('fDuty1', pct(fmt(s.cpu_duty))); setText('fT1', fmt(s.cpu_temp) + ' °C');
+    setText('fRpm2', fmt(s.gpu_rpm)); setText('fDuty2', pct(fmt(s.gpu_duty))); setText('fT2', fmt(s.gpu_temp) + ' °C');
     drawCurve();
   }
 }
@@ -742,7 +763,7 @@ function renderCores(cores) {
       const bar = el('div', 'bar'); bar.append(el('i'));
       const name = p ? 'P' + (Math.floor(i / 2) + 1) : 'E' + (i - pCount + 1);
       d.append(el('span', '', name), bar, el('span', 'mhz', ''));
-      d.title = p ? `Performans çekirdeği ${Math.floor(i / 2) + 1}, iş parçacığı ${i % 2 + 1}` : `Verimlilik çekirdeği ${i - pCount + 1}`;
+      d.title = p ? t('core.p.title', { n: Math.floor(i / 2) + 1, t: i % 2 + 1 }) : t('core.e.title', { n: i - pCount + 1 });
       box.append(d);
     });
   }
@@ -791,16 +812,16 @@ function renderProfiles() {
     const dl = el('dl', 'rows');
     for (const [k, v] of p.rows) dl.append(el('dt', '', k), el('dd', '', v));
     const foot = el('div', 'card-foot');
-    const ab = el('button', 'btn solid', 'Uygula'); ab.type = 'button';
+    const ab = el('button', 'btn solid', t('perf.apply')); ab.type = 'button';
     ab.addEventListener('click', () => applyProfile(p.id));
-    foot.append(el('span', 'tag', p.ac_only ? 'Yalnızca fişteyken; pilde Performans uygulanır' : p.tag), ab);
+    foot.append(el('span', 'tag', p.ac_only ? t('perf.acOnlyTag') : p.tag), ab);
     c.append(head, el('p', '', p.desc), dl, foot);
     cards.append(c);
   }
   for (const id of ['ruleBat', 'ruleAc']) {
     const s = $('#' + id);
     s.textContent = '';
-    s.append(new Option('Değiştirme', ''));
+    s.append(new Option(t('perf.noChange'), ''));
     for (const p of meta.profiles) s.append(new Option(p.name, p.id));
   }
   paintProfile();
@@ -810,7 +831,7 @@ function paintProfile() {
   document.querySelectorAll('.pbtn').forEach(b => b.setAttribute('aria-pressed', b.dataset.id === id ? 'true' : 'false'));
   document.querySelectorAll('.card').forEach(c => c.setAttribute('aria-current', c.dataset.id === id ? 'true' : 'false'));
   const chip = $('#profChip');
-  chip.textContent = id ? profName(id) : 'Profil yok';
+  chip.textContent = id ? profName(id) : t('chip.noProfile');
   chip.classList.toggle('on', !!id);
   $('#guardChip').hidden = !(cc && cc.guard);
   $('#guardTxt').textContent = cc && cc.guard ? cc.guard : '';
@@ -846,15 +867,15 @@ async function applyProfile(id) {
     cc = r.cc;
     const bad = r.report.filter(x => !x.ok);
     // Kismi basari da bilgi: ayrinti Performans sekmesindeki raporda kalir, bildirim kendiliginden kapanir.
-    banner(bad.length ? `${profName(id)} uygulandı; ${bad.length} adım uygulanamadı: ${bad.map(x => x.step).join(', ')}. Ayrıntı Performans sekmesinde.` : `${profName(id)} uygulandı.`, true);
-  } catch (e) { banner('Profil uygulanamadı: ' + e.message); }
+    banner(bad.length ? t('perf.appliedPartial', { name: profName(id), n: bad.length, steps: bad.map(x => x.step).join(', ') }) : t('perf.applied', { name: profName(id) }), true);
+  } catch (e) { banner(t('perf.applyFail', { err: e.message })); }
   busy = false; lockProfiles(false);
   paintProfile();
 }
 function initPerformance() {
   const rules = async body => {
     try { cc = (await api('/api/rules', body)).cc; paintProfile(); }
-    catch (e) { banner('Kural kaydedilemedi: ' + e.message); }
+    catch (e) { banner(t('perf.ruleFail', { err: e.message })); }
   };
   $('#ruleBat').addEventListener('change', e => rules({ on_battery: e.target.value }));
   $('#ruleAc').addEventListener('change', e => rules({ on_ac: e.target.value }));
@@ -863,18 +884,18 @@ function initPerformance() {
   let fbTimer = 0;
   fb.addEventListener('click', async () => {
     if (!fb.classList.contains('sure')) {  // ilk tik sorar, ikincisi uygular
-      fb.classList.add('sure'); fb.textContent = 'Emin misin?';
-      fbTimer = setTimeout(() => { fb.classList.remove('sure'); fb.textContent = 'Fabrika'; }, 3000);
+      fb.classList.add('sure'); fb.textContent = t('common.sure');
+      fbTimer = setTimeout(() => { fb.classList.remove('sure'); fb.textContent = t('perf.factory'); }, 3000);
       return;
     }
     clearTimeout(fbTimer);
-    fb.classList.remove('sure'); fb.textContent = 'Fabrika';
-    try { cc = (await api('/api/factory', {})).cc; banner('Fabrika durumuna dönüldü.', true); paintProfile(); }
-    catch (e) { banner('Geri dönülemedi: ' + e.message); }
+    fb.classList.remove('sure'); fb.textContent = t('perf.factory');
+    try { cc = (await api('/api/factory', {})).cc; banner(t('perf.factoryDone'), true); paintProfile(); }
+    catch (e) { banner(t('perf.factoryFail', { err: e.message })); }
   });
   document.querySelectorAll('input[name=fanm]').forEach(r => r.addEventListener('change', async () => {
     try { cc = (await api('/api/fan', { mode: r.value })).cc; }
-    catch (e) { banner('Fan modu değiştirilemedi: ' + e.message); }
+    catch (e) { banner(t('fan.modeFail', { err: e.message })); }
     paintProfile();
   }));
 }
@@ -897,7 +918,7 @@ function drawCurve() {
   const path = pts => pts.map((p, i) => (i ? 'L' : 'M') + X(p[0]).toFixed(1) + ' ' + Y(p[1]).toFixed(1)).join(' ');
   let s = '<g class="grid">';
   for (let t = 30; t <= 100; t += 10) s += `<line x1="${X(t)}" x2="${X(t)}" y1="${T}" y2="${H - B}"/><text x="${X(t)}" y="${H - 8}" text-anchor="middle">${t}°</text>`;
-  for (let d = 0; d <= 100; d += 25) s += `<line x1="${L}" x2="${W - R}" y1="${Y(d)}" y2="${Y(d)}"/><text x="${L - 6}" y="${Y(d) + 3}" text-anchor="end">%${d}</text>`;
+  for (let d = 0; d <= 100; d += 25) s += `<line x1="${L}" x2="${W - R}" y1="${Y(d)}" y2="${Y(d)}"/><text x="${L - 6}" y="${Y(d) + 3}" text-anchor="end">${pct(d)}</text>`;
   s += '</g>';
   s += `<path class="factory" d="${path([[30, fac[0][1]], ...fac])}"/>`;
   if (mine) s += `<path class="mine" d="${path(mine)}"/>`;
@@ -920,11 +941,11 @@ function paintAudio(a) {
 }
 async function loadAudio() { try { paintAudio(await api('/api/audio')); } catch (e) { /* motor yok */ } }
 function initAudio() {
-  let t = 0;
-  const send = body => { clearTimeout(t); t = setTimeout(() => api('/api/audio', body).catch(e => banner('Ses ayarlanamadı: ' + e.message)), 60); };
+  let timer = 0;
+  const send = body => { clearTimeout(timer); timer = setTimeout(() => api('/api/audio', body).catch(e => banner(t('audio.fail', { err: e.message }))), 60); };
   $('#vol').addEventListener('input', e => { setRange(e.target, +e.target.value, $('#volOut')); send({ which: 'speaker', level: +e.target.value }); });
   $('#mic').addEventListener('input', e => { setRange(e.target, +e.target.value, $('#micOut')); send({ which: 'mic', level: +e.target.value }); });
-  const mute = (which, box) => api('/api/audio', { which, mute: box.checked }).then(paintAudio).catch(e => banner('Ses ayarlanamadı: ' + e.message));
+  const mute = (which, box) => api('/api/audio', { which, mute: box.checked }).then(paintAudio).catch(e => banner(t('audio.fail', { err: e.message })));
   $('#volMute').addEventListener('change', e => mute('speaker', e.target));
   $('#micMute').addEventListener('change', e => mute('mic', e.target));
 }
@@ -937,7 +958,7 @@ function renderDisplay() {
     inp.type = 'radio'; inp.name = 'hz'; inp.value = hz; inp.checked = hz === d.hz;
     inp.addEventListener('change', async () => {
       try { const r = await api('/api/display', { hz }); d.hz = r.hz; }
-      catch (e) { banner('Yenileme hızı değiştirilemedi: ' + e.message); }
+      catch (e) { banner(t('display.fail', { err: e.message })); }
       renderDisplay();
     });
     lab.append(inp, el('span', '', hz + ' Hz'));
@@ -949,54 +970,65 @@ function renderDisplay() {
 function renderSettingsPage() {
   const admin = meta.admin;
   const chip = $('#adminChip');
-  chip.textContent = admin ? 'Yönetici' : 'Standart';
+  chip.textContent = admin ? t('chip.admin') : t('chip.standard');
   chip.classList.toggle('on', admin);
   $('#adminTxt').textContent = admin
-    ? 'Motor yönetici olarak çalışıyor. Ekran kartı saat kilidi dahil tüm profil adımları uygulanır.'
-    : meta.task
-      ? 'Yönetici görevi kurulu ama motor standart yetkiyle çalışıyor. Aşağıdaki düğme motoru yönetici olarak yeniden başlatır.'
-      : 'Sessiz profillerdeki ekran kartı saat kilidi yönetici izni ister. Bir kez kurarsın; sonra motor UAC sormadan yönetici olarak başlar.';
+    ? t('set.adminOn')
+    : meta.task ? t('set.adminTask') : t('set.adminNone');
   const btn = $('#adminBtn');
   btn.hidden = admin;
-  btn.textContent = meta.task ? 'Yönetici olarak yeniden başlat' : 'Yönetici modunu kur';
+  btn.textContent = meta.task ? t('set.adminRestart') : t('set.adminInstall');
   $('#autostart').checked = !!meta.autostart;
   setText('aboutVer', meta.version);
   setText('aboutGpu', meta.gpu_name || '–');
   setText('aboutDll', meta.dll || '–');
-  setText('verNote', 'Sürüm ' + meta.version);
+  setText('verNote', t('set.verNote', { v: meta.version }));
+  const ls = $('#langSel');
+  ls.textContent = '';
+  const nameOf = c => (meta.languages.find(l => l.code === c) || {}).name || c;
+  ls.append(new Option(t('set.langAuto', { name: nameOf(meta.lang_detected) }), 'auto'));
+  for (const l of meta.languages) ls.append(new Option(l.name, l.code));
+  ls.value = meta.lang_setting || 'auto';
 }
 function initSettings() {
   const auto = $('#autostart');
   auto.addEventListener('change', async () => {
     auto.disabled = true;
     try { const r = await api('/api/autostart', { enabled: auto.checked }); meta.autostart = r.autostart; }
-    catch (e) { auto.checked = !auto.checked; banner('Başlangıç ayarı değiştirilemedi.'); }
+    catch (e) { auto.checked = !auto.checked; banner(t('set.autostartFail')); }
     auto.disabled = false;
   });
   $('#adminBtn').addEventListener('click', async () => {
     const btn = $('#adminBtn');
     btn.disabled = true;
-    banner('Windows yönetici izni isteyecek. Onaylarsan motor yönetici olarak yeniden başlar.', true);
+    banner(t('set.adminAsk'), true);
     try {
       const r = await api('/api/admin', {});
       if (r.admin) { location.reload(); return; }
-      if (!r.ok) { banner(r.error || 'Yönetici modu kurulamadı.'); btn.disabled = false; return; }
+      if (!r.ok) { banner(r.error || t('set.adminFail')); btn.disabled = false; return; }
       quitting = true;
-      banner('Motor yönetici olarak yeniden başlatılıyor…', true);
+      banner(t('set.adminRestarting'), true);
       for (let i = 0; i < 60; i++) {
         await wait(500);
         try { const p = await api('/api/ping'); if (p.admin) { location.reload(); return; } } catch (e) { /* bekle */ }
       }
       quitting = false;
-      banner('Motor yeniden başlamadı. Control Center.bat ile aç.');
-    } catch (e) { banner('Yönetici modu kurulamadı: ' + e.message); }
+      banner(t('set.adminNoRestart'));
+    } catch (e) { banner(t('set.adminFailErr', { err: e.message })); }
     btn.disabled = false;
+  });
+  const ls = $('#langSel');
+  ls.addEventListener('change', async () => {
+    ls.disabled = true;
+    try { await api('/api/lang', { lang: ls.value }); location.reload(); return; }
+    catch (e) { banner(t('set.langFail', { err: e.message })); ls.value = meta.lang_setting || 'auto'; }
+    ls.disabled = false;
   });
   $('#quit').addEventListener('click', async () => {
     quitting = true;
     $('#quit').disabled = true;
     try { await api('/api/quit', {}); } catch (e) { /* motor zaten kapali */ }
-    banner('Motor kapatıldı. Bu pencereyi kapatabilirsin.', true);
+    banner(t('set.quitDone'), true);
     setTimeout(() => window.close(), 1600);
   });
 }
@@ -1087,7 +1119,7 @@ function renderSettings() {
   const cols = el('div', 'set-cols' + (m.pal ? '' : ' single'));
   if (m.pal) {
     const f = el('div', 'field'), top = el('div', 'field-top');
-    top.append(el('span', 'lbl', m.pal === 'one' ? 'Renk' : 'Renkler'), el('span', 'hint', PAL_HINT[m.pal]));
+    top.append(el('span', 'lbl', m.pal === 'one' ? t('kb.color') : t('kb.colors')), el('span', 'hint', PAL_HINT[m.pal]));
     const grad = el('div', 'grad'); grad.id = 'grad';
     const stops = el('ul', 'stops'); stops.id = 'stops';
     f.append(top, grad, stops);
@@ -1107,7 +1139,7 @@ function renderSettings() {
   }
   if (m.id === 'sistem') {
     const fs = el('fieldset', 'field'), seg = el('div', 'seg');
-    fs.append(el('legend', 'lbl', 'Kaynak'));
+    fs.append(el('legend', 'lbl', t('kb.source')));
     for (const s of meta.sources) {
       const lab = el('label'), inp = el('input');
       inp.type = 'radio'; inp.name = 'src'; inp.value = s.id; inp.checked = v.source === s.id;
@@ -1121,9 +1153,9 @@ function renderSettings() {
   if (m.id === 'ses' || m.id === 'sistem') {
     const f = el('div', 'field'), top = el('div', 'field-top');
     const out = el('output'); out.id = 'meterInfo';
-    top.append(el('span', 'lbl', 'Ölçülen'), out);
+    top.append(el('span', 'lbl', t('kb.measured')), out);
     const meter = el('div', 'meter'); meter.id = 'meter';
-    meter.setAttribute('role', 'meter'); meter.setAttribute('aria-label', 'Ölçülen değer');
+    meter.setAttribute('role', 'meter'); meter.setAttribute('aria-label', t('kb.measuredAria'));
     meter.setAttribute('aria-valuemin', 0); meter.setAttribute('aria-valuemax', 100); meter.setAttribute('aria-valuenow', 0);
     meter.append(el('i'));
     f.append(top, meter);
@@ -1141,7 +1173,7 @@ function renderStops() {
   (solo ? pal.slice(0, 1) : pal).forEach((hx, i) => {
     const li = el('li'), b = el('button', 'stop' + (solo ? ' solo' : ''));
     b.type = 'button';
-    b.setAttribute('aria-label', `Renk ${i + 1}, ${hx}. Değiştir`);
+    b.setAttribute('aria-label', t('kb.stopAria', { i: i + 1, hex: hx }));
     const sw = el('span', 'sw'); sw.style.background = hx;
     b.append(sw, el('span', 'hx', hx));
     b.addEventListener('click', () => openPicker(b, i));
@@ -1149,7 +1181,7 @@ function renderStops() {
     if (!solo) {
       const x = el('button', 'stop-x', '×');
       x.type = 'button';
-      x.setAttribute('aria-label', `Renk ${i + 1} sil`);
+      x.setAttribute('aria-label', t('kb.stopDel', { i: i + 1 }));
       x.disabled = pal.length < 2;
       x.addEventListener('click', () => { closePicker(); pal.splice(i, 1); renderStops(); save(); });
       li.append(x);
@@ -1157,7 +1189,7 @@ function renderStops() {
     ul.append(li);
   });
   if (!solo) {
-    const li = el('li'), add = el('button', 'btn', 'Renk ekle');
+    const li = el('li'), add = el('button', 'btn', t('kb.addColor'));
     add.type = 'button';
     add.disabled = pal.length >= 8;
     add.addEventListener('click', () => {
@@ -1196,7 +1228,7 @@ function syncPicker(writeHex) {
   const sv = $('#sv'), hex = rgbToHex(hsvToRgb(pick.h, pick.s, pick.v));
   sv.style.setProperty('--h', pick.h);
   sv.setAttribute('aria-valuenow', Math.round(pick.v * 100));
-  sv.setAttribute('aria-valuetext', `Doygunluk %${Math.round(pick.s * 100)}, parlaklık %${Math.round(pick.v * 100)}`);
+  sv.setAttribute('aria-valuetext', t('picker.svText', { s: pct(Math.round(pick.s * 100)), v: pct(Math.round(pick.v * 100)) }));
   $('#svDot').style.left = pick.s * 100 + '%';
   $('#svDot').style.top = (1 - pick.v) * 100 + '%';
   $('#hue').value = pick.h;
@@ -1210,7 +1242,7 @@ function applyPick(writeHex) {
   if (pick.anchor && pick.anchor.isConnected) {
     $('.sw', pick.anchor).style.background = hex;
     $('.hx', pick.anchor).textContent = hex;
-    pick.anchor.setAttribute('aria-label', `Renk ${pick.i + 1}, ${hex}. Değiştir`);
+    pick.anchor.setAttribute('aria-label', t('kb.stopAria', { i: pick.i + 1, hex }));
   }
   save();
 }
@@ -1251,24 +1283,24 @@ function initPicker() {
 
 /* ---------- kayitli modlar ---------- */
 function renderPresets(added) {
-  const list = $('#presetList'), names = Object.keys(cfg.presets).sort((a, b) => a.localeCompare(b, 'tr'));
+  const list = $('#presetList'), names = Object.keys(cfg.presets).sort((a, b) => a.localeCompare(b, LOCALE));
   list.textContent = '';
   $('#presetEmpty').hidden = names.length > 0;
   for (const name of names) {
     const p = cfg.presets[name], m = modeMeta(p.mode), row = el('div', 'preset-row');
     const b = el('button', 'preset');
     b.type = 'button';
-    b.setAttribute('aria-label', `${name} modunu uygula`);
+    b.setAttribute('aria-label', t('kb.presetApply', { name }));
     const strip = el('span', 'strip'); strip.style.background = stripCss(m, p.palette || []);
     b.append(strip, el('span', 'pn', name), el('span', 'pm', m.label));
     b.addEventListener('click', () => applyPreset(name));
-    const x = el('button', 'preset-x', 'Sil');
+    const x = el('button', 'preset-x', t('kb.delete'));
     x.type = 'button';
-    x.setAttribute('aria-label', `${name} modunu sil`);
+    x.setAttribute('aria-label', t('kb.presetDel', { name }));
     x.addEventListener('click', async () => {
       if (!x.classList.contains('sure')) {  // ilk tik sorar, ikincisi siler
-        x.classList.add('sure'); x.textContent = 'Emin misin?';
-        setTimeout(() => { if (x.isConnected) { x.classList.remove('sure'); x.textContent = 'Sil'; } }, 3000);
+        x.classList.add('sure'); x.textContent = t('common.sure');
+        setTimeout(() => { if (x.isConnected) { x.classList.remove('sure'); x.textContent = t('kb.delete'); } }, 3000);
         return;
       }
       delete cfg.presets[name];
@@ -1346,7 +1378,7 @@ async function init() {
   freeze.addEventListener('click', () => {
     frozen = !frozen;
     freeze.setAttribute('aria-pressed', frozen);
-    freeze.textContent = frozen ? 'Önizlemeyi sürdür' : 'Önizlemeyi durdur';
+    freeze.textContent = frozen ? t('kb.resume') : t('kb.freeze');
   });
 
   let start = 'genel';

@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# FCUK Control Center
+# Bu dosya Anthropic'in Claude Opus 5.5 yapay zeka modeliyle yazilmistir. MIT lisansi, bkz. LICENSE.
 """Klavye RGB - Monster / Clevo dizustu klavyeleri icin ozel renk modlari.
 
 Control Center'in kendi kitapligi (InsydeDCHU.dll) uzerinden klavye rengini ayarlar.
@@ -16,6 +18,7 @@ import time
 c_void_p = ctypes.c_void_p
 c_int = ctypes.c_int
 
+import ceviri
 import donanim
 
 APP_NAME = "KendiControlCenter"
@@ -46,6 +49,7 @@ DEFAULTS = {
     "mode": "gecis",
     "brightness": 100,
     "autostart": False,
+    "lang": "auto",  # "auto": Windows ulke ayarina gore (ceviri.detect), ya da dil kodu
     "modes": {
         "sabit": {"palette": ["#00a2ff"], "speed": 50},
         "nefes": {"palette": ["#ff2d55", "#7a5cff", "#00d1ff"], "speed": 45},
@@ -338,22 +342,22 @@ class Engine(threading.Thread):
                     level = x if x > level else max(x, level - dt / fall)
                     col = scale(sample(pal, level, False), 0.12 + 0.88 * level)
                     value = level
-                    self.info = "Ses seviyesi: %%%d" % round(p * 100)
+                    self.info = ceviri.t("info.audio", v=ceviri.pct(round(p * 100)))
                 elif mode == "sistem":
                     if now - sys_at > 1.0:
                         sys_at = now
                         if source == "cpu_load":
                             v = sysinfo.cpu_load()
-                            sys_target, self.info = v, "İşlemci kullanımı: %%%d" % round(v * 100)
+                            sys_target, self.info = v, ceviri.t("info.cpuLoad", v=ceviri.pct(round(v * 100)))
                         elif source == "battery":
                             v = sysinfo.battery()
-                            sys_target, self.info = v, "Pil: %%%d" % round(v * 100)
+                            sys_target, self.info = v, ceviri.t("info.battery", v=ceviri.pct(round(v * 100)))
                         else:
                             cpu, gpu = self.kb.temps()
                             if source == "gpu_temp":
-                                sys_target, self.info = clamp((gpu - 40) / 45.0), "Ekran kartı: %d °C" % gpu
+                                sys_target, self.info = clamp((gpu - 40) / 45.0), ceviri.t("info.gpuTemp", t=int(gpu))
                             else:
-                                sys_target, self.info = clamp((cpu - 40) / 55.0), "İşlemci: %d °C" % cpu
+                                sys_target, self.info = clamp((cpu - 40) / 55.0), ceviri.t("info.cpuTemp", t=int(cpu))
                     sys_val += (sys_target - sys_val) * min(1.0, dt * 2.0)
                     col = sample(pal, sys_val, False)
                     value = sys_val
@@ -393,7 +397,7 @@ def load_config():
             saved = json.load(f)
         if isinstance(saved.get("cc"), dict):
             cfg["cc"] = saved["cc"]
-        for key in ("mode", "brightness", "autostart", "presets"):
+        for key in ("mode", "brightness", "autostart", "presets", "lang"):
             if key in saved:
                 cfg[key] = saved[key]
         for mid, vals in saved.get("modes", {}).items():

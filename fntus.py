@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# FCUK Control Center
+# Bu dosya Anthropic'in Claude Opus 5.5 yapay zeka modeliyle yazilmistir. MIT lisansi, bkz. LICENSE.
 """Fn tuslari ve ekran bildirimi (OSD): Monster/Clevo "Fn hotkeys and OSD" (FnKey.exe) yerine.
 
 Kanal: AcpiBridge surucusu (ACPI\\CLV0001, arayuz {86994c74-...}). Denetleyici bir Fn tusuna basildiginda
@@ -239,9 +241,16 @@ def _rgb(r, g, b):
     return r | (g << 8) | (b << 16)
 
 
-def _upper_tr(text):
-    """Turkce buyuk harf: i -> I degil İ."""
-    return text.replace("i", "İ").upper()
+def _upper(text):
+    """Dile gore buyuk harf (Turkcede i -> İ)."""
+    import ceviri
+    return ceviri.upper(text)
+
+
+def _font_face():
+    """Bahnschrift Latin/Kiril/Yunan kapsar; Dogu Asya dillerinde sistemin kendi arayuz yazisi."""
+    import ceviri
+    return {"zh": "Microsoft YaHei UI", "ja": "Yu Gothic UI", "ko": "Malgun Gothic"}.get(ceviri.lang(), "Bahnschrift")
 
 
 # ui/index.html belirteclerinden: --surface-2, --line-strong, --line, --text-2, --text-hi, --text-3, --danger
@@ -273,7 +282,8 @@ class Osd:
         self.scale = s = (u32.GetDpiForSystem() or 96) / 96.0
         self.brushes = {c: gdi.CreateSolidBrush(_rgb(*c))
                         for c in (C_BG, C_EDGE, C_TRACK, C_ON, C_OFF, C_NEUTRAL)}
-        self.font = gdi.CreateFontW(-int(12.5 * s), 0, 0, 0, 600, 0, 0, 0, 1, 0, 0, 5, 0, "Bahnschrift")
+        self.face = _font_face()
+        self.font = gdi.CreateFontW(-int(12.5 * s), 0, 0, 0, 600, 0, 0, 0, 1, 0, 0, 5, 0, self.face)
         self.extra = max(1, round(0.9 * s))  # harf araligi (~.07em, arayuzdeki .chip/.btn gibi)
         self.label = self.value = ""
         self.level = self.state = None
@@ -298,7 +308,12 @@ class Osd:
     def show(self, label, value="", level=None, state=None):
         """label: ne (KAMERA), value: durum (KAPALI), level: 0-100 ince cubuk, state: True acik / False kapali /
         None notr (durum karesinin rengi)."""
-        self.label, self.value = _upper_tr(label), _upper_tr(value or "")
+        face = _font_face()
+        if face != self.face:  # dil degisti: yazi tipini yenile
+            gdi.DeleteObject(self.font)
+            self.face = face
+            self.font = gdi.CreateFontW(-int(12.5 * self.scale), 0, 0, 0, 600, 0, 0, 0, 1, 0, 0, 5, 0, face)
+        self.label, self.value = _upper(label), _upper(value or "")
         self.level, self.state = level, state
         s = self.scale
         (lw, th), (vw, _) = self._measure(self.label, self.value)

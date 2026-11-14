@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# FCUK Control Center
+# Bu dosya Anthropic'in Claude Opus 5.5 yapay zeka modeliyle yazilmistir. MIT lisansi, bkz. LICENSE.
 """Performans profilleri.
 
 Her profil ayni anda alti kolu birden ceker:
@@ -16,12 +18,14 @@ oranda keser, hissedilen hizi az etkiler. Sessiz profillerin hepsi bunun uzerine
 import ctypes
 import threading
 
+import ceviri
 import donanim as hw
+from ceviri import t
 
 POWRPROF = ctypes.WinDLL("powrprof")
 BALANCED = "381b4222-f694-41f0-9685-ff5bb260df2e"
 SCHEME = "7d5c0c1e-4b3a-4c2e-9f1a-6b2d8e0c4a11"  # uygulamanin kendi guc plani
-SCHEME_NAME = "Kendi Control Center"
+SCHEME_NAME = "FCUK Control Center"
 
 SUB_PROC = "54533251-82be-4824-96c1-47b60b740d00"
 SUB_PCIE = "501a4d13-42af-4429-9fd1-a8218c268e20"
@@ -36,6 +40,11 @@ S = {  # (alt grup, ayar)
     "sched": (SUB_PROC, "93b8b6dc-0698-4d1c-9ee4-0644e900c85d"),
     "sched_short": (SUB_PROC, "bae08b81-2d5e-4688-ad6a-13243356654b"),
     "aspm": (SUB_PCIE, "ee12f906-d277-404b-b6da-e5fa1a576df5"),
+    # islemci durumu (%): en yuksek / en dusuk; "1" ekli olanlar melez islemcide P cekirdekler icin
+    "pmax": (SUB_PROC, "bc5038f7-23e0-4960-96da-33abaf5935ec"),
+    "pmax1": (SUB_PROC, "bc5038f7-23e0-4960-96da-33abaf5935ed"),
+    "pmin": (SUB_PROC, "893dee8e-2bef-41e0-89c6-b55d0929964c"),
+    "pmin1": (SUB_PROC, "893dee8e-2bef-41e0-89c6-b55d0929964d"),
 }
 OVERLAY = {"eff": "961cc777-2547-4f9d-8174-7d86181b8a7a", "bal": "00000000-0000-0000-0000-000000000000",
            "perf": "ded574b5-45a0-4f42-8737-46345c09c238"}
@@ -95,6 +104,11 @@ PROFILES = [
     },
 ]
 BY_ID = {p["id"]: p for p in PROFILES}
+
+
+def name(pid):
+    """Profilin etkin dildeki adi (PROFILES'taki ad Turkce kaynaktir)."""
+    return t("prof." + pid)
 DEFAULTS = {"profile": "", "on_battery": "", "on_ac": "", "refresh": True}
 
 
@@ -125,8 +139,8 @@ def ensure_scheme():
     if rc != 0:
         rc, out = hw.run(["powercfg", "/duplicatescheme", BALANCED, SCHEME])
         if rc != 0:
-            raise RuntimeError("Güç planı oluşturulamadı: " + out)
-        hw.run(["powercfg", "/changename", SCHEME, SCHEME_NAME, "Kendi Control Center profilleri"])
+            raise RuntimeError(t("err.schemeCreate", out=out))
+        hw.run(["powercfg", "/changename", SCHEME, SCHEME_NAME, "FCUK Control Center profilleri"])
 
 
 def active_scheme():
@@ -164,26 +178,28 @@ class Manager:
         c = p["cpu"]
         fan = p["fan"]
         if fan[0] == "curve":
-            fan_txt = "%d °C'de %%%d, %d °C'de %%%d" % fan[1]
+            t1, d1, t2, d2 = fan[1]
+            fan_txt = t("val.fanCurve", t1=t1, d1=ceviri.pct(d1), t2=t2, d2=ceviri.pct(d2))
         else:
-            fan_txt = {"auto": "denetleyici tablosu", "max": "sürekli maksimum"}[fan[0]]
-        caps = "sınır yok"
+            fan_txt = t({"auto": "val.fanTable", "max": "val.fanAlwaysMax"}[fan[0]])
+        caps = t("val.capNone")
         if c["boost"] == 0:
-            caps = "turbo kapalı, taban hız"
+            caps = t("val.capTurboOff")
         elif c["fmax_p"] or c["fmax_e"]:
-            caps = "P %.1f GHz, E %.1f GHz" % (c["fmax_p"] / 1000.0, c["fmax_e"] / 1000.0)
+            caps = t("val.capPE", p=ceviri.num(c["fmax_p"] / 1000.0, 1), e=ceviri.num(c["fmax_e"] / 1000.0, 1))
         return [
-            ("Güç modu", hw.POWER_MODES[p["ec"]]),
-            ("İşlemci tavanı", caps),
-            ("Turbo / EPP", "%s / %d" % (BOOST_TXT[c["boost"]], c["epp"])),
-            ("Zamanlayıcı", SCHED_TXT[c["sched"]]),
-            ("Ekran kartı", "%d MHz tavan" % p["gpu"][1] if p["gpu"] else "serbest"),
-            ("Fan", fan_txt),
-            ("Ekran", "60 Hz" if p["refresh"] == "min" else "en yüksek Hz"),
+            (t("row.powerMode"), t("power.%d" % p["ec"])),
+            (t("row.cpuCap"), caps),
+            (t("row.turboEpp"), "%s / %d" % (t("boost.%d" % c["boost"]), c["epp"])),
+            (t("row.sched"), t("sched.%d" % c["sched"])),
+            (t("row.gpu"), t("val.gpuCap", mhz=p["gpu"][1]) if p["gpu"] else t("val.gpuFree")),
+            (t("row.fan"), fan_txt),
+            (t("row.display"), t("val.disp60") if p["refresh"] == "min" else t("val.dispMax")),
         ]
 
     def public(self):
-        return [{"id": p["id"], "name": p["name"], "tag": p["tag"], "desc": p["desc"],
+        return [{"id": p["id"], "name": name(p["id"]), "tag": t("prof.%s.tag" % p["id"]),
+                 "desc": t("prof.%s.desc" % p["id"]),
                  "ac_only": bool(p.get("ac_only")), "rows": self.describe(p),
                  "fan": [list(p["fan"][1]), list(p["fan"][2])] if p["fan"][0] == "curve" else p["fan"][0]}
                 for p in PROFILES]
@@ -194,10 +210,11 @@ class Manager:
                 "scheme_active": active_scheme() == SCHEME, "admin": hw.is_admin(), "rules": self.cfg}
 
     # ------------------------------------------------------------------ uygula
-    def apply(self, pid, reason="Elle"):
+    def apply(self, pid, reason="reason.manual"):
+        """reason: ceviri anahtari (reason.*); rapora o anki dilde yazilir."""
         p = BY_ID.get(pid)
         if not p:
-            raise ValueError("bilinmeyen profil")
+            raise ValueError(t("err.unknownProfile"))
         on_ac = hw.power_status()["ac"]
         if p.get("ac_only") and not on_ac:
             p = BY_ID["performans"]
@@ -211,15 +228,15 @@ class Manager:
                 except Exception as exc:
                     rep.append({"step": name, "ok": False, "msg": str(exc)})
 
-            step("Denetleyici güç modu", lambda: self._ec(p))
-            step("Fan", lambda: self._fan(p))
-            step("İşlemci", lambda: self._cpu(p))
-            step("Ekran kartı", lambda: self._gpu(p))
+            step(t("step.ec"), lambda: self._ec(p))
+            step(t("step.fan"), lambda: self._fan(p))
+            step(t("step.cpu"), lambda: self._cpu(p))
+            step(t("step.gpu"), lambda: self._gpu(p))
             if self.cfg.get("refresh", True):
-                step("Ekran", lambda: self._refresh(p))
+                step(t("step.display"), lambda: self._refresh(p))
             if p["id"] != pid:
-                rep.insert(0, {"step": "Not", "ok": True, "msg": "Pildesin: Ultra yerine Performans uygulandı."})
-            rep.insert(0, {"step": "Neden", "ok": True, "msg": reason})
+                rep.insert(0, {"step": t("step.note"), "ok": True, "msg": t("msg.batteryUltra")})
+            rep.insert(0, {"step": t("step.reason"), "ok": True, "msg": t(reason)})
             self.applied = p["id"]
             self.guard = ""
             self._hot = self._cool = 0
@@ -230,15 +247,15 @@ class Manager:
 
     def _ec(self, p):
         self.dchu.set_power_mode(p["ec"])
-        return hw.POWER_MODES[p["ec"]]
+        return t("power.%d" % p["ec"])
 
     def _fan(self, p):
         kind = p["fan"][0]
         if kind == "curve":
             self.dchu.set_fan_curve(p["fan"][1], p["fan"][2])
-            return "özel eğri"
+            return t("msg.customCurve")
         self.dchu.set_fan_mode(hw.FAN_MAX if kind == "max" else hw.FAN_AUTO)
-        return "otomatik" if kind == "auto" else "maksimum"
+        return t("msg.auto") if kind == "auto" else t("msg.max")
 
     def _cpu(self, p):
         c = p["cpu"]
@@ -248,22 +265,25 @@ class Manager:
         park = c["park"]
         vals["park"] = park if park is not None else (self.defaults.get("park") or 10)
         vals["park1"] = park if park is not None else (self.defaults.get("park1") or 10)
-        bad = [k for k, v in vals.items() if not _write(k, v)]
+        # Islemci sayfasinda elle degistirilmis olabilecek durum sinirlari: profil her zaman tam araligi acar
+        vals.update({"pmax": 100, "pmax1": 100, "pmin": 5, "pmin1": 5})
+        optional = {"pmax1", "pmin1"}  # melez olmayan islemcide bu ayarlar yok
+        bad = [k for k, v in vals.items() if not _write(k, v) and k not in optional]
         if POWRPROF.PowerSetActiveScheme(None, ctypes.byref(_g(SCHEME))) != 0:
-            raise RuntimeError("güç planı etkinleştirilemedi")
+            raise RuntimeError(t("err.schemeActivate"))
         try:
             POWRPROF.PowerSetActiveOverlayScheme(ctypes.byref(_g(OVERLAY[p["overlay"]])))
         except AttributeError:
             pass
         if bad:
-            raise RuntimeError("yazılamayan ayarlar: " + ", ".join(bad))
-        return "turbo %s, EPP %d" % (BOOST_TXT[c["boost"]], c["epp"])
+            raise RuntimeError(t("err.settings", list=", ".join(bad)))
+        return t("msg.cpuDone", boost=t("boost.%d" % c["boost"]), epp=c["epp"])
 
     def _gpu(self, p):
         if not hw.is_admin():
             if p["gpu"]:
-                raise RuntimeError("saat kilidi için yönetici modu gerekli (Ayarlar)")
-            return "serbest"
+                raise RuntimeError(t("err.gpuAdmin"))
+            return t("val.gpuFree")
         # Not: guc sinirini 75 W'a cikarmak (nvidia-smi -pl) denendi, olculebilir fark yok: Dynamic Boost
         # karta zaten 74 W'a kadar pay veriyor (2026-11-13, kart ve kart+islemci yukunde olculdu).
         if p["gpu"]:
@@ -271,27 +291,27 @@ class Manager:
             if rc != 0:
                 raise RuntimeError(out[:160])
             self._gpu_locked = True
-            return "%d MHz tavan" % p["gpu"][1]
+            return t("val.gpuCap", mhz=p["gpu"][1])
         rc, out = hw.nvidia_lock_clocks(0, None)
         self._gpu_locked = False
         if rc != 0:
             raise RuntimeError(out[:160])
-        return "serbest"
+        return t("val.gpuFree")
 
     def _refresh(self, p):
         rates = self.display.rates()
         if not rates:
-            return "değişmedi"
+            return t("msg.unchanged")
         hz = rates[0] if p["refresh"] == "min" else rates[-1]
         if not self.display.set_rate(hz):
-            raise RuntimeError("%d Hz ayarlanamadı" % hz)
+            raise RuntimeError(t("err.hz", hz=hz))
         return "%d Hz" % hz
 
     # ------------------------------------------------------------------ bekci
     def _tick(self, s, dt):
         """Sensor her olcumde cagirir: uykudan donus, fis/pil kurali ve isi korumasi."""
         if dt > 15 and self.applied:  # uyku veya hazirda bekletmeden dondu: denetleyici ayarlari sifirlanmis olabilir
-            threading.Thread(target=self.apply, args=(self.applied, "Uykudan dönüş"), daemon=True).start()
+            threading.Thread(target=self.apply, args=(self.applied, "reason.wake"), daemon=True).start()
         ac = (s.get("battery") or {}).get("ac")
         if self._last_ac is not None and ac != self._last_ac:
             target = self.cfg.get("on_ac" if ac else "on_battery") or ""
@@ -299,11 +319,11 @@ class Manager:
             if not target and not ac and cur and cur.get("ac_only"):
                 target = "performans"
             if target:
-                why = "Fişe takıldı" if ac else "Pile geçildi"
+                why = "reason.ac" if ac else "reason.battery"
                 threading.Thread(target=self.apply, args=(target, why), daemon=True).start()
         self._last_ac = ac
         p = BY_ID.get(self.applied)
-        if not p or p["fan"][0] != "curve":
+        if not p or p["fan"][0] != "curve" or not getattr(self.dchu, "available", True):
             return
         hot = s.get("cpu_temp", 0) >= 93 or s.get("gpu_temp", 0) >= 87
         if hot:
@@ -311,7 +331,7 @@ class Manager:
             self._cool = 0
             if self._hot == 5 and not self.guard:
                 self.dchu.set_fan_mode(hw.FAN_AUTO)
-                self.guard = "Sıcaklık yüksek: fanlar geçici olarak denetleyiciye bırakıldı."
+                self.guard = t("guard.hot")
         else:
             self._hot = 0
             if self.guard and s.get("cpu_temp", 0) < 80 and s.get("gpu_temp", 0) < 75:
@@ -327,15 +347,15 @@ class Manager:
         bu yuzden kapanista otomatik cagrilmaz, yalnizca istenince."""
         with self.lock:
             rep = []
-            for name, fn in (("Denetleyici güç modu", lambda: self.dchu.set_power_mode(3)),
-                             ("Fan", lambda: self.dchu.set_fan_mode(hw.FAN_AUTO)),
-                             ("Güç planı", lambda: POWRPROF.PowerSetActiveScheme(None, ctypes.byref(_g(BALANCED)))),
-                             ("Ekran kartı", lambda: hw.is_admin() and hw.nvidia_lock_clocks(0, None))):
+            for key, fn in (("step.ec", lambda: self.dchu.set_power_mode(3)),
+                            ("step.fan", lambda: self.dchu.set_fan_mode(hw.FAN_AUTO)),
+                            ("step.scheme", lambda: POWRPROF.PowerSetActiveScheme(None, ctypes.byref(_g(BALANCED)))),
+                            ("step.gpu", lambda: hw.is_admin() and hw.nvidia_lock_clocks(0, None))):
                 try:
                     fn()
-                    rep.append({"step": name, "ok": True, "msg": "fabrika"})
+                    rep.append({"step": t(key), "ok": True, "msg": t("msg.factory")})
                 except Exception as exc:
-                    rep.append({"step": name, "ok": False, "msg": str(exc)})
+                    rep.append({"step": t(key), "ok": False, "msg": str(exc)})
             self.applied = ""
             self.guard = ""
             self.cfg["profile"] = ""

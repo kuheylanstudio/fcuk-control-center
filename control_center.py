@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Kendi Control Center - giris noktasi.
+# FCUK Control Center
+# Bu dosya Anthropic'in Claude Opus 5.5 yapay zeka modeliyle yazilmistir. MIT lisansi, bkz. LICENSE.
+"""FCUK Control Center - giris noktasi.
 
   pythonw control_center.py              pencereyle ac (motor calismiyorsa once motoru baslatir)
   pythonw control_center.py --service    yalnizca arka plan motoru (Windows acilisi, yonetici gorevi)
   pythonw control_center.py --install-task   yonetici gorevini kurar (UAC ile, bir kez)
+  python  control_center.py --dev        gelistirme: motoru bu surecte calistirir, gorevi kullanmaz
 
 Motor yerel bir sunucudur (yalnizca 127.0.0.1); arayuz ui/index.html, Edge'in cercevesiz penceresinde acilir.
 Yonetici modu: motor, Gorev Zamanlayici'daki "en yuksek ayricalik" goreviyle UAC sormadan yonetici olarak
@@ -21,11 +24,16 @@ import urllib.request
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+import ceviri
 import donanim as hw
+import envanter
+import islemci
 import klavye_rgb as core
+import nvidia
 import profiller
+from ceviri import t
 
-VERSION = "1.0"
+VERSION = "2.0"
 PORT = 47815
 HOSTS = ("127.0.0.1:%d" % PORT, "localhost:%d" % PORT)
 BASE = "http://127.0.0.1:%d" % PORT
@@ -45,6 +53,19 @@ BROWSERS = (
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",
 )
 HEX = re.compile(r"#[0-9a-fA-F]{6}")
+SPEED_KEY = {"Hız": "mode.speed", "Tepki hızı": "mode.react"}  # klavye_rgb.MODES hiz etiketi -> ceviri
+
+
+def use_lang(setting):
+    """Dil ayarini ("auto" ya da kod) bu surecte etkinlestirir."""
+    ceviri.set_lang(ceviri.resolve(setting))
+
+
+def localize(html):
+    """Arayuzu etkin dile hazirlar: <html lang> ve metin sozlugu sayfaya gomulur, ilk boyamada dogru dil."""
+    data = json.dumps(ceviri.catalog(), ensure_ascii=False).replace("</", "<\\/")
+    html = html.replace('<html lang="tr">', '<html lang="%s">' % ceviri.lang(), 1)
+    return html.replace("</head>", "<script>window.I18N=%s;</script>\n</head>" % data, 1)
 
 
 def pythonw():
@@ -74,6 +95,9 @@ class App:
     lock = threading.Lock()
     device = ""
     restart_elevated = False
+    inventory = None
+    nvapi = None
+    nvcard = None  # NVML sabit bilgileri: karti uyandirdigi icin NVIDIA sayfasi ilk acilinca okunur
 
 
 def device_name():
@@ -128,7 +152,7 @@ def sanitize(raw, current):
     cfg = {"mode": raw.get("mode") if raw.get("mode") in core.MODE_IDS else current["mode"],
            "brightness": _int(raw.get("brightness"), 0, 100, current["brightness"]),
            "autostart": bool(current.get("autostart")),
-           "modes": {}, "presets": {}, "cc": current["cc"]}
+           "modes": {}, "presets": {}, "cc": current["cc"], "lang": current.get("lang", "auto")}
     modes = raw.get("modes") if isinstance(raw.get("modes"), dict) else {}
     for mid in core.MODE_IDS:
         cfg["modes"][mid] = _mode_values(mid, modes.get(mid), current["modes"][mid])
@@ -212,9 +236,9 @@ def install_task():
     user = "%s\\%s" % (os.environ.get("USERDOMAIN", ""), os.environ.get("USERNAME", ""))
     logon = True
     errors = []
-    for name, xml in ((TASK, _task_xml("Kendi Control Center motoru (yonetici)", user, "HighestAvailable",
+    for name, xml in ((TASK, _task_xml("FCUK Control Center motoru (yonetici)", user, "HighestAvailable",
                                        ["--service"], logon, True)),
-                      (TASK_TRAY, _task_xml("Kendi Control Center tepsi simgesi", user, "LeastPrivilege",
+                      (TASK_TRAY, _task_xml("FCUK Control Center tepsi simgesi", user, "LeastPrivilege",
                                             ["--tray"], logon, False))):
         path = os.path.join(core.CONFIG_DIR, "gorev_%s.xml" % ("tepsi" if name == TASK_TRAY else "motor"))
         with open(path, "w", encoding="utf-16") as f:
@@ -238,14 +262,14 @@ def request_admin():
     params = " ".join('"%s"' % a if not a.startswith("--") else a for a in cmd[1:])
     r = ctypes.windll.shell32.ShellExecuteW(None, "runas", cmd[0], params, APP_DIR, 0)
     if r <= 32:
-        return False, "Yönetici izni verilmedi."
+        return False, t("err.adminDenied")
     for _ in range(300):
         if os.path.exists(result):
             with open(result, encoding="utf-8") as f:
                 txt = f.read().strip()
             return (True, "") if txt == "0" else (False, txt)
         time.sleep(0.1)
-    return False, "Görev kurulumu yanıt vermedi."
+    return False, t("err.taskTimeout")
 
 
 def remove_run_entry():
@@ -274,7 +298,7 @@ def set_autostart(enabled):
         remove_run_entry()
         rc, out = set_logon_triggers(enabled)
         if rc != 0:
-            raise RuntimeError("açılış görevleri ayarlanamadı: " + (out or str(rc))[:160])
+            raise RuntimeError(t("err.autostart", out=(out or str(rc))[:160]))
         return
     import winreg  # yonetici modu yoksa: Run kaydi
     key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE)
@@ -303,9 +327,14 @@ def state():
         "config": rgb_config(),
         "device": App.device,
         "gpu_name": App.sensors.gpu_name,
-        "modes": [{"id": m[0], "label": m[1], "pal": PAL_KIND[m[0]], "speed": m[3], "desc": m[4]}
+        "modes": [{"id": m[0], "label": t("mode." + m[0]), "pal": PAL_KIND[m[0]],
+                   "speed": SPEED_KEY.get(m[3]) and t(SPEED_KEY[m[3]]), "desc": t("mode.%s.desc" % m[0])}
                   for m in core.MODES],
-        "sources": [{"id": s[0], "label": s[1]} for s in core.SOURCES],
+        "sources": [{"id": s[0], "label": t("src." + s[0])} for s in core.SOURCES],
+        "lang": ceviri.lang(),
+        "lang_setting": App.cfg.get("lang", "auto"),
+        "lang_detected": ceviri.detect(),
+        "languages": ceviri.languages(),
         "profiles": App.manager.public(),
         "cc": App.manager.status(),
         "fan_default": App.dchu.fan_default(),
@@ -314,7 +343,33 @@ def state():
         "task": task_exists(),
         "autostart": bool(App.cfg.get("autostart")),
         "dll": App.dchu.path,
+        "ec": App.dchu.available,
+        "cpu": App.inventory.data.get("cpu"),
+        "nvidia": bool(App.sensors.gpu_name),
+        "igpu_name": App.sensors.igpu_name,
     }
+
+
+def nvidia_state():
+    if App.nvcard is None and App.sensors.gpu_name:
+        try:
+            App.nvcard = nvidia.card_info() or {}
+        except Exception:
+            App.nvcard = {}
+    gpus = App.inventory.data.get("gpus") or []
+    optimus = bool(App.sensors.gpu_name) and any(g.get("vendor") != "NVIDIA" for g in gpus)
+    try:
+        values, err = App.nvapi.read(), ""
+    except Exception as exc:
+        values, err = {}, str(exc)
+    return {"present": bool(App.sensors.gpu_name), "api": App.nvapi.ok, "card": App.nvcard or {},
+            "settings": nvidia.public(optimus), "values": values, "error": err, "admin": hw.is_admin()}
+
+
+def cpu_state():
+    cpu = App.inventory.data.get("cpu") or {}
+    return {"cpu": cpu, "controls": islemci.visible(cpu), **islemci.read(cpu),
+            "profile": App.manager.applied}
 
 
 # ----------------------------------------------------------------------------- sunucu
@@ -349,11 +404,17 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?")[0]
         if path == "/":
             try:
-                with open(UI_PATH, "rb") as f:
-                    return self._send(200, f.read(), "text/html; charset=utf-8")
+                with open(UI_PATH, encoding="utf-8") as f:
+                    html = f.read()
             except OSError:
-                return self._send(500, ("ui/index.html bulunamadı: " + UI_PATH).encode("utf-8"),
-                                  "text/plain; charset=utf-8")
+                return self._send(500, t("err.ui", path=UI_PATH).encode("utf-8"), "text/plain; charset=utf-8")
+            try:  # Donanim / NVIDIA / Islemci sayfalari ayri dosyada; menu dugmelerini ve sayfalari kendisi kurar
+                with open(os.path.join(HERE, "ui", "sayfalar.js"), encoding="utf-8") as f:
+                    extra = f.read().replace("</", "<\\/")
+                html = html.replace("</body>", "<script>\n%s\n</script>\n</body>" % extra, 1)
+            except OSError:
+                pass
+            return self._send(200, localize(html).encode("utf-8"), "text/html; charset=utf-8")
         if path == "/api/ping":
             return self._json({"app": core.APP_NAME, "path": HERE, "admin": hw.is_admin(), "version": VERSION})
         if path == "/api/state":
@@ -365,12 +426,20 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/tray":  # tepsi simgesi 2 sn'de bir yoklar: hafif tutuldu
             s, mgr = App.sensors.snapshot, App.manager
             return self._json({
-                "profile": mgr.applied, "guard": mgr.guard,
-                "profiles": [{"id": p["id"], "name": p["name"], "ac_only": bool(p.get("ac_only"))}
+                "profile": mgr.applied, "guard": mgr.guard, "lang": ceviri.lang(),
+                "profiles": [{"id": p["id"], "name": profiller.name(p["id"]), "ac_only": bool(p.get("ac_only"))}
                              for p in profiller.PROFILES],
                 "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
                 "gpu_state": s.get("gpu_state"), "cpu_power": s.get("cpu_power"),
                 "ac": (s.get("battery") or {}).get("ac", True)})
+        if path == "/api/now":  # yalnizca son olcum (gecmissiz): ek sayfalar saniyede bir okur
+            return self._json(App.sensors.snapshot)
+        if path == "/api/hardware":
+            return self._json(App.inventory.data)
+        if path == "/api/nvidia":
+            return self._json(nvidia_state())
+        if path == "/api/cpu":
+            return self._json(cpu_state())
         if path == "/api/events":
             return self._events()
         return self._json({"error": "not found"}, 404)
@@ -442,16 +511,16 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/fan":
             mode = body.get("mode")
             if mode == "profile" and mgr.applied:
-                mgr.apply(mgr.applied, "Fan profile döndü")
+                mgr.apply(mgr.applied, "reason.fanProfile")
             elif mode in ("auto", "max"):
                 App.dchu.set_fan_mode(hw.FAN_MAX if mode == "max" else hw.FAN_AUTO)
             else:
-                return self._json({"error": "geçersiz fan modu"}, 400)
+                return self._json({"error": t("err.fanMode")}, 400)
             return self._json({"ok": True, "cc": mgr.status()})
         if path == "/api/audio":
             which = body.get("which")
             if which not in ("speaker", "mic"):
-                return self._json({"error": "geçersiz cihaz"}, 400)
+                return self._json({"error": t("err.device")}, 400)
             level = _int(body["level"], 0, 100, None) if "level" in body else None
             mute = bool(body["mute"]) if "mute" in body else None
             App.audio.set(which, level, mute)
@@ -459,7 +528,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/display":
             hz = _int(body.get("hz"), 1, 1000, 0)
             if hz not in App.display.rates():
-                return self._json({"error": "desteklenmeyen yenileme hızı"}, 400)
+                return self._json({"error": t("err.rate")}, 400)
             ok = App.display.set_rate(hz)
             return self._json({"ok": ok, "hz": App.display.current()[2]})
         if path == "/api/kb":  # Fn klavye isigi tuslari (tepsi surecinden)
@@ -481,11 +550,11 @@ class Handler(BaseHTTPRequestHandler):
                     if b == 0:
                         b = getattr(App, "kb_last", 0) or 100
                 else:
-                    return self._json({"error": "geçersiz eylem"}, 400)
+                    return self._json({"error": t("err.action")}, 400)
                 App.cfg["brightness"] = b
                 App.engine.settings = core.snapshot(App.cfg)
                 core.save_config(App.cfg)
-                label = next((m[1] for m in core.MODES if m[0] == App.cfg["mode"]), App.cfg["mode"])
+                label = t("mode." + App.cfg["mode"])
             return self._json({"ok": True, "brightness": b, "mode": App.cfg["mode"], "mode_label": label})
         if path == "/api/autostart":
             enabled = bool(body.get("enabled"))
@@ -504,6 +573,29 @@ class Handler(BaseHTTPRequestHandler):
             self._json({"ok": True, "restarting": True})
             threading.Thread(target=shutdown, daemon=True).start()
             return None
+        if path == "/api/lang":
+            setting = body.get("lang")
+            if setting != "auto" and setting not in ceviri.CODES:
+                return self._json({"error": t("err.lang")}, 400)
+            with App.lock:
+                App.cfg["lang"] = setting
+                core.save_config(App.cfg)
+            use_lang(setting)
+            return self._json({"ok": True, "lang": ceviri.lang()})
+        if path == "/api/nvidia":
+            if "clock_max" in body:  # elle saat siniri; None kilidi kaldirir. Profil uygulaninca profilinki gecer.
+                if not hw.is_admin():
+                    return self._json({"error": t("err.nvAdmin")}, 403)
+                cap = body["clock_max"]
+                rc, out = hw.nvidia_lock_clocks(210, _int(cap, 300, 4000, 0)) if cap else hw.nvidia_lock_clocks(0, None)
+                if rc != 0:
+                    return self._json({"error": out[:200]}, 500)
+                return self._json({"ok": True, "clock_max": cap or None})
+            App.nvapi.write(str(body.get("key", "")), None if body.get("value") is None else _int(body["value"], -2 ** 31, 2 ** 32, 0))
+            return self._json(nvidia_state())
+        if path == "/api/cpu":
+            islemci.write(str(body.get("id", "")), body.get("value"), App.inventory.data.get("cpu"))
+            return self._json(cpu_state())
         if path == "/api/quit":
             self._json({"ok": True})
             threading.Thread(target=shutdown, daemon=True).start()
@@ -588,7 +680,7 @@ def start_engine():
 
 
 def alert(text, icon=0x10):
-    ctypes.windll.user32.MessageBoxW(None, text, "Kendi Control Center", icon)
+    ctypes.windll.user32.MessageBoxW(None, text, "FCUK Control Center", icon)
 
 
 def serve():
@@ -597,11 +689,12 @@ def serve():
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
     except (OSError, AttributeError):
         pass
-    try:
-        App.dchu = hw.DCHU()
-    except Exception as exc:
-        alert(str(exc))
-        return False
+    # InsydeDCHU.dll yoksa (Clevo tabanli olmayan bilgisayar) NullDCHU: fan/guc modu/klavye isigi kapanir,
+    # izleme, NVIDIA ve islemci ayarlari calisir.
+    App.dchu = hw.open_dchu()
+    App.inventory = envanter.Inventory()
+    App.inventory.start()
+    App.nvapi = nvidia.NvApi()
     # Fn tusu olaylarini ac (Clevo "events enabled", komut 0x46). Bunu eskiden FnKey.exe acilista yapiyordu;
     # gonderilmezse denetleyici Fn bildirimlerini AcpiBridge'e iletmez (14.11.2026 olculdu). Yeniden
     # baslatmaya dek kalicidir; her acilista gonderilir.
@@ -612,7 +705,7 @@ def serve():
     try:
         App.server = Server(("127.0.0.1", PORT), Handler)
     except OSError as exc:
-        alert("Yerel sunucu başlatılamadı (port %d):\n%s" % (PORT, exc))
+        alert(t("err.port", port=PORT, err=exc))
         return False
     App.cfg = core.load_config()
     if hw.is_admin():  # 'Windows ile baslat' ayarinin dogrusu gorevin kendisidir
@@ -627,13 +720,14 @@ def serve():
     App.audio = hw.Audio()
     App.display = hw.Display()
     App.sensors = hw.Sensors(App.dchu)
+    App.sensors.disk_ids = lambda: App.inventory.disk_ids
     App.manager = profiller.Manager(App.dchu, App.sensors, cc, save)
     App.engine = core.Engine(App.dchu)
     App.engine.settings = core.snapshot(App.cfg)
     App.engine.start()
     App.sensors.start()
     if cc.get("profile") in profiller.BY_ID:  # yeniden baslatmadan sonra denetleyici ayarlari geri gelsin
-        threading.Thread(target=App.manager.apply, args=(cc["profile"], "Başlangıç"), daemon=True).start()
+        threading.Thread(target=App.manager.apply, args=(cc["profile"], "reason.startup"), daemon=True).start()
     App.server.serve_forever()
     App.server.server_close()
     return True
@@ -672,6 +766,8 @@ def supervise():
 
 def main():
     enable_crash_log()
+    # Dil: ilk acilista ayar "auto"dur, Windows'un ulke/bolge ayarindan secilir (ceviri.detect)
+    use_lang(core.load_config().get("lang", "auto"))
     if "--install-task" in sys.argv:
         install_task()
         return
@@ -693,7 +789,8 @@ def main():
     if p:  # baska klasorden ya da eski surumden kalan motor: kapatip yerine gec
         ask_quit()
         wait_ping(4, want=False)
-    if not hw.is_admin() and task_exists():
+    dev = "--dev" in sys.argv  # gelistirme: kurulu gorevi baslatma, bu kodu bu surecte calistir
+    if not dev and not hw.is_admin() and task_exists():
         hw.run(["schtasks", "/run", "/tn", TASK])
         if wait_ping(8):
             if not service:
