@@ -345,17 +345,23 @@ class DCHU:
         self.set_fan_mode(FAN_CUSTOM)
 
 
+class Unsupported(RuntimeError):
+    """Bu bilgisayarda olmayan bir ozellik: hata degil, 'desteklenmiyor'. Profil raporu bunu atlandi gosterir."""
+
+
 class NullDCHU:
-    """Gomulu denetleyici kitapligi olmayan bilgisayarlar icin: okumalar bos, yazmalar acik bir hata verir.
-    Profil adimlari bu hatayi raporda 'desteklenmiyor' olarak gosterir; geri kalan her sey calisir."""
+    """Clevo/Monster gomulu denetleyicisi olmayan (ya da kitapligi yuklenemeyen) bilgisayarlar icin: okumalar
+    bos, yazmalar Unsupported verir ve donanima HICBIR komut gitmez. Profil adimlari bunu raporda
+    'desteklenmiyor' olarak gosterir; geri kalan her sey calisir."""
     available = False
     path = ""
 
-    def __init__(self, reason=""):
+    def __init__(self, reason="", clevo=False):
         self.reason = reason
+        self.clevo = clevo  # aygit var ama kitaplik yok (Clevo) / aygit hic yok (baska uretici)
 
     def _no(self, *args, **kwargs):
-        raise RuntimeError(ceviri.t("err.noEc"))
+        raise Unsupported(ceviri.t("err.noEc" if self.clevo else "err.notClevo"))
 
     set_wmi = set_data = write_app = set_power_mode = set_fan_mode = set_fan_curve = _no
 
@@ -375,12 +381,53 @@ class NullDCHU:
         return None
 
 
+def clevo_present():
+    """Clevo/Monster gomulu denetleyici koprusu (ACPI\\CLV0001, AcpiBridge) bu bilgisayarda TAKILI mi?
+
+    DLL'in diskte bulunmasi yetmez: baska bir ureticinin Control Center'i ayni klasor adini ya da ayni
+    kitapligi tasiyabilir; Clevo olmayan bir bilgisayarin denetleyicisine Clevo komutu gondermek fanlari ve
+    guc sinirini bilinmeyen bir duruma sokabilir. Bu yuzden denetleyiciye yalnizca aygit varsa dokunulur.
+    Denetim yapilamazsa (beklenmeyen API hatasi) False: suphede donanima dokunulmaz."""
+    try:
+        sapi = ctypes.WinDLL("setupapi", use_last_error=True)
+        sapi.SetupDiGetClassDevsW.argtypes = [c_void_p, wt.LPCWSTR, wt.HWND, wt.DWORD]
+        sapi.SetupDiGetClassDevsW.restype = c_void_p
+        sapi.SetupDiEnumDeviceInfo.argtypes = [c_void_p, wt.DWORD, c_void_p]
+        sapi.SetupDiGetDeviceInstanceIdW.argtypes = [c_void_p, c_void_p, wt.LPWSTR, wt.DWORD, c_void_p]
+        sapi.SetupDiDestroyDeviceInfoList.argtypes = [c_void_p]
+
+        class _DevInfo(ctypes.Structure):  # SP_DEVINFO_DATA
+            _fields_ = [("cbSize", wt.DWORD), ("guid", ctypes.c_byte * 16), ("inst", wt.DWORD), ("res", c_void_p)]
+
+        h = sapi.SetupDiGetClassDevsW(None, "ACPI", None, 0x2 | 0x4)  # DIGCF_PRESENT | DIGCF_ALLCLASSES
+        if not h or h == c_void_p(-1).value:
+            return False
+        try:
+            i = 0
+            buf = ctypes.create_unicode_buffer(400)
+            while True:
+                d = _DevInfo()
+                d.cbSize = ctypes.sizeof(d)
+                if not sapi.SetupDiEnumDeviceInfo(h, i, ctypes.byref(d)):
+                    return False
+                if sapi.SetupDiGetDeviceInstanceIdW(h, ctypes.byref(d), buf, 400, None) \
+                        and buf.value.upper().startswith("ACPI\\CLV"):
+                    return True
+                i += 1
+        finally:
+            sapi.SetupDiDestroyDeviceInfoList(h)
+    except Exception:
+        return False
+
+
 def open_dchu():
-    """Gercek denetleyici ya da (kitaplik yoksa / yuklenemezse) NullDCHU."""
+    """Gercek denetleyici ya da (Clevo aygiti yoksa / kitaplik yoksa / yuklenemezse) NullDCHU."""
+    if not clevo_present():
+        return NullDCHU(ceviri.t("err.notClevo"), clevo=False)
     try:
         return DCHU()
     except Exception as exc:
-        return NullDCHU(str(exc))
+        return NullDCHU(str(exc), clevo=True)
 
 
 def validate_curve(pts, t1, d1):

@@ -189,12 +189,18 @@ class Manager:
             caps = t("val.capTurboOff")
         elif c["fmax_p"] or c["fmax_e"]:
             caps = t("val.capPE", p=ceviri.num(c["fmax_p"] / 1000.0, 1), e=ceviri.num(c["fmax_e"] / 1000.0, 1))
+        ec = getattr(self.dchu, "available", True)
+        if not ec:
+            fan_txt = t("val.unsupported")
+        gpu_txt = t("val.gpuCap", mhz=p["gpu"][1]) if p["gpu"] else t("val.gpuFree")
+        if not self.sensors.gpu_name:
+            gpu_txt = t("val.unsupported")
         return [
-            (t("row.powerMode"), t("power.%d" % p["ec"])),
+            (t("row.powerMode"), t("power.%d" % p["ec"]) if ec else t("val.unsupported")),
             (t("row.cpuCap"), caps),
             (t("row.turboEpp"), "%s / %d" % (t("boost.%d" % c["boost"]), c["epp"])),
             (t("row.sched"), t("sched.%d" % c["sched"])),
-            (t("row.gpu"), t("val.gpuCap", mhz=p["gpu"][1]) if p["gpu"] else t("val.gpuFree")),
+            (t("row.gpu"), gpu_txt),
             (t("row.fan"), fan_txt),
             (t("row.display"), t("val.disp60") if p["refresh"] == "min" else t("val.dispMax")),
         ]
@@ -227,6 +233,8 @@ class Manager:
                 try:
                     msg = fn()
                     rep.append({"step": name, "ok": True, "msg": msg or ""})
+                except hw.Unsupported as exc:  # bu bilgisayarda olmayan ozellik: hata degil, atlandi
+                    rep.append({"step": name, "ok": True, "skip": True, "msg": str(exc)})
                 except Exception as exc:
                     rep.append({"step": name, "ok": False, "msg": str(exc)})
 
@@ -271,6 +279,9 @@ class Manager:
         vals.update({"pmax": 100, "pmax1": 100, "pmin": 5, "pmin1": 5})
         optional = {"pmax1", "pmin1"}  # melez olmayan islemcide bu ayarlar yok
         bad = [k for k, v in vals.items() if not _write(k, v) and k not in optional]
+        cur = active_scheme()
+        if cur and cur != SCHEME:  # kullanicinin (ya da ureticinin) plani: "Fabrika" buna geri doner
+            self.cfg["prev_scheme"] = cur
         if POWRPROF.PowerSetActiveScheme(None, ctypes.byref(_g(SCHEME))) != 0:
             raise RuntimeError(t("err.schemeActivate"))
         try:
@@ -282,6 +293,8 @@ class Manager:
         return t("msg.cpuDone", boost=t("boost.%d" % c["boost"]), epp=c["epp"])
 
     def _gpu(self, p):
+        if not self.sensors.gpu_name:  # NVIDIA kart yok: nvidia-smi hic cagrilmaz
+            raise hw.Unsupported(t("err.noNvidia"))
         if not hw.is_admin():
             if p["gpu"]:
                 raise RuntimeError(t("err.gpuAdmin"))
@@ -372,6 +385,13 @@ class Manager:
                     self.guard = ""
                     self._cool = 0
 
+    def _restore_scheme(self):
+        """Profilden onceki guc planina doner (silinmisse Dengeli). Baska bir Control Center'in plani da olabilir."""
+        for g in (self.cfg.get("prev_scheme"), BALANCED):
+            if g and POWRPROF.PowerSetActiveScheme(None, ctypes.byref(_g(g))) == 0:
+                return
+        raise RuntimeError(t("err.schemeActivate"))
+
     def factory(self):
         """Fabrika durumuna don: Eglence modu, fanlar denetleyicide, Dengeli plan, ekran karti serbest.
         Profiller uygulama kapaliyken de guvenlidir (egriyi denetleyici calistirir, 100 C'de %100);
@@ -380,11 +400,14 @@ class Manager:
             rep = []
             for key, fn in (("step.ec", lambda: self.dchu.set_power_mode(3)),
                             ("step.fan", lambda: self.dchu.set_fan_mode(hw.FAN_AUTO)),
-                            ("step.scheme", lambda: POWRPROF.PowerSetActiveScheme(None, ctypes.byref(_g(BALANCED)))),
-                            ("step.gpu", lambda: hw.is_admin() and hw.nvidia_lock_clocks(0, None))):
+                            ("step.scheme", self._restore_scheme),
+                            ("step.gpu", lambda: self.sensors.gpu_name and hw.is_admin()
+                             and hw.nvidia_lock_clocks(0, None))):
                 try:
                     fn()
                     rep.append({"step": t(key), "ok": True, "msg": t("msg.factory")})
+                except hw.Unsupported as exc:
+                    rep.append({"step": t(key), "ok": True, "skip": True, "msg": str(exc)})
                 except Exception as exc:
                     rep.append({"step": t(key), "ok": False, "msg": str(exc)})
             self.applied = ""

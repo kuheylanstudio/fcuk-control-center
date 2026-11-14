@@ -335,5 +335,13 @@
   "osd.touchpad": "Touchpad",
   "osd.camera": "Kamera",
   "osd.airplane": "Flugmodus",
-  "osd.changed": "Geändert"
+  "osd.changed": "Geändert",
+  "err.notClevo": "auf diesem Computer nicht verfügbar (kein Clevo/Monster-Embedded-Controller)",
+  "err.noNvidia": "keine NVIDIA-Grafikkarte",
+  "val.unsupported": "auf diesem Computer nicht verfügbar",
+  "nav.unsup": "Nicht auf diesem Computer",
+  "unsup.title": "Auf diesem Computer nicht verfügbar",
+  "unsup.fan": "Lüfterkurven und Controller-Energiemodi gibt es nur beim Clevo/Monster-Embedded-Controller, den dieser Computer nicht hat. Die App sendet keine Befehle an Lüfter oder Controller; der Computer selbst oder die App des Herstellers steuert die Lüfter weiter. Profile setzen CPU-, GPU- und Anzeigeeinstellungen trotzdem.",
+  "unsup.kb": "Die RGB-Tastaturbeleuchtung gibt es nur beim Clevo/Monster-Embedded-Controller, den dieser Computer nicht hat. Die App sendet keine Befehle an die Tastatur; die App des Herstellers oder die Fn-Tasten steuern die Beleuchtung weiter.",
+  "unsup.dll": "Der Embedded Controller wurde gefunden, seine Bibliothek ließ sich aber nicht laden, daher ist diese Funktion aus: {err}"
 }

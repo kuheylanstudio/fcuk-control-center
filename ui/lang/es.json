@@ -335,5 +335,13 @@
   "osd.touchpad": "Touchpad",
   "osd.camera": "Cámara",
   "osd.airplane": "Modo avión",
-  "osd.changed": "Cambiado"
+  "osd.changed": "Cambiado",
+  "err.notClevo": "no disponible en este equipo (no es un controlador integrado Clevo/Monster)",
+  "err.noNvidia": "no hay GPU NVIDIA",
+  "val.unsupported": "no disponible en este equipo",
+  "nav.unsup": "No en este equipo",
+  "unsup.title": "No disponible en este equipo",
+  "unsup.fan": "Las curvas de ventilador y los modos de energía del controlador son exclusivos del controlador integrado Clevo/Monster, que este equipo no tiene. La aplicación no envía ningún comando a los ventiladores ni al controlador; el propio equipo o la aplicación del fabricante siguen gestionándolos. Los perfiles siguen aplicando ajustes de CPU, GPU y pantalla.",
+  "unsup.kb": "La iluminación RGB del teclado es exclusiva del controlador integrado Clevo/Monster, que este equipo no tiene. La aplicación no envía ningún comando al teclado; la aplicación del fabricante o las teclas Fn siguen gestionando la luz.",
+  "unsup.dll": "Se encontró el controlador integrado, pero no se pudo cargar su biblioteca, así que esta función está desactivada: {err}"
 }

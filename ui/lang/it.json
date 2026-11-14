@@ -335,5 +335,13 @@
   "osd.touchpad": "Touchpad",
   "osd.camera": "Fotocamera",
   "osd.airplane": "Modalità aereo",
-  "osd.changed": "Modificato"
+  "osd.changed": "Modificato",
+  "err.notClevo": "non disponibile su questo computer (non è un controller integrato Clevo/Monster)",
+  "err.noNvidia": "nessuna GPU NVIDIA",
+  "val.unsupported": "non disponibile su questo computer",
+  "nav.unsup": "Non su questo computer",
+  "unsup.title": "Non disponibile su questo computer",
+  "unsup.fan": "Le curve delle ventole e le modalità di alimentazione del controller sono specifiche del controller integrato Clevo/Monster, che questo computer non ha. L'app non invia alcun comando alle ventole o al controller; il computer stesso o l'app del produttore continua a gestirle. I profili applicano comunque le impostazioni di CPU, GPU e schermo.",
+  "unsup.kb": "L'illuminazione RGB della tastiera è specifica del controller integrato Clevo/Monster, che questo computer non ha. L'app non invia alcun comando alla tastiera; l'app del produttore o i tasti Fn continuano a gestire la luce.",
+  "unsup.dll": "Il controller integrato è stato trovato ma la sua libreria non si è caricata, quindi questa funzione è disattivata: {err}"
 }

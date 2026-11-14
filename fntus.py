@@ -116,13 +116,23 @@ class Listener(threading.Thread):
                 self._session()
             except Exception as exc:
                 log("dinleyici hatasi: %r" % exc)
-            time.sleep(3)
+            # Kopru aygiti hic yoksa (Clevo/Monster olmayan bilgisayar) 3 sn'de bir aramak ve gunluge yazmak
+            # bosuna: aralik 60 sn'ye kadar uzar. Aygit gelirse (uyanma, surucu kurulumu) yine bulunur.
+            time.sleep(self.wait)
+
+    wait = 3
+    _missing = False
 
     def _session(self):
         path = bridge_path()
         if not path:
-            log("kopru aygiti bulunamadi")
+            if not self._missing:
+                log("kopru aygiti bulunamadi (Clevo/Monster degilse Fn tuslari Windows'a ve ureticiye kalir)")
+            self._missing = True
+            self.wait = min(self.wait * 2, 60)
             return
+        self._missing = False
+        self.wait = 3
         h = k32.CreateFileW(path, 0xC0000000, 3, None, 3, 0, None)
         if not h or h == ctypes.c_void_p(-1).value:
             log("kopru acilamadi, hata %d" % ctypes.get_last_error())

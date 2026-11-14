@@ -310,6 +310,9 @@ class Engine(threading.Thread):
             last = now
             mode, pal, speed, source, bright = self.settings
             value = None
+            kb_ok = getattr(self.kb, "available", True)
+            if not kb_ok and mode in ("ses", "ekran", "sistem"):
+                mode = "sabit"  # klavye isigi yok: ses/ekran ornekleme ve olcum bosuna calismasin
             try:
                 if mode == "sabit":
                     col = pal[0] if pal else (255, 255, 255)
@@ -386,7 +389,8 @@ class Engine(threading.Thread):
             except Exception as exc:  # motor hic durmasin
                 self.error = "%s: %s" % (type(exc).__name__, exc)
                 time.sleep(0.5)
-            spare = 1.0 / self.FPS - (time.monotonic() - now)
+            # Klavye isigi yoksa yalnizca arayuzun vurgu rengi icin saniyede 2 kare (islemciyi yormaz)
+            spare = 1.0 / (self.FPS if kb_ok else 2) - (time.monotonic() - now)
             if spare > 0:
                 time.sleep(spare)
 

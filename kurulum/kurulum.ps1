@@ -118,7 +118,10 @@ function Invoke-Quiet([string]$exe, [string[]]$argv) {
     $global:LASTEXITCODE = 0
     return $rc
 }
-function Get-Clevo { return [bool](Get-PnpDevice -InstanceId 'ACPI\CLV0001*' -ErrorAction SilentlyContinue) }
+# Clevo/Monster gömülü denetleyici köprüsü TAKILI mı (yalnızca kayıtlı değil). Değilse bu betik hiçbir üretici
+# yazılımına, sürücüsüne, hizmetine ya da IFEO kaydına dokunmaz: Armoury Crate, Lenovo Vantage, MSI Center, Dell/
+# Alienware, HP Omen, Acer NitroSense ve diğer Control Center türevleri olduğu gibi çalışmaya devam eder.
+function Get-Clevo { return [bool](Get-PnpDevice -PresentOnly -InstanceId 'ACPI\CLV*' -ErrorAction SilentlyContinue) }
 
 # ---------------------------------------------------------------------------- envanter
 function Get-OldInventory {
@@ -328,8 +331,16 @@ function Restore-Drivers($before) {
 if ($Mode -eq 'Report') {
     $cs = Get-CimInstance Win32_ComputerSystem
     Info ("Bilgisayar: $($cs.Manufacturer) $($cs.Model)")
-    if (Get-Clevo) { Info 'Clevo/Monster gömülü denetleyicisi (AcpiBridge) bulundu' }
-    else { Info 'Clevo/Monster AcpiBridge aygıtı yok: fan / güç modu / klavye ışığı özellikleri kapalı olur' }
+    if (-not (Get-Clevo)) {
+        $script:StdOut.WriteLine('CIHAZ|diger')
+        Info 'Clevo/Monster gömülü denetleyicisi yok: bu bilgisayarın kendi Control Center / üretici uygulamasına, sürücülerine ve hizmetlerine DOKUNULMAYACAK'
+        Info 'Çalışacak: canlı izleme, işlemci ve ekran kartı ayarları, performans profilleri (işlemci / ekran kartı / ekran), ses ve ekran'
+        Info 'Bu bilgisayarda olmayan (arayüzde "kullanılamaz" görünür, hiçbir komut gönderilmez): fan eğrisi, denetleyici güç modu, klavye RGB, Monster Fn tuşları'
+        if (Test-Path $Exe) { Info "FCUK Control Center zaten kurulu: $Dest (güncellenecek)" }
+        exit 0
+    }
+    $script:StdOut.WriteLine('CIHAZ|clevo')
+    Info 'Clevo/Monster gömülü denetleyicisi (AcpiBridge) bulundu'
     $inv = Get-OldInventory
     if (-not $inv.Found) { Info 'Eski Control Center bulunamadı (zaten kaldırılmış)' }
     Show-Inventory $inv
@@ -387,6 +398,7 @@ try {
     if (-not $Payload -or -not (Test-Path (Join-Path $Payload 'FCUKControlCenter.exe'))) { throw "Kurulum paketi bozuk: $Payload" }
     if (-not [Environment]::Is64BitOperatingSystem) { throw '64 bit Windows gerekli' }
     $clevo = Get-Clevo
+    $script:StdOut.WriteLine($(if ($clevo) { 'CIHAZ|clevo' } else { 'CIHAZ|diger' }))
     $cs = Get-CimInstance Win32_ComputerSystem
     Info ("Bilgisayar: $($cs.Manufacturer) $($cs.Model)")
 
@@ -398,8 +410,11 @@ try {
         } catch { Info "Geri yükleme noktası oluşturulamadı ($($_.Exception.Message.Trim())). Kurulum yine de yedek alarak devam ediyor." }
     } else { Info 'Geri yükleme noktası istenmedi (sürücüler ve eski bileşenler yine yedeklenir)' }
 
+    if (-not $clevo) {
+        Info 'Clevo/Monster değil: başka üreticilerin Control Center uygulamalarına, sürücülerine ve hizmetlerine dokunulmuyor'
+    }
     Step 'AcpiBridge sürücüleri yedekleniyor'
-    $drivers = @(Get-DriverState)
+    $drivers = @(if ($clevo) { Get-DriverState })
     New-Item -ItemType Directory -Force $Backup | Out-Null
     if ($drivers.Count) {
         $drv = Join-Path $Backup 'surucu'
@@ -412,9 +427,11 @@ try {
         $drivers | Format-Table -AutoSize | Out-String | Set-Content (Join-Path $Backup 'suruculer.txt') -Encoding UTF8
     } else { Info 'AcpiBridge aygıtı yok: atlandı' }
 
-    Step 'Eski Control Center taranıyor'
-    $inv = Get-OldInventory
-    if ($inv.Found) { Show-Inventory $inv } else { Info 'Eski Control Center bulunamadı (zaten kaldırılmış); yalnızca kalıntı engelleri uygulanacak' }
+    if ($clevo) {
+        Step 'Eski Control Center taranıyor'
+        $inv = Get-OldInventory
+        if ($inv.Found) { Show-Inventory $inv } else { Info 'Eski Control Center bulunamadı (zaten kaldırılmış); yalnızca kalıntı engelleri uygulanacak' }
+    }
 
     Step 'Çalışan FCUK Control Center kapatılıyor'
     Stop-Fcuk
@@ -430,8 +447,10 @@ try {
         if (Test-Path $OldDest) { Warn "Eski klasör tamamen silinemedi: $OldDest" } else { Ok "Önceki sürüm taşındı ve silindi: $OldDest" }
     }
 
-    Remove-OldCC $inv $clevo
-    Restore-Drivers $drivers
+    if ($clevo) {
+        Remove-OldCC $inv $clevo
+        Restore-Drivers $drivers
+    }
 
     Step "Dosyalar kopyalanıyor: $Dest"
     if (-not (Copy-Tree $Payload $Dest -Mirror -ExcludeDirs $Veri)) {
@@ -506,14 +525,23 @@ try {
             if (-not $tray) { Start-Sleep -Milliseconds 500 }
         }
         if ($tray) { Ok 'Tepsi simgesi ve Fn tuşu dinleyicisi çalışıyor' } else { Warn 'Tepsi süreci görülmedi' }
-        $left = @(Get-Process -Name $OldProcs -ErrorAction SilentlyContinue)
-        if ($left.Count) { Warn ("Hâlâ çalışan eski süreç: " + (($left | ForEach-Object Name) -join ', ')) } else { Ok 'Eski Control Center süreçlerinden hiçbiri çalışmıyor' }
+        if ($clevo) {
+            $left = @(Get-Process -Name $OldProcs -ErrorAction SilentlyContinue)
+            if ($left.Count) { Warn ("Hâlâ çalışan eski süreç: " + (($left | ForEach-Object Name) -join ', ')) } else { Ok 'Eski Control Center süreçlerinden hiçbiri çalışmıyor' }
+        }
     }
-    $after = Get-OldInventory
-    $rest = $after.Uninstall.Count + [int]$after.IsInfo + $after.AppxReplaced.Count + $after.Tasks.Count + $after.Run.Count + $after.Shortcuts.Count
-    if ($rest) { Warn "Eski Control Center'dan $rest kalıntı kaldı:"; Show-Inventory $after } else { Ok "Eski Control Center'dan kalıntı yok" }
-    Info "Yedekler: $Backup"
-    Info "Kayıt: $LogFile"
+    if ($clevo) {
+        $after = Get-OldInventory
+        $rest = $after.Uninstall.Count + [int]$after.IsInfo + $after.AppxReplaced.Count + $after.Tasks.Count + $after.Run.Count + $after.Shortcuts.Count
+        if ($rest) { Warn "Eski Control Center'dan $rest kalıntı kaldı:"; Show-Inventory $after } else { Ok "Eski Control Center'dan kalıntı yok" }
+        Info "Yedekler: $Backup"
+        Info "Kayıt: $LogFile"
+        Info 'Yeniden başlatma gerekli: sürücü, hizmet ve Fn tuşu değişiklikleri için kurulumdan sonra bilgisayarı yeniden başlatın'
+    } else {
+        Ok 'Bu bilgisayarın kendi Control Center / üretici uygulamasına dokunulmadı; ikisi birlikte çalışır'
+        Info 'Fan eğrisi, denetleyici güç modu ve klavye RGB bu bilgisayarda yok: arayüzde "kullanılamaz" görünür, donanıma komut gönderilmez'
+        Info "Kayıt: $LogFile"
+    }
 } catch {
     Fail $_.Exception.Message
 }

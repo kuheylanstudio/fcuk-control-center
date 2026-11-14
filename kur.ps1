@@ -69,7 +69,7 @@ try {
     # gelirse yonetici motor yeni yolu acilista ve 30 dakikada bir engeller.
     # Geri almak: IFEO altindaki bu adlarin FCUKCC... alt anahtarlarini silmek; paket yedegi yedek\FnPaketi.
     # Asagidaki bolum YALNIZCA Clevo tabanli bilgisayarlarda (AcpiBridge aygiti ACPI\CLV0001) calisir.
-    $clevo = Get-PnpDevice -InstanceId "ACPI\CLV0001*" -ErrorAction SilentlyContinue
+    $clevo = Get-PnpDevice -PresentOnly -InstanceId "ACPI\CLV*" -ErrorAction SilentlyContinue
     if ($clevo) {
         $p = Start-Process $exe -ArgumentList "--block-fn" -Wait -PassThru
         if ($p.ExitCode -eq 0) { Log "Fn programlari tam yollariyla engellendi (ayrinti: veri\crash.log)" }

@@ -503,5 +503,13 @@
   "err.nvSave": "ayarlar kaydedilemedi (NVAPI {code})",
   "err.cpuNoSetting": "bu işlemcide olmayan ayar",
   "err.cpuWrite": "{name} yazılamadı",
-  "set.adminUntrusted": "Yönetici modu yalnızca setup.exe ile Program Files'a kurulmuş sürümde açılır. Başka bir klasörden kurulan yönetici görevi, o klasöre yazabilen her programa UAC sormadan yönetici yetkisi verirdi."
+  "set.adminUntrusted": "Yönetici modu yalnızca setup.exe ile Program Files'a kurulmuş sürümde açılır. Başka bir klasörden kurulan yönetici görevi, o klasöre yazabilen her programa UAC sormadan yönetici yetkisi verirdi.",
+  "err.notClevo": "bu bilgisayarda yok (Clevo/Monster gömülü denetleyicisi değil)",
+  "err.noNvidia": "NVIDIA ekran kartı yok",
+  "val.unsupported": "bu bilgisayarda yok",
+  "nav.unsup": "Bu bilgisayarda yok",
+  "unsup.title": "Bu bilgisayarda kullanılamaz",
+  "unsup.fan": "Fan eğrisi ve denetleyici güç modu Clevo/Monster gömülü denetleyicisine özeldir ve bu bilgisayarda o denetleyici yok. Uygulama fanlara ve denetleyiciye hiçbir komut göndermez; fanları bilgisayarın kendisi ya da üreticinin uygulaması yönetmeye devam eder. Profiller işlemci, ekran kartı ve ekran ayarlarını yine uygular.",
+  "unsup.kb": "Klavye RGB ışığı Clevo/Monster gömülü denetleyicisine özeldir ve bu bilgisayarda o denetleyici yok. Uygulama klavyeye hiçbir komut göndermez; klavye ışığını üreticinin uygulaması ya da Fn tuşları yönetmeye devam eder.",
+  "unsup.dll": "Gömülü denetleyici bulundu ama kitaplığı yüklenemedi, bu yüzden bu özellik kapalı: {err}"
 }

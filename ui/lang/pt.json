@@ -335,5 +335,13 @@
   "osd.touchpad": "Touchpad",
   "osd.camera": "Câmera",
   "osd.airplane": "Modo avião",
-  "osd.changed": "Alterado"
+  "osd.changed": "Alterado",
+  "err.notClevo": "indisponível neste computador (não é um controlador embutido Clevo/Monster)",
+  "err.noNvidia": "sem GPU NVIDIA",
+  "val.unsupported": "indisponível neste computador",
+  "nav.unsup": "Não neste computador",
+  "unsup.title": "Indisponível neste computador",
+  "unsup.fan": "As curvas de ventoinha e os modos de energia do controlador são exclusivos do controlador embutido Clevo/Monster, que este computador não tem. O app não envia nenhum comando às ventoinhas nem ao controlador; o próprio computador ou o app do fabricante continua a geri-los. Os perfis ainda aplicam as definições de CPU, GPU e ecrã.",
+  "unsup.kb": "A iluminação RGB do teclado é exclusiva do controlador embutido Clevo/Monster, que este computador não tem. O app não envia nenhum comando ao teclado; o app do fabricante ou as teclas Fn continuam a gerir a luz.",
+  "unsup.dll": "O controlador embutido foi encontrado, mas a sua biblioteca não carregou, por isso esta função está desligada: {err}"
 }

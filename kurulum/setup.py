@@ -7,6 +7,8 @@
   setup.exe              pencereli kurulum (önce eski Control Center taraması gösterilir)
   setup.exe /S           sessiz kurulum, çıkış kodu: 0 tamam, 2 uyarılı tamam, 1 hata
   setup.exe /S /restore  sessiz kurulum, önce sistem geri yükleme noktası oluşturur
+  setup.exe /S /reboot   sessiz kurulum, başarılıysa bilgisayarı yeniden başlatır (yoksa elle yeniden başlatın)
+Kurulum sonrası yeniden başlatma gerekir; pencereli kurulum bunu söyler ve "Şimdi yeniden başlat" düğmesi sunar.
 """
 import os
 import queue
@@ -51,7 +53,7 @@ def run_script(mode, on_line, launch=True, restore=False):
         if not line.strip():
             continue
         kind, sep, msg = line.partition("|")
-        if sep and kind in ("ADIM", "BILGI", "OK", "UYARI", "HATA"):
+        if sep and kind in ("ADIM", "BILGI", "OK", "UYARI", "HATA", "CIHAZ"):  # CIHAZ: clevo | diger
             on_line(kind, msg)
         else:
             on_line("HAM", line)
@@ -101,8 +103,13 @@ def open_app():
         subprocess.Popen(["explorer.exe", EXE], creationflags=NO_WINDOW)
 
 
-def silent(restore=False):
-    return run_script("Install", lambda k, m: None, restore=restore)
+def silent(restore=False, reboot=False):
+    dev = {}
+    rc = run_script("Install", lambda k, m: dev.update(clevo=(m == "clevo")) if k == "CIHAZ" else None, restore=restore)
+    # /reboot: başarılı kurulumdan sonra yeniden başlat. Clevo/Monster değilse sürücü/Fn değişikliği yok: gerekmez.
+    if reboot and rc != 1 and dev.get("clevo", True):
+        subprocess.Popen(["shutdown.exe", "/r", "/t", "10"], creationflags=NO_WINDOW)
+    return rc
 
 
 # ----------------------------------------------------------------------------- pencere
@@ -132,11 +139,12 @@ def gui():
     tk.Label(head, text=TITLE, bg=BG, fg="#ffffff", font=(FONT, 20, "bold"), anchor="w").pack(fill="x")
     tk.Label(head, text="Sürüm %s  ·  Monster / Clevo Control Center'ın yerine geçer" % version(), bg=BG, fg=TEXT3,
              font=(FONT, 10), anchor="w").pack(fill="x")
-    tk.Label(head, bg=BG, fg=TEXT2, font=(FONT, 10), justify="left", anchor="w", wraplength=720, text=(
+    desc = tk.Label(head, bg=BG, fg=TEXT2, font=(FONT, 10), justify="left", anchor="w", wraplength=720, text=(
         "Kurulum eski Control Center'ı yedek alarak kaldırır ve FCUK Control Center'ı kurar. Üreticinin kaldırıcısı "
         "çalıştırılmaz, çünkü o kaldırıcı AcpiBridge sürücülerini de siler. Sürücüler ve CCDCHUService korunur: önce "
         "sürücüler dışa aktarılır, sonunda her şey doğrulanır. İsterseniz önce sistem geri yükleme noktası da "
-        "oluşturulur (aşağıdaki kutu; birkaç dakika sürebilir).")).pack(fill="x", pady=(10, 0))
+        "oluşturulur (aşağıdaki kutu; birkaç dakika sürebilir)."))
+    desc.pack(fill="x", pady=(10, 0))
 
     box = tk.Frame(root, bg=LINE, padx=1, pady=1)
     box.pack(fill="both", expand=True, padx=24, pady=8)
@@ -177,7 +185,7 @@ def gui():
                          activeforeground=BG if primary else "#ffffff", disabledforeground=TEXT3)
 
     q = queue.Queue()
-    st = {"busy": False, "rc": 1, "errors": []}
+    st = {"busy": False, "rc": 1, "errors": [], "clevo": True}
 
     def put(kind, msg):
         q.put(("line", kind, msg))
@@ -186,7 +194,16 @@ def gui():
         try:
             while True:
                 item = q.get_nowait()
-                if item[0] == "line":
+                if item[0] == "line" and item[1] == "CIHAZ":
+                    st["clevo"] = item[2] == "clevo"
+                    if not st["clevo"]:
+                        desc.configure(text=(
+                            "Bu bilgisayar Clevo/Monster değil. Kurulum yalnızca FCUK Control Center'ı kurar; bilgisayarın "
+                            "kendi Control Center'ına ya da üretici uygulamasına (Armoury Crate, Vantage, MSI Center, "
+                            "Omen, Alienware...), sürücülerine ve hizmetlerine dokunmaz, hiçbir şey kaldırılmaz. İkisi "
+                            "birlikte çalışır. Fan eğrisi, denetleyici güç modu ve klavye RGB bu bilgisayarda yoktur; "
+                            "arayüzde 'kullanılamaz' görünür ve donanıma komut gönderilmez."))
+                elif item[0] == "line":
                     _, kind, msg = item
                     if kind == "HATA":
                         st["errors"].append(msg)
@@ -215,7 +232,8 @@ def gui():
         st["busy"] = False
         st["rc"] = rc
         if rc == 0:
-            status.configure(text="Kurulum tamamlandı. FCUK Control Center eski Control Center'ın yerini aldı.", fg=GOOD)
+            status.configure(text="Kurulum tamamlandı. FCUK Control Center eski Control Center'ın yerini aldı."
+                             if st["clevo"] else "Kurulum tamamlandı. Diğer uygulamalara dokunulmadı.", fg=GOOD)
         elif rc == 2:
             status.configure(text="Kurulum tamamlandı, uyarılar var (sarı satırlar).", fg=WARN)
         else:
@@ -227,6 +245,17 @@ def gui():
         chk_rp.pack_forget()
         if rc == 1:
             chk.pack_forget()
+        elif st["clevo"]:
+            # Sürücü, hizmet ve Fn tuşu değişiklikleri tam olarak yeniden başlatınca devreye girer
+            status.configure(text=status.cget("text") + "\nTam çalışması için bilgisayarı yeniden başlatın.",
+                             wraplength=420, justify="left")
+            txt.configure(state="normal")
+            txt.insert("end", "\n▸ Yeniden başlatma gerekli\n", "ADIM")
+            txt.insert("end", "  ! Eski Control Center'ın kalıntıları ve Fn tuşu engelleri ancak yeniden başlatınca "
+                              "tamamen devreye girer. Lütfen bilgisayarı yeniden başlatın.\n", "UYARI")
+            txt.see("end")
+            txt.configure(state="disabled")
+            rebootbtn.pack(side="right", padx=(0, 8))
 
     def finish():
         if st["rc"] != 1 and launch.get():
@@ -267,7 +296,15 @@ def gui():
         if os.path.exists(LOG):
             subprocess.Popen(["notepad.exe", LOG], creationflags=NO_WINDOW)
 
+    def reboot_now():
+        from tkinter import messagebox
+        if messagebox.askyesno(TITLE, "Bilgisayar 10 saniye içinde yeniden başlatılacak.\nAçık işleriniz kaydedildi mi?"):
+            subprocess.Popen(["shutdown.exe", "/r", "/t", "10", "/c", TITLE + " kurulumu için yeniden başlatılıyor"],
+                             creationflags=NO_WINDOW)
+            root.destroy()
+
     cancel = button("İptal", on_close)
+    rebootbtn = button("Şimdi yeniden başlat", reboot_now)
     logbtn = button("Kaydı aç", open_log)
     go = button("Kur", start_install, primary=True)
     go.configure(state="disabled")
@@ -296,7 +333,7 @@ def gui():
 def main():
     args = [a.lower() for a in sys.argv[1:]]
     if "/s" in args or "--sessiz" in args or "/silent" in args:
-        sys.exit(silent(restore="/restore" in args))
+        sys.exit(silent(restore="/restore" in args, reboot="/reboot" in args))
     gui()
 
 

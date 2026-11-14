@@ -335,5 +335,13 @@
   "osd.touchpad": "Pavé tactile",
   "osd.camera": "Caméra",
   "osd.airplane": "Mode avion",
-  "osd.changed": "Modifié"
+  "osd.changed": "Modifié",
+  "err.notClevo": "indisponible sur cet ordinateur (pas de contrôleur embarqué Clevo/Monster)",
+  "err.noNvidia": "pas de GPU NVIDIA",
+  "val.unsupported": "indisponible sur cet ordinateur",
+  "nav.unsup": "Absent sur cet ordinateur",
+  "unsup.title": "Indisponible sur cet ordinateur",
+  "unsup.fan": "Les courbes de ventilation et les modes d'alimentation du contrôleur sont propres au contrôleur embarqué Clevo/Monster, absent de cet ordinateur. L'application n'envoie aucune commande aux ventilateurs ni au contrôleur ; l'ordinateur lui-même ou l'application du fabricant continue de les gérer. Les profils appliquent toujours les réglages processeur, GPU et écran.",
+  "unsup.kb": "L'éclairage RGB du clavier est propre au contrôleur embarqué Clevo/Monster, absent de cet ordinateur. L'application n'envoie aucune commande au clavier ; l'application du fabricant ou les touches Fn continuent de gérer l'éclairage.",
+  "unsup.dll": "Le contrôleur embarqué a été trouvé mais sa bibliothèque n'a pas pu être chargée ; cette fonction est désactivée : {err}"
 }

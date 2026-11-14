@@ -503,5 +503,13 @@
   "err.nvSave": "could not save settings (NVAPI {code})",
   "err.cpuNoSetting": "setting not available on this processor",
   "err.cpuWrite": "could not write {name}",
-  "set.adminUntrusted": "Administrator mode is only available in the version installed to Program Files with setup.exe. An administrator task installed from any other folder would let every program that can write to that folder gain administrator rights without a UAC prompt."
+  "set.adminUntrusted": "Administrator mode is only available in the version installed to Program Files with setup.exe. An administrator task installed from any other folder would let every program that can write to that folder gain administrator rights without a UAC prompt.",
+  "err.notClevo": "not available on this computer (not a Clevo/Monster embedded controller)",
+  "err.noNvidia": "no NVIDIA GPU",
+  "val.unsupported": "not available on this computer",
+  "nav.unsup": "Not on this computer",
+  "unsup.title": "Not available on this computer",
+  "unsup.fan": "Fan curves and controller power modes are specific to the Clevo/Monster embedded controller, which this computer does not have. The app sends no commands to the fans or the controller; the computer itself or the manufacturer's app keeps managing the fans. Profiles still apply CPU, GPU and display settings.",
+  "unsup.kb": "Keyboard RGB lighting is specific to the Clevo/Monster embedded controller, which this computer does not have. The app sends no commands to the keyboard; the manufacturer's app or the Fn keys keep managing the keyboard light.",
+  "unsup.dll": "The embedded controller was found but its library could not be loaded, so this feature is off: {err}"
 }

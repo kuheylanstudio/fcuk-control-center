@@ -235,6 +235,10 @@ def sanitize_cc(raw):
             out[k] = raw[k]
     if "refresh" in raw:
         out["refresh"] = bool(raw["refresh"])
+    # Profilden once etkin olan guc plani (ureticinin kendi plani olabilir): "Fabrika" ona geri doner
+    prev = raw.get("prev_scheme")
+    if isinstance(prev, str) and re.fullmatch(r"[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}", prev):
+        out["prev_scheme"] = prev
     return out
 
 
@@ -495,6 +499,8 @@ def state():
         "autostart": bool(App.cfg.get("autostart")),
         "dll": App.dchu.path,
         "ec": App.dchu.available,
+        "ec_clevo": bool(getattr(App.dchu, "clevo", True)),  # aygit var, yalnizca kitaplik yok
+        "ec_reason": getattr(App.dchu, "reason", ""),
         "cpu": App.inventory.data.get("cpu"),
         "nvidia": bool(App.sensors.gpu_name),
         "igpu_name": App.sensors.igpu_name,
@@ -618,7 +624,7 @@ class Handler(BaseHTTPRequestHandler):
                 "profile": mgr.applied, "guard": mgr.guard, "lang": ceviri.lang(),
                 "profiles": [{"id": p["id"], "name": profiller.name(p["id"]), "ac_only": bool(p.get("ac_only"))}
                              for p in profiller.PROFILES],
-                "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
+                "ec": App.dchu.available, "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
                 "gpu_state": s.get("gpu_state"), "cpu_power": s.get("cpu_power"),
                 "ac": (s.get("battery") or {}).get("ac", True), "notices": list(App.notices)})
         if path == "/api/now":  # yalnizca son olcum (gecmissiz): ek sayfalar saniyede bir okur
@@ -937,8 +943,9 @@ def serve():
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
     except (OSError, AttributeError):
         pass
-    # InsydeDCHU.dll yoksa (Clevo tabanli olmayan bilgisayar) NullDCHU: fan/guc modu/klavye isigi kapanir,
-    # izleme, NVIDIA ve islemci ayarlari calisir.
+    # Clevo/Monster koprusu (ACPI\CLV) yoksa ya da InsydeDCHU.dll yuklenemezse NullDCHU: fan/guc modu/klavye
+    # isigi kapanir ve gomulu denetleyiciye HICBIR komut gitmez; izleme, NVIDIA ve islemci ayarlari calisir.
+    # Baska ureticilerin Control Center'larina (Armoury Crate, Vantage, MSI Center, Alienware...) dokunulmaz.
     App.dchu = hw.open_dchu()
     App.inventory = envanter.Inventory()
     App.inventory.start()
@@ -946,10 +953,11 @@ def serve():
     # Fn tusu olaylarini ac (Clevo "events enabled", komut 0x46). Bunu eskiden FnKey.exe acilista yapiyordu;
     # gonderilmezse denetleyici Fn bildirimlerini AcpiBridge'e iletmez (14.11.2026 olculdu). Yeniden
     # baslatmaya dek kalicidir; her acilista gonderilir.
-    try:
-        App.dchu.set_wmi(0x46, 0)
-    except Exception:
-        pass
+    if App.dchu.available:
+        try:
+            App.dchu.set_wmi(0x46, 0)
+        except Exception:
+            pass
     try:
         App.server = Server(("127.0.0.1", PORT), Handler)
     except OSError as exc:
@@ -1023,7 +1031,10 @@ def enable_crash_log():
 def fans_to_factory():
     """Motor tamamen durdugunda fanlari denetleyicinin kendi tablosuna birak (isi bekcisi artik yok)."""
     try:
-        hw.DCHU().set_fan_mode(hw.FAN_AUTO)
+        dchu = hw.open_dchu()  # Clevo degilse NullDCHU: denetleyiciye komut gitmez
+        if not dchu.available:
+            return True
+        dchu.set_fan_mode(hw.FAN_AUTO)
         return True
     except Exception:
         log("fanlar fabrika tablosuna alinamadi: " + traceback.format_exc().replace("\n", " | "))

@@ -335,5 +335,13 @@
   "osd.touchpad": "触控板",
   "osd.camera": "摄像头",
   "osd.airplane": "飞行模式",
-  "osd.changed": "已更改"
+  "osd.changed": "已更改",
+  "err.notClevo": "此电脑不支持（不是 Clevo/Monster 嵌入式控制器）",
+  "err.noNvidia": "没有 NVIDIA 显卡",
+  "val.unsupported": "此电脑不支持",
+  "nav.unsup": "此电脑无此功能",
+  "unsup.title": "此电脑不支持此功能",
+  "unsup.fan": "风扇曲线和控制器电源模式是 Clevo/Monster 嵌入式控制器专有的，此电脑没有该控制器。本应用不会向风扇或控制器发送任何命令，风扇仍由电脑本身或厂商应用管理。性能配置仍会应用处理器、显卡和显示器设置。",
+  "unsup.kb": "键盘 RGB 灯光是 Clevo/Monster 嵌入式控制器专有的，此电脑没有该控制器。本应用不会向键盘发送任何命令，键盘灯光仍由厂商应用或 Fn 键管理。",
+  "unsup.dll": "找到了嵌入式控制器，但无法加载其库，因此此功能已关闭：{err}"
 }

@@ -335,5 +335,13 @@
   "osd.touchpad": "Touchpad",
   "osd.camera": "Camera",
   "osd.airplane": "Vliegtuigmodus",
-  "osd.changed": "Gewijzigd"
+  "osd.changed": "Gewijzigd",
+  "err.notClevo": "niet beschikbaar op deze computer (geen Clevo/Monster embedded controller)",
+  "err.noNvidia": "geen NVIDIA-videokaart",
+  "val.unsupported": "niet beschikbaar op deze computer",
+  "nav.unsup": "Niet op deze computer",
+  "unsup.title": "Niet beschikbaar op deze computer",
+  "unsup.fan": "Ventilatorcurves en energiemodi van de controller horen bij de Clevo/Monster embedded controller, die deze computer niet heeft. De app stuurt geen opdrachten naar de ventilatoren of de controller; de computer zelf of de app van de fabrikant blijft ze regelen. Profielen passen processor-, GPU- en scherminstellingen wel toe.",
+  "unsup.kb": "RGB-toetsenbordverlichting hoort bij de Clevo/Monster embedded controller, die deze computer niet heeft. De app stuurt geen opdrachten naar het toetsenbord; de app van de fabrikant of de Fn-toetsen blijven de verlichting regelen.",
+  "unsup.dll": "De embedded controller is gevonden, maar de bibliotheek kon niet worden geladen, dus deze functie staat uit: {err}"
 }

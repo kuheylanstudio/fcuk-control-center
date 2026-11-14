@@ -119,6 +119,10 @@ canvas.spark{display:block;width:100%;height:44px}
 .report li{display:grid;grid-template-columns:14px 140px minmax(0,1fr);gap:var(--s-2)}
 .report .ok{color:var(--live-ink)}
 .report .bad{color:var(--danger)}
+.report .skip{color:var(--text-3)}
+.nosup{margin:var(--s-5) var(--s-6);max-width:720px;padding:var(--s-4) var(--s-5);border:1px solid var(--line-strong);border-radius:var(--r-2);background:var(--surface)}
+.nosup h2{margin:0 0 var(--s-2);font:500 var(--fs-4)/1.2 var(--f-display);color:var(--text)}
+.nosup p{margin:0;color:var(--text-2)}
 .report .st{color:var(--text-3)}
 .strip-live{display:flex;flex-wrap:wrap;gap:var(--s-6);padding:var(--s-3) var(--s-4);border:1px solid var(--line);border-radius:var(--r-2);background:color-mix(in srgb,var(--surface) 86%,transparent)}
 .strip-live .cell{display:grid;gap:8px}
@@ -855,7 +859,8 @@ function renderReport() {
   ul.textContent = '';
   for (const r of cc.report) {
     const li = el('li');
-    li.append(el('span', r.ok ? 'ok' : 'bad', r.ok ? '✓' : '✕'), el('span', 'st', r.step), el('span', '', r.msg));
+    const mark = r.skip ? ['skip', '–'] : r.ok ? ['ok', '✓'] : ['bad', '✕'];  // skip: bu bilgisayarda olmayan ozellik
+    li.append(el('span', mark[0], mark[1]), el('span', 'st', r.step), el('span', '', r.msg));
     ul.append(li);
   }
 }
@@ -908,6 +913,7 @@ function drawCurve() {
   const W = 440, H = 230, L = 36, R = 10, T = 10, B = 26;
   const X = t => L + (Math.max(30, Math.min(100, t)) - 30) / 70 * (W - L - R);
   const Y = d => H - B - Math.max(0, Math.min(100, d)) / 100 * (H - T - B);
+  if (!meta.fan_default) return;  // gomulu denetleyici yok: fan sayfasi zaten "kullanilamaz" gosterir
   const fac = meta.fan_default.cpu;
   const pf = cc && cc.profile ? (profById(cc.profile) || {}).fan : null;
   let mine = null, handles = [];
@@ -1346,6 +1352,25 @@ function initPresets() {
   });
 }
 
+/* ---------- bu bilgisayarda olmayan ozellikler ---------- */
+// Clevo/Monster gomulu denetleyicisi yoksa fan ve klavye isigi sayfalari denetim gostermez, nedenini soyler.
+// Motor da o denetleyiciye hicbir komut gondermez (donanim.NullDCHU).
+function applySupport() {
+  if (meta.ec) return;
+  for (const [id, key] of [['fan', 'unsup.fan'], ['klavye', 'unsup.kb']]) {
+    const sec = $('#v-' + id);
+    if (!sec || sec.querySelector('.nosup')) continue;
+    for (const c of sec.children) c.hidden = true;
+    const box = el('div', 'nosup');
+    box.setAttribute('role', 'note');
+    box.append(el('h2', '', t('unsup.title')),
+      el('p', '', meta.ec_clevo ? t('unsup.dll', { err: meta.ec_reason || '' }) : t(key)));
+    sec.prepend(box);
+    const sub = document.querySelector(`.nav[data-view="${id}"] small`);
+    if (sub) sub.textContent = t('nav.unsup');
+  }
+}
+
 /* ---------- baslangic ---------- */
 async function init() {
   buildKeyboard();
@@ -1372,6 +1397,7 @@ async function init() {
   renderProfiles();
   renderDisplay();
   renderSettingsPage();
+  applySupport();
 
   const bright = $('#bright');
   setRange(bright, cfg.brightness, $('#brightOut'));
