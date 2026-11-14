@@ -13,8 +13,12 @@ Set-Location $src
 
 $ver = [regex]::Match((Get-Content (Join-Path $src 'control_center.py') -Raw -Encoding UTF8), '(?m)^VERSION\s*=\s*"([^"]+)"').Groups[1].Value
 if (-not $ver) { throw 'control_center.py içinde VERSION bulunamadı' }
-foreach ($f in 'InsydeDCHU.dll', 'GetProductdll.dll') {
-    if (-not (Test-Path (Join-Path $src "lib\$f"))) { Write-Warning "lib\$f yok: setup.exe Clevo/Monster donanım özellikleri olmadan derlenecek (bkz. lib\README.md)" }
+if (-not (Test-Path (Join-Path $src 'lib\InsydeDCHU.dll'))) {
+    Write-Host '== lib\InsydeDCHU.dll yok: bu bilgisayarda aranıyor (lib\dll_topla.ps1)'
+    & (Join-Path $src 'lib\dll_topla.ps1')
+    if (-not (Test-Path (Join-Path $src 'lib\InsydeDCHU.dll'))) {
+        Write-Warning 'InsydeDCHU.dll bulunamadı: setup.exe, Clevo/Monster dizüstülerde DLL''i Windows sürücü deposundan yükler; orada da yoksa fan / güç modu / klavye ışığı kapalı olur (bkz. lib\README.md)'
+    }
 }
 
 New-Item -ItemType Directory -Force $build | Out-Null

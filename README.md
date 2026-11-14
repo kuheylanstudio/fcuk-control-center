@@ -47,14 +47,20 @@ yerine geçer:
 
 Sessiz kurulum için `setup.exe /S` kullanın. Çıkış kodu 0 başarılı, 2 uyarılarla başarılı, 1 hata demektir.
 
-setup.exe'yi kendiniz derlemek için `lib\` klasöründe üretici DLL'leri olmalıdır (bkz. [lib/README.md](lib/README.md)):
+setup.exe'yi kendiniz derleyin (Python 3.10+ gerekir):
 
 ```powershell
-pip install pyinstaller psutil
+git clone https://github.com/kuheylanstudio/fcuk-control-center.git
+cd fcuk-control-center
+pip install -r requirements.txt pyinstaller
+powershell -ExecutionPolicy Bypass -File lib\dll_topla.ps1   # üretici DLL'ini bu bilgisayardan lib\'e alır
 powershell -ExecutionPolicy Bypass -File setup_olustur.ps1   # çıktı: dist\setup.exe
 ```
 
-setup.exe üreticiye ait DLL'leri içerir. Bu yüzden kendi bilgisayarınız için derleyin, herkese açık dağıtmayın.
+`setup_olustur.ps1` DLL eksikse `lib\dll_topla.ps1`'i kendisi de çalıştırır. Ayrıntı: aşağıdaki
+[Üretici DLL'i](#üretici-dlli-insydedchudll) bölümü.
+
+setup.exe üreticiye ait DLL'i içerir. Bu yüzden kendi bilgisayarınız için derleyin, herkese açık dağıtmayın.
 
 ### Kaynaktan
 
@@ -74,12 +80,35 @@ pip install pyinstaller
 powershell -ExecutionPolicy Bypass -File kur.ps1
 ```
 
-### Clevo / Monster kullanıcıları
+### Üretici DLL'i (InsydeDCHU.dll)
 
-Fan, güç modu, klavye ışığı ve Fn tuşları gömülü denetleyiciyle `InsydeDCHU.dll` üzerinden konuşur. Bu dosya
-üreticiye aittir ve bu depoda **yoktur**. Kendi bilgisayarınızdaki Control Center kurulumundan `lib\` klasörüne
-kopyalayın (ayrıntı: [lib/README.md](lib/README.md)). Dosya yoksa uygulama yine açılır; yalnızca bu özellikler
-kapanır.
+Clevo / Monster dizüstülerde fan, güç modu, klavye ışığı ve Fn tuşları gömülü denetleyiciyle `InsydeDCHU.dll`
+üzerinden konuşur. Bu dosya üreticiye aittir, lisansı dağıtıma izin vermediği için bu depoda **yoktur**. Gereken tek
+dosya budur (`GetProductdll.dll` ve Visual C++ DLL'leri gerekmez).
+
+**Nereden bulunur?** Clevo / Monster dizüstünüzde zaten vardır:
+
+| Yer | Not |
+|---|---|
+| `C:\Windows\System32\DriverStore\FileRepository\acpibridge*\InsydeDCHU.dll` | AcpiBridge sürücüsüyle gelir; üretici Control Center kaldırılmış olsa bile durur. Microsoft imzalı. |
+| `C:\Program Files (x86)\ControlCenter\DCHU\` | Üretici Control Center kuruluysa |
+| Microsoft Store "Fn hotkeys and OSD" paketi, `FnKey\DCHU\` | Kuruluysa |
+| `C:\ProgramData\FCUK Control Center\yedek\` | setup.exe'nin eski Control Center'dan aldığı yedek |
+| Üreticinin destek sayfası | Modelinizin "Control Center" ya da "AcpiBridge / DCHU" sürücü paketini indirip açın |
+
+**Projeye nasıl eklenir?**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File lib\dll_topla.ps1
+```
+
+Betik yukarıdaki yerleri sırayla tarar, bulduğu dosyayı `lib\InsydeDCHU.dll` olarak kopyalar ve sürümünü ve
+imzasını gösterir. Yönetici izni istemez, hiçbir şey indirmez. Elle yapmak isterseniz dosyayı `lib\` klasörüne
+kopyalamanız yeterlidir. Ayrıntı: [lib/README.md](lib/README.md).
+
+Kaynaktan çalıştırırken ya da DLL'siz derlenmiş bir exe'de uygulama `lib\` içinde dosya bulamazsa sürücü deposuna
+kendisi bakar. Dosya hiçbir yerde yoksa (Clevo / Monster olmayan bilgisayar) uygulama yine açılır; yalnızca
+gömülü denetleyiciye bağlı özellikler kapanır.
 
 `kur.ps1` Clevo Fn tuşu paketini (FnKey / eski Control Center arayüzü) devre dışı bırakır; bu adım yalnızca
 AcpiBridge aygıtı (ACPI\CLV0001) olan bilgisayarlarda çalışır.

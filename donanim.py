@@ -15,6 +15,7 @@ DCHU komutlari Control Center v6.093'un kendi kodundan cikarildi:
   GetDCHU_Data_Buffer(13)              fabrika fan egrisi
 """
 import ctypes
+import glob
 import os
 import subprocess
 import sys
@@ -35,6 +36,11 @@ DLL_CANDIDATES = [
     r"C:\Program Files (x86)\ControlCenter\DCHU\InsydeDCHU.dll",
     r"C:\Program Files (x86)\ControlCenter\AppInstall\InsydeDCHU.dll",
 ]
+# AcpiBridge surucu paketi de ayni DLL'i tasir; Windows'un surucu deposu yalnizca yoneticiye yazilabilir.
+# Uretici Control Center'i kaldirilmis olsa bile Clevo/Monster dizustulerde burada bulunur.
+DLL_CANDIDATES += sorted(glob.glob(os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32", "DriverStore",
+                                                "FileRepository", "acpibridge*", "InsydeDCHU.dll")),
+                         key=os.path.getmtime, reverse=True)
 NO_WINDOW = 0x08000000
 
 POWER_MODES = {0: "Sessiz", 1: "Güç tasarrufu", 2: "Performans", 3: "Eğlence"}
