@@ -1146,6 +1146,8 @@ def run_mode(admin):
     if "--install-task" in sys.argv:
         return install_task()
     if "--block-fn" in sys.argv:  # kur.ps1'den, yonetici
+        if not hw.clevo_present():  # Monster Fn programlari yalnizca Clevo/Monster'da engellenir
+            return 0
         return 0 if admin and fn_block_once() >= 0 else 5
     if "--tray" in sys.argv:
         import tepsi

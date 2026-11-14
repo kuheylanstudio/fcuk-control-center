@@ -218,8 +218,16 @@ class Tray:
         except Exception:
             import traceback
             fntus.log("OSD olusturulamadi: " + traceback.format_exc().replace("\n", " | "))
-        self.fn = fntus.Listener(lambda code: u32.PostMessageW(self.hwnd, WM_FNKEY, code, 0))
-        self.fn.start()
+        # Fn dinleyicisi yalnizca Clevo/Monster koprusu (ACPI\CLV) varsa: Lenovo vb. bilgisayarda Clevo kodu calismaz
+        self.fn = None
+        try:
+            import donanim
+            clevo = donanim.clevo_present()
+        except Exception:
+            clevo = False
+        if clevo:
+            self.fn = fntus.Listener(lambda code: u32.PostMessageW(self.hwnd, WM_FNKEY, code, 0))
+            self.fn.start()
 
     # -- Fn tuslari
     def _osd_later(self, label, value="", level=None, state=None):
