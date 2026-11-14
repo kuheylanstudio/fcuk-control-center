@@ -494,7 +494,7 @@ class Engine(threading.Thread):
             mode, pal, speed, source, bright = self.settings
             value = None
             warn = ""
-            kb_ok = getattr(self.kb, "kb_available", getattr(self.kb, "available", True))  # Alienware: ayri
+            kb_ok = getattr(self.kb, "kb_available", getattr(self.kb, "available", True))  # isik ayri olabilir
             if not kb_ok and mode in ("ses", "ekran", "sistem", "oyun"):
                 mode = "sabit"  # klavye isigi yok: ses/ekran ornekleme ve olcum bosuna calismasin
             if mode != "oyun" and game is not None and game.on:

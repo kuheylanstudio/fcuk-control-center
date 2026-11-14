@@ -24,12 +24,13 @@ bilgisayarlarda da donanım tespiti, canlı izleme, NVIDIA ve işlemci ayarları
 | **Canlı izleme** | İşlemci sıcaklığı/gücü/yükü, çekirdek başına MHz, ekran kartı sıcaklığı/gücü/saati/VRAM/PCIe/kısıtlama nedeni, tümleşik grafik yükü, disk başına okuma/yazma hızı, bellek, ağ, pil | Her bilgisayar |
 | **NVIDIA** | Güç yönetimi modu, düşük gecikme, V-Sync, en yüksek kare hızı, doku filtreleme, iş parçacıklı optimizasyon, tercih edilen grafik işlemcisi (Optimus), elle saat sınırı. Ayarlar NVIDIA Denetim Masası'nın kullandığı aynı sürücü profiline yazılır | NVIDIA kart; yazmak için yönetici modu |
 | **İşlemci** | İşlemci modeline göre yalnızca etkili olan ayarlar: turbo modu, EPP (Speed Shift), P ve E çekirdek frekans tavanları (melez Intel), işlemci durumu sınırları, çekirdek zamanlayıcı politikası, çekirdek park etme | Her bilgisayar (Windows güç planı) |
-| **Performans profilleri** | Beş profil: Tam Sessiz → Ultra Performans; her biri gömülü denetleyici güç modu, fan eğrisi, işlemci, ekran kartı ve ekran yenileme hızını birlikte ayarlar. Cihazda olmayan adımlar atlanır ve raporda gösterilir | Clevo / Monster, Alienware, Asus, Lenovo IdeaPad (güç modu) |
-| **Fanlar** | Özel fan eğrisi, fan devri ve sıcaklık okuması | Clevo / Monster, Alienware, Asus (modele göre) |
-| **Klavye RGB** | 9 ışık modu: sabit, nefes alma, renk geçişi, gökkuşağı, nabız, ses/müzik, sistem durumu, ekran rengi ve **oyun tepkisi** | Clevo / Monster, Alienware (AlienFX), Asus (Aura) |
+| **Performans profilleri** | Beş profil: Tam Sessiz → Ultra Performans; her biri gömülü denetleyici güç modu, fan eğrisi, işlemci, ekran kartı ve ekran yenileme hızını birlikte ayarlar. Cihazda olmayan adımlar atlanır ve raporda gösterilir | Clevo / Monster, Alienware, Asus, Lenovo Legion, Lenovo IdeaPad (güç modu) |
+| **Fanlar** | Özel fan eğrisi, fan devri ve sıcaklık okuması | Clevo / Monster, Alienware, Asus, Lenovo Legion (Özel modda) (modele göre) |
+| **Klavye RGB** | 9 ışık modu: sabit, nefes alma, renk geçişi, gökkuşağı, nabız, ses/müzik, sistem durumu, ekran rengi ve **oyun tepkisi** | Clevo / Monster, Alienware (AlienFX), Asus (Aura), Lenovo Legion (4 bölgeli klavye) |
 | **Oyun tepkisi** | Klavye cana göre yeşilden kırmızıya döner, can %35'in altındayken kalp atışı gibi yanıp söner; ateş, yetenek, kill ve ölümde parlar. **League of Legends** (Riot'un resmi canlı oyun verisi) ve **Counter-Strike 2** (resmi Game State Integration). Oyun belleğine dokunulmaz | Klavye RGB olan cihaz |
 | **Asus'a özel** | Şarj sınırı, ekran kartı modu (Eco / Standart / Ultimate) | Asus ROG / TUF (modele göre) |
 | **Fn tuşları** | Fn tuşu ekran bildirimleri | Clevo / Monster |
+| **Lenovo Legion'a özel** | Ekran kartı modu (hibrit / tümleşik / yalnızca harici kart), pil koruma ve hızlı şarj, tam devir fan | Lenovo Legion (modele göre) |
 | **Ses ve ekran** | Hoparlör / mikrofon seviyesi, yenileme hızı | Her bilgisayar |
 | **Güncellemeler** | GitHub'dan yeni sürümü denetler, indirir, SHA-256 ile doğrular ve kurar. Otomatik ya da elle seçilebilir; kurmadan önce yenilikler gösterilir | Her bilgisayar (setup.exe ile kurulmuş) |
 | **Dil** | 14 dil, Windows bölge ayarına göre otomatik | |
@@ -41,10 +42,11 @@ bilgisayarlarda da donanım tespiti, canlı izleme, NVIDIA ve işlemci ayarları
 | **Monster / Clevo** | Tam destek: üreticinin Control Center'ının yerini alır |
 | **Alienware / Dell G** (16 Aurora, 16X Aurora ve AWCC'li modeller) | Güç modu (Sessiz, Dengeli, Performans/G-mode), "Özel" profilde fan eğrisi, sıcaklık ve fan devri, AlienFX klavye ışığı (tek renk). Fn tuşu ya da Alienware Command Center profili değiştirirse uygulama bunu algılar ve gerçek modu gösterir |
 | **Asus ROG / TUF** | Güç modu (sessiz, dengeli, turbo), 8 noktalı fan eğrisi, fan devri, klavye arka ışığı ve Aura RGB, şarj sınırı, ekran kartı modu. Her özellik önce sınanır; modelde olmayan özelliğe komut gönderilmez |
+| **Lenovo Legion** | Güç modu (Sessiz, Dengeli, Performans) profillerle, fan hızı ve sıcaklık, tam devir fan, Özel modda fan eğrisi, ekran kartı modu (hibrit / tümleşik / yalnızca harici kart), pil koruma ve hızlı şarj, 4 bölgeli klavyede tüm ışık modları. Her özellik önce sınanır; desteklenmeyen özellik hiçbir komut göndermez |
 | **Lenovo IdeaPad** (Intel ve Ryzen) | Modelin sunduğu Lenovo arayüzüne göre: güç modu (Sessiz, Dengeli, Performans; Fn+Q ile aynı, GameZone WMI), pil modu (normal, koruma modu, hızlı şarj; Energy Management sürücüsü), işlemci/kart sıcaklığı ve fan devri. Fanları her zaman bellenim çalıştırır (özel fan eğrisi yok); klavye ışığı Fn+Boşluk ile kalır. Güç modunu sunmayan modellerde profiller yine Windows güç modunu ayarlar |
 | **Diğer bilgisayarlar** | Donanım, canlı izleme, NVIDIA, işlemci, ses ve ekran. Fan ve klavye sayfaları "Bu bilgisayarda kullanılamaz" der |
 
-Alienware, Asus ve Lenovo IdeaPad desteği gerçek cihazda henüz denenmedi; sorun görürseniz lütfen bildirin. Clevo dışındaki
+Alienware, Asus, Lenovo Legion ve Lenovo IdeaPad desteği gerçek cihazda henüz denenmedi; sorun görürseniz lütfen bildirin. Clevo dışındaki
 bilgisayarlarda uygulama denetleyiciye, fanlara, klavyeye ve Fn tuşlarına yalnızca desteklenen cihaz gerçekten
 varsa dokunur. Armoury Crate, Alienware Command Center, Vantage, MSI Center ve Omen gibi üretici uygulamaları
 kaldırılmaz; birlikte çalışır. Aynı ayarı ikisi birden değiştirirse son değiştirenin ayarı geçerli olur.
@@ -197,6 +199,8 @@ alienware.py       Alienware / Dell G arka ucu (AWCC WMI, AlienFX HID)
 asus_rog.py        Asus ROG / TUF arka ucu (ATK ACPI-WMI, Aura HID)
 wmi_com.py, hid_win.py  ek paket gerektirmeyen WMI ve USB HID erişimi
 guncelleme.py      GitHub'dan güncelleme denetimi, indirme, doğrulama ve kurulum
+lenovo_legion.py   Lenovo Legion arka ucu (GameZone WMI), lenovo_wmi.py (WMI), lenovo_kb.py (klavye HID)
+ideapad.py         Lenovo IdeaPad arka ucu (GameZone WMI, Energy Management sürücüsü)
 envanter.py        donanım envanteri (CIM), P/E çekirdek tespiti, NVMe SMART ve disk sıcaklığı (IOCTL)
 nvidia.py          NVIDIA sürücü ayarları (NVAPI DRS), kart bilgisi (NVML)
 islemci.py         modele göre işlemci ayarları (Windows güç planı)
@@ -210,6 +214,8 @@ ui/index.html      arayüz (Edge --app penceresi)
 ```
 
 Geliştirme sırasında kurulu motoru atlayıp kodu doğrudan çalıştırmak için: `python control_center.py --dev`
+
+Testler (donanım gerekmez, sahte WMI/HID): `python -m unittest discover -s tests`
 
 ## Lisans
 

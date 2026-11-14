@@ -201,6 +201,7 @@ class DCHU:
     """InsydeDCHU.dll sarmalayicisi. Tum cagrilar tek kilitten gecer (motor, sensor ve sunucu ayni anda cagirir)."""
     available = True
     kind = "clevo"
+    kb_available = True  # Clevo'da klavye isigi denetleyicinin parcasi
 
     def __init__(self):
         # Surumler farkli islev kumesi tasir (ornek: surucu deposundaki 1.0.0.1'de SetDCHU_DataEx yok). Yalnizca
@@ -357,6 +358,8 @@ class NullDCHU:
     available = False
     kind = ""
     path = ""
+    kind = ""
+    kb_available = False
 
     def __init__(self, reason="", clevo=False, message=None):
         self.reason = reason
@@ -424,7 +427,8 @@ def clevo_present():
 
 
 def open_dchu():
-    """Clevo denetleyicisi, Alienware/Dell AWCC denetleyicisi ya da (hicbiri yoksa / acilamazsa) NullDCHU.
+    """Clevo denetleyicisi, Alienware/Dell AWCC, Asus ATK, Lenovo Legion ya da Lenovo IdeaPad denetleyicisi;
+    hicbiri yoksa / acilamazsa NullDCHU.
 
     Alienware yolu yalnizca uretici Alienware/Dell ise ve AWCC WMI sinifi gecerli bir sistem tanimi
     donduruyorsa secilir; aksi halde denetleyiciye hicbir yazma komutu gitmez."""
@@ -447,6 +451,14 @@ def open_dchu():
                     msg = ceviri.t("err.asusOpen", err=exc)
                     return NullDCHU(msg, clevo=False, message=msg)
         except Exception:
+            pass
+        # Lenovo Legion: BIOS'ta LENOVO + Legion ve LENOVO_GAMEZONE_DATA yontemleri varsa (lenovo_legion.py)
+        try:
+            import lenovo_legion
+            dev = lenovo_legion.open_legion()
+            if dev is not None:
+                return dev
+        except Exception:  # tespit hatasi: suphede donanima dokunulmaz
             pass
         # Lenovo IdeaPad: yalnizca uretici LENOVO ve model adinda IdeaPad varsa (ideapad.py). GameZone guc modu ve
         # EnergyDrv pil modu yalnizca okuyarak sinanir; hicbiri yoksa None doner ve komut gitmez.
@@ -839,7 +851,9 @@ class Sensors(threading.Thread):
             "energy": r"\Energy Meter(*)\Power",
             "gpu": r"\GPU Engine(*)\Utilization Percentage",
         }
-        if not getattr(self.dchu, "ec_temps", self.dchu.available):  # denetleyici (ya da sicakligi) yoksa islemci sicakligi icin ACPI isi bolgesi (Kelvin)
+        # Denetleyici (ya da sicakligi) yoksa islemci sicakligi icin ACPI isi bolgesi (Kelvin). Legion'da okuma yolu
+        # modele gore degisir ve okunamayabilir: yedek olarak isi bolgesi her zaman acik.
+        if not getattr(self.dchu, "ec_temps", self.dchu.available) or getattr(self.dchu, "kind", "") == "lenovo":
             counters["tz"] = r"\Thermal Zone Information(*)\Temperature"
         pdh = Pdh(counters)
         last_net = last_disk = None

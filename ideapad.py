@@ -47,7 +47,7 @@ SENSORS = (("cpu_temp", "GetCPUTemp"), ("gpu_temp", "GetGPUTemp"),
 
 
 def _no():
-    raise hw.Unsupported(ceviri.t("lenovo.unsupported"))
+    raise hw.Unsupported(ceviri.t("ideapad.unsupported"))
 
 
 def _int(v):
@@ -231,7 +231,7 @@ class IdeaPad:
         self.energy = energy
         self.info = info or {}
         self.model = model_name(self.info)
-        self.kb_reason = ceviri.t("lenovo.noKb")
+        self.kb_reason = ceviri.t("ideapad.noKb")
         self.lock = threading.RLock()
         self.caps = {"power": False, "battery": bool(energy is not None and getattr(energy, "available", False))}
         self.sensors = []
@@ -324,7 +324,7 @@ class IdeaPad:
 
     def set_battery_mode(self, mode):
         if mode not in BATTERY_MODES:
-            raise ValueError(ceviri.t("lenovo.badValue"))
+            raise ValueError(ceviri.t("ideapad.badValue"))
         if not self.caps["battery"]:
             _no()
         with self.lock:
@@ -343,11 +343,11 @@ class IdeaPad:
         }
 
     def handle(self, body):
-        """/api/lenovo istegi: {'battery': 'normal'|'conservation'|'rapid'}."""
+        """/api/ideapad istegi: {'battery': 'normal'|'conservation'|'rapid'}."""
         out = {}
         if "battery" in body:
             out["battery_mode"] = self.set_battery_mode(str(body["battery"]))
-        out["lenovo"] = self.features()
+        out["ideapad"] = self.features()
         return out
 
     def shutdown(self):
