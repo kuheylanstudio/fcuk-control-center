@@ -343,5 +343,16 @@
   "unsup.title": "Auf diesem Computer nicht verfügbar",
   "unsup.fan": "Lüfterkurven und Controller-Energiemodi gibt es nur beim Clevo/Monster-Embedded-Controller, den dieser Computer nicht hat. Die App sendet keine Befehle an Lüfter oder Controller; der Computer selbst oder die App des Herstellers steuert die Lüfter weiter. Profile setzen CPU-, GPU- und Anzeigeeinstellungen trotzdem.",
   "unsup.kb": "Die RGB-Tastaturbeleuchtung gibt es nur beim Clevo/Monster-Embedded-Controller, den dieser Computer nicht hat. Die App sendet keine Befehle an die Tastatur; die App des Herstellers oder die Fn-Tasten steuern die Beleuchtung weiter.",
-  "unsup.dll": "Der Embedded Controller wurde gefunden, seine Bibliothek ließ sich aber nicht laden, daher ist diese Funktion aus: {err}"
+  "unsup.dll": "Der Embedded Controller wurde gefunden, seine Bibliothek ließ sich aber nicht laden, daher ist diese Funktion aus: {err}",
+  "err.hpUnsupported": "bei diesem HP-Modell nicht verfügbar",
+  "err.hpRc": "HP-BIOS hat den Befehl abgelehnt (Code {rc})",
+  "err.hpNoCurve": "das HP-BIOS unterstützt keine eigenen Lüfterkurven; die Lüfter bleiben auf der BIOS-Tabelle",
+  "msg.hpCurveAuto": "HP: keine eigene Kurve, Lüfter auf der BIOS-Tabelle (automatisch)",
+  "val.hpFanTable": "BIOS-Tabelle (bei HP keine eigene Kurve)",
+  "hp.power.quiet": "Leise (HP Kühl)",
+  "hp.power.balanced": "Ausgewogen (HP)",
+  "hp.power.perf": "Leistung (HP)",
+  "unsup.hpFan": "Das BIOS dieses HP-Modells hat die Befehle zum Lüfterauslesen und für maximale Lüfterdrehzahl nicht angenommen. Die App sendet keine Befehle an die Lüfter; BIOS und HPs eigene App steuern sie weiter.",
+  "unsup.hpKb": "Die Tastatur dieses HP-Modells unterstützt kein Zonen-RGB über das BIOS (einfarbige oder Per-Key-RGB-Tastatur). Die App sendet keine Befehle an die Tastatur.",
+  "fan.hpIntro": "HP Omen / Victus: Das BIOS steuert die Lüfter, eigene Lüfterkurven gibt es nicht. Profile wählen den BIOS-Thermalmodus (Leise, Ausgewogen, Leistung); „Maximum“ lässt die Lüfter mit voller Drehzahl laufen, „Werkseinstellung“ kehrt zur BIOS-Tabelle zurück. Temperatur und Drehzahl werden aus dem BIOS gelesen."
 }

@@ -343,5 +343,16 @@
   "unsup.title": "Indisponível neste computador",
   "unsup.fan": "As curvas de ventoinha e os modos de energia do controlador são exclusivos do controlador embutido Clevo/Monster, que este computador não tem. O app não envia nenhum comando às ventoinhas nem ao controlador; o próprio computador ou o app do fabricante continua a geri-los. Os perfis ainda aplicam as definições de CPU, GPU e ecrã.",
   "unsup.kb": "A iluminação RGB do teclado é exclusiva do controlador embutido Clevo/Monster, que este computador não tem. O app não envia nenhum comando ao teclado; o app do fabricante ou as teclas Fn continuam a gerir a luz.",
-  "unsup.dll": "O controlador embutido foi encontrado, mas a sua biblioteca não carregou, por isso esta função está desligada: {err}"
+  "unsup.dll": "O controlador embutido foi encontrado, mas a sua biblioteca não carregou, por isso esta função está desligada: {err}",
+  "err.hpUnsupported": "não disponível neste modelo HP",
+  "err.hpRc": "o BIOS da HP recusou o comando (código {rc})",
+  "err.hpNoCurve": "o BIOS da HP não suporta curvas de ventoinha personalizadas; as ventoinhas seguem a tabela do BIOS",
+  "msg.hpCurveAuto": "HP: sem curva personalizada, ventoinhas na tabela do BIOS (automático)",
+  "val.hpFanTable": "tabela do BIOS (sem curva personalizada na HP)",
+  "hp.power.quiet": "Silencioso (HP Frio)",
+  "hp.power.balanced": "Equilibrado (HP)",
+  "hp.power.perf": "Desempenho (HP)",
+  "unsup.hpFan": "O BIOS deste modelo HP não aceitou os comandos de leitura das ventoinhas e de ventoinha no máximo. O aplicativo não envia comandos às ventoinhas; o BIOS e o aplicativo da HP continuam a controlá-las.",
+  "unsup.hpKb": "O teclado deste modelo HP não suporta RGB por zonas pelo BIOS (teclado de uma cor ou RGB por tecla). O aplicativo não envia comandos ao teclado.",
+  "fan.hpIntro": "HP Omen / Victus: o BIOS controla as ventoinhas e não há curva personalizada. Os perfis escolhem o modo térmico do BIOS (Silencioso, Equilibrado, Desempenho); \"Máximo\" põe as ventoinhas na velocidade total e \"Fábrica\" volta à tabela do BIOS. Temperatura e rotação são lidas do BIOS."
 }

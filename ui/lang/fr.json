@@ -343,5 +343,16 @@
   "unsup.title": "Indisponible sur cet ordinateur",
   "unsup.fan": "Les courbes de ventilation et les modes d'alimentation du contrôleur sont propres au contrôleur embarqué Clevo/Monster, absent de cet ordinateur. L'application n'envoie aucune commande aux ventilateurs ni au contrôleur ; l'ordinateur lui-même ou l'application du fabricant continue de les gérer. Les profils appliquent toujours les réglages processeur, GPU et écran.",
   "unsup.kb": "L'éclairage RGB du clavier est propre au contrôleur embarqué Clevo/Monster, absent de cet ordinateur. L'application n'envoie aucune commande au clavier ; l'application du fabricant ou les touches Fn continuent de gérer l'éclairage.",
-  "unsup.dll": "Le contrôleur embarqué a été trouvé mais sa bibliothèque n'a pas pu être chargée ; cette fonction est désactivée : {err}"
+  "unsup.dll": "Le contrôleur embarqué a été trouvé mais sa bibliothèque n'a pas pu être chargée ; cette fonction est désactivée : {err}",
+  "err.hpUnsupported": "non disponible sur ce modèle HP",
+  "err.hpRc": "le BIOS HP a refusé la commande (code {rc})",
+  "err.hpNoCurve": "le BIOS HP ne prend pas en charge les courbes de ventilation personnalisées ; les ventilateurs restent sur la table du BIOS",
+  "msg.hpCurveAuto": "HP : pas de courbe personnalisée, ventilateurs sur la table du BIOS (automatique)",
+  "val.hpFanTable": "table du BIOS (pas de courbe personnalisée sur HP)",
+  "hp.power.quiet": "Silencieux (HP Frais)",
+  "hp.power.balanced": "Équilibré (HP)",
+  "hp.power.perf": "Performance (HP)",
+  "unsup.hpFan": "Le BIOS de ce modèle HP n'a pas accepté les commandes de lecture des ventilateurs et de ventilation maximale. L'application n'envoie aucune commande aux ventilateurs ; le BIOS et l'application de HP continuent de les gérer.",
+  "unsup.hpKb": "Le clavier de ce modèle HP ne prend pas en charge le RGB par zones via le BIOS (clavier monochrome ou RGB par touche). L'application n'envoie aucune commande au clavier.",
+  "fan.hpIntro": "HP Omen / Victus : le BIOS gère les ventilateurs et il n'y a pas de courbe personnalisée. Les profils choisissent le mode thermique du BIOS (Silencieux, Équilibré, Performance) ; « Maximum » fait tourner les ventilateurs à pleine vitesse, « Usine » revient à la table du BIOS. La température et la vitesse sont lues dans le BIOS."
 }

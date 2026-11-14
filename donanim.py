@@ -200,6 +200,8 @@ def peer_in_my_session(client_port, server_port):
 class DCHU:
     """InsydeDCHU.dll sarmalayicisi. Tum cagrilar tek kilitten gecer (motor, sensor ve sunucu ayni anda cagirir)."""
     available = True
+    vendor = "clevo"
+    kb_available = True
 
     def __init__(self):
         # Surumler farkli islev kumesi tasir (ornek: surucu deposundaki 1.0.0.1'de SetDCHU_DataEx yok). Yalnizca
@@ -354,6 +356,8 @@ class NullDCHU:
     bos, yazmalar Unsupported verir ve donanima HICBIR komut gitmez. Profil adimlari bunu raporda
     'desteklenmiyor' olarak gosterir; geri kalan her sey calisir."""
     available = False
+    vendor = ""
+    kb_available = False
     path = ""
 
     def __init__(self, reason="", clevo=False):
@@ -420,10 +424,46 @@ def clevo_present():
         return False
 
 
+# Ozellik bayraklari: arayuz, profiller ve sensorler bunlara bakar. Clevo denetleyicisinde hepsi var (grafik
+# anahtari haric); baska arka uclar (HP) kendi 'caps' sozlugunu yoklamayla doldurur.
+CAPS_ALL = {"power": True, "fan_max": True, "fan_curve": True, "fan_read": True, "temp": True, "kb": True,
+            "gpu_mux": False}
+
+
+def caps(dev):
+    """Arka ucun ozellik bayraklari (Clevo: available'a gore hepsi ya da hicbiri)."""
+    c = getattr(dev, "caps", None)
+    if isinstance(c, dict):
+        return dict(c)
+    ok = bool(getattr(dev, "available", False))
+    return {k: ok and v for k, v in CAPS_ALL.items()}
+
+
+def power_text(dev, mode):
+    """Profil guc modunun arayuz metni: Clevo kipi ya da arka ucun kendi karsiligi (HP termal modu)."""
+    key = getattr(dev, "power_key", None)
+    key = key(mode) if key else None
+    return ceviri.t(key) if key else ceviri.t("power.%d" % mode)
+
+
+def open_vendor():
+    """Clevo olmayan bilgisayarlar icin uretici arka ucu (HP Omen/Victus BIOS WMI); yoksa (None, neden).
+    Algilama surec acmaz (kayit defterindeki SMBIOS bilgisi); yalnizca HP Omen/Victus'ta WMI kopru acilir."""
+    try:
+        import hp_omen
+        return hp_omen.open_backend()
+    except Exception as exc:
+        return None, "%s: %s" % (type(exc).__name__, exc)
+
+
 def open_dchu():
-    """Gercek denetleyici ya da (Clevo aygiti yoksa / kitaplik yoksa / yuklenemezse) NullDCHU."""
+    """Gercek denetleyici ya da (Clevo aygiti yoksa / kitaplik yoksa / yuklenemezse) NullDCHU.
+    Clevo degilse once uretici arka ucu (HP Omen/Victus) denenir."""
     if not clevo_present():
-        return NullDCHU(ceviri.t("err.notClevo"), clevo=False)
+        dev, why = open_vendor()
+        if dev is not None:
+            return dev
+        return NullDCHU(ceviri.t("err.notClevo") + (" (%s)" % why if why else ""), clevo=False)
     try:
         return DCHU()
     except Exception as exc:
@@ -802,7 +842,7 @@ class Sensors(threading.Thread):
             "energy": r"\Energy Meter(*)\Power",
             "gpu": r"\GPU Engine(*)\Utilization Percentage",
         }
-        if not self.dchu.available:  # denetleyici yoksa islemci sicakligi icin ACPI isi bolgesi (Kelvin)
+        if not caps(self.dchu)["temp"]:  # denetleyici sicaklik vermiyorsa islemci icin ACPI isi bolgesi (Kelvin)
             counters["tz"] = r"\Thermal Zone Information(*)\Temperature"
         pdh = Pdh(counters)
         last_net = last_disk = None

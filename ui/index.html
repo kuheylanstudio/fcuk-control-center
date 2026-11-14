@@ -1371,19 +1371,33 @@ function initPresets() {
 /* ---------- bu bilgisayarda olmayan ozellikler ---------- */
 // Clevo/Monster gomulu denetleyicisi yoksa fan ve klavye isigi sayfalari denetim gostermez, nedenini soyler.
 // Motor da o denetleyiciye hicbir komut gondermez (donanim.NullDCHU).
+// HP Omen/Victus (donanim -> hp_omen): ozellikler BIOS yoklamasiyla belirlenir (meta.caps); olmayan ozellik
+// gizlenir ya da devre disi kalir, motor da ona komut gondermez.
 function applySupport() {
-  if (meta.ec) return;
-  for (const [id, key] of [['fan', 'unsup.fan'], ['klavye', 'unsup.kb']]) {
+  const caps = meta.caps || {}, hp = meta.vendor === 'hp';
+  const off = [];
+  if (!meta.ec || (hp && !caps.fan_max && !caps.fan_read)) off.push(['fan', hp ? 'unsup.hpFan' : 'unsup.fan']);
+  if (!meta.ec || !caps.kb) off.push(['klavye', hp ? 'unsup.hpKb' : 'unsup.kb']);
+  for (const [id, key] of off) {
     const sec = $('#v-' + id);
     if (!sec || sec.querySelector('.nosup')) continue;
     for (const c of sec.children) c.hidden = true;
     const box = el('div', 'nosup');
     box.setAttribute('role', 'note');
     box.append(el('h2', '', t('unsup.title')),
-      el('p', '', meta.ec_clevo ? t('unsup.dll', { err: meta.ec_reason || '' }) : t(key)));
+      el('p', '', !hp && meta.ec_clevo ? t('unsup.dll', { err: meta.ec_reason || '' }) : t(key)));
     sec.prepend(box);
     const sub = document.querySelector(`.nav[data-view="${id}"] small`);
     if (sub) sub.textContent = t('nav.unsup');
+  }
+  if (hp && meta.ec && !caps.fan_curve) {
+    // HP BIOS'u fan egrisi tasimaz: egri karosu gizlenir, aciklama HP'ye gore degisir
+    const curve = $('#curve'), tile = curve && curve.closest('.tile');
+    if (tile) tile.hidden = true;
+    const intro = document.querySelector('#v-fan .page-head p');
+    if (intro) { intro.removeAttribute('data-i18n'); intro.textContent = t('fan.hpIntro'); }
+    const mx = document.querySelector('input[name=fanm][value=max]');
+    if (mx && !caps.fan_max) mx.disabled = true;
   }
 }
 

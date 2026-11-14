@@ -512,6 +512,9 @@ def state():
         "ec": App.dchu.available,
         "ec_clevo": bool(getattr(App.dchu, "clevo", True)),  # aygit var, yalnizca kitaplik yok
         "ec_reason": getattr(App.dchu, "reason", ""),
+        "vendor": getattr(App.dchu, "vendor", "clevo"),  # clevo | hp | "" (denetleyici yok)
+        "caps": hw.caps(App.dchu),
+        "hp": App.dchu.describe() if getattr(App.dchu, "vendor", "") == "hp" else None,
         "cpu": App.inventory.data.get("cpu"),
         "nvidia": bool(App.sensors.gpu_name),
         "igpu_name": App.sensors.igpu_name,
@@ -635,7 +638,7 @@ class Handler(BaseHTTPRequestHandler):
                 "profile": mgr.applied, "guard": mgr.guard, "lang": ceviri.lang(),
                 "profiles": [{"id": p["id"], "name": profiller.name(p["id"]), "ac_only": bool(p.get("ac_only"))}
                              for p in profiller.PROFILES],
-                "ec": App.dchu.available, "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
+                "ec": hw.caps(App.dchu)["fan_max"], "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
                 "gpu_state": s.get("gpu_state"), "cpu_power": s.get("cpu_power"),
                 "ac": (s.get("battery") or {}).get("ac", True), "notices": list(App.notices)})
         if path == "/api/now":  # yalnizca son olcum (gecmissiz): ek sayfalar saniyede bir okur
@@ -964,7 +967,7 @@ def serve():
     # Fn tusu olaylarini ac (Clevo "events enabled", komut 0x46). Bunu eskiden FnKey.exe acilista yapiyordu;
     # gonderilmezse denetleyici Fn bildirimlerini AcpiBridge'e iletmez (14.11.2026 olculdu). Yeniden
     # baslatmaya dek kalicidir; her acilista gonderilir.
-    if App.dchu.available:
+    if App.dchu.available and getattr(App.dchu, "vendor", "clevo") == "clevo":
         try:
             App.dchu.set_wmi(0x46, 0)
         except Exception:
@@ -998,7 +1001,8 @@ def serve():
     App.engine.settings = core.snapshot(App.cfg)
     App.engine.start()
     App.sensors.start()
-    if hw.is_admin() and App.dchu.available:  # yalnizca Clevo/Monster: Monster Fn programlari engellenir
+    if hw.is_admin() and App.dchu.available and getattr(App.dchu, "vendor", "clevo") == "clevo":
+        # yalnizca Clevo/Monster: Monster Fn programlari engellenir (HP'de Omen uygulamalarina dokunulmaz)
         threading.Thread(target=fn_block_loop, daemon=True).start()
     if cc.get("profile") in profiller.BY_ID:  # yeniden baslatmadan sonra denetleyici ayarlari geri gelsin
         threading.Thread(target=App.manager.apply, args=(cc["profile"], "reason.startup"), daemon=True).start()
@@ -1042,10 +1046,15 @@ def enable_crash_log():
 def fans_to_factory():
     """Motor tamamen durdugunda fanlari denetleyicinin kendi tablosuna birak (isi bekcisi artik yok)."""
     try:
-        dchu = hw.open_dchu()  # Clevo degilse NullDCHU: denetleyiciye komut gitmez
-        if not dchu.available:
-            return True
-        dchu.set_fan_mode(hw.FAN_AUTO)
+        dchu = hw.open_dchu()  # Clevo/HP degilse NullDCHU: denetleyiciye komut gitmez
+        try:
+            if not hw.caps(dchu)["fan_max"]:  # HP'de: maksimum fan komutu yoksa gonderilecek bir sey yok
+                return True
+            dchu.set_fan_mode(hw.FAN_AUTO)  # HP: maksimum fan kapanir, fanlar BIOS tablosuna doner
+        finally:
+            close = getattr(dchu, "close", None)
+            if close:
+                close()
         return True
     except Exception:
         log("fanlar fabrika tablosuna alinamadi: " + traceback.format_exc().replace("\n", " | "))

@@ -343,5 +343,16 @@
   "unsup.title": "No disponible en este equipo",
   "unsup.fan": "Las curvas de ventilador y los modos de energía del controlador son exclusivos del controlador integrado Clevo/Monster, que este equipo no tiene. La aplicación no envía ningún comando a los ventiladores ni al controlador; el propio equipo o la aplicación del fabricante siguen gestionándolos. Los perfiles siguen aplicando ajustes de CPU, GPU y pantalla.",
   "unsup.kb": "La iluminación RGB del teclado es exclusiva del controlador integrado Clevo/Monster, que este equipo no tiene. La aplicación no envía ningún comando al teclado; la aplicación del fabricante o las teclas Fn siguen gestionando la luz.",
-  "unsup.dll": "Se encontró el controlador integrado, pero no se pudo cargar su biblioteca, así que esta función está desactivada: {err}"
+  "unsup.dll": "Se encontró el controlador integrado, pero no se pudo cargar su biblioteca, así que esta función está desactivada: {err}",
+  "err.hpUnsupported": "no disponible en este modelo HP",
+  "err.hpRc": "la BIOS de HP rechazó el comando (código {rc})",
+  "err.hpNoCurve": "la BIOS de HP no admite curvas de ventilador personalizadas; los ventiladores siguen la tabla de la BIOS",
+  "msg.hpCurveAuto": "HP: sin curva personalizada, ventiladores en la tabla de la BIOS (automático)",
+  "val.hpFanTable": "tabla de la BIOS (sin curva personalizada en HP)",
+  "hp.power.quiet": "Silencioso (HP Frío)",
+  "hp.power.balanced": "Equilibrado (HP)",
+  "hp.power.perf": "Rendimiento (HP)",
+  "unsup.hpFan": "La BIOS de este modelo HP no aceptó los comandos de lectura de ventiladores ni de ventilador al máximo. La aplicación no envía comandos a los ventiladores; la BIOS y la aplicación de HP siguen gestionándolos.",
+  "unsup.hpKb": "El teclado de este modelo HP no admite RGB por zonas a través de la BIOS (teclado de un color o RGB por tecla). La aplicación no envía comandos al teclado.",
+  "fan.hpIntro": "HP Omen / Victus: la BIOS gestiona los ventiladores y no hay curva personalizada. Los perfiles eligen el modo térmico de la BIOS (Silencioso, Equilibrado, Rendimiento); «Máximo» pone los ventiladores a toda velocidad y «Fábrica» vuelve a la tabla de la BIOS. La temperatura y las rpm se leen de la BIOS."
 }

@@ -343,5 +343,16 @@
   "unsup.title": "此电脑不支持此功能",
   "unsup.fan": "风扇曲线和控制器电源模式是 Clevo/Monster 嵌入式控制器专有的，此电脑没有该控制器。本应用不会向风扇或控制器发送任何命令，风扇仍由电脑本身或厂商应用管理。性能配置仍会应用处理器、显卡和显示器设置。",
   "unsup.kb": "键盘 RGB 灯光是 Clevo/Monster 嵌入式控制器专有的，此电脑没有该控制器。本应用不会向键盘发送任何命令，键盘灯光仍由厂商应用或 Fn 键管理。",
-  "unsup.dll": "找到了嵌入式控制器，但无法加载其库，因此此功能已关闭：{err}"
+  "unsup.dll": "找到了嵌入式控制器，但无法加载其库，因此此功能已关闭：{err}",
+  "err.hpUnsupported": "此 HP 机型不支持",
+  "err.hpRc": "HP BIOS 拒绝了该命令（代码 {rc}）",
+  "err.hpNoCurve": "HP BIOS 不支持自定义风扇曲线；风扇保持 BIOS 表",
+  "msg.hpCurveAuto": "HP：无自定义曲线，风扇按 BIOS 表运行（自动）",
+  "val.hpFanTable": "BIOS 表（HP 无自定义曲线）",
+  "hp.power.quiet": "安静（HP 冷却）",
+  "hp.power.balanced": "平衡（HP）",
+  "hp.power.perf": "性能（HP）",
+  "unsup.hpFan": "此 HP 机型的 BIOS 不接受风扇读取和最大风扇命令。应用不会向风扇发送任何命令；风扇继续由 BIOS 和 HP 自带应用管理。",
+  "unsup.hpKb": "此 HP 机型的键盘不支持通过 BIOS 的分区 RGB（单色键盘或单键 RGB 键盘）。应用不会向键盘发送任何命令。",
+  "fan.hpIntro": "HP Omen / Victus：风扇由 BIOS 管理，没有自定义风扇曲线。配置文件选择 BIOS 散热模式（安静、平衡、性能）；“最大”让风扇全速运转，“出厂”恢复 BIOS 表。温度和转速从 BIOS 读取。"
 }

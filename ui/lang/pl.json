@@ -343,5 +343,16 @@
   "unsup.title": "Niedostępne na tym komputerze",
   "unsup.fan": "Krzywe wentylatorów i tryby zasilania kontrolera są właściwe dla kontrolera wbudowanego Clevo/Monster, którego ten komputer nie ma. Aplikacja nie wysyła żadnych poleceń do wentylatorów ani kontrolera; nadal zarządza nimi sam komputer lub aplikacja producenta. Profile nadal stosują ustawienia procesora, karty graficznej i ekranu.",
   "unsup.kb": "Podświetlenie RGB klawiatury jest właściwe dla kontrolera wbudowanego Clevo/Monster, którego ten komputer nie ma. Aplikacja nie wysyła żadnych poleceń do klawiatury; podświetleniem nadal zarządza aplikacja producenta lub klawisze Fn.",
-  "unsup.dll": "Znaleziono kontroler wbudowany, ale nie udało się wczytać jego biblioteki, więc ta funkcja jest wyłączona: {err}"
+  "unsup.dll": "Znaleziono kontroler wbudowany, ale nie udało się wczytać jego biblioteki, więc ta funkcja jest wyłączona: {err}",
+  "err.hpUnsupported": "niedostępne w tym modelu HP",
+  "err.hpRc": "BIOS HP odrzucił polecenie (kod {rc})",
+  "err.hpNoCurve": "BIOS HP nie obsługuje własnych krzywych wentylatorów; wentylatory pozostają przy tabeli BIOS",
+  "msg.hpCurveAuto": "HP: brak własnej krzywej, wentylatory według tabeli BIOS (automatycznie)",
+  "val.hpFanTable": "tabela BIOS (HP nie ma własnej krzywej)",
+  "hp.power.quiet": "Cichy (HP Chłodny)",
+  "hp.power.balanced": "Zrównoważony (HP)",
+  "hp.power.perf": "Wydajność (HP)",
+  "unsup.hpFan": "BIOS tego modelu HP nie przyjął poleceń odczytu wentylatorów i maksymalnych obrotów. Aplikacja nie wysyła żadnych poleceń do wentylatorów; nadal sterują nimi BIOS i aplikacja HP.",
+  "unsup.hpKb": "Klawiatura tego modelu HP nie obsługuje strefowego RGB przez BIOS (klawiatura jednokolorowa lub RGB na klawisz). Aplikacja nie wysyła żadnych poleceń do klawiatury.",
+  "fan.hpIntro": "HP Omen / Victus: wentylatorami steruje BIOS, nie ma własnej krzywej. Profile wybierają tryb termiczny BIOS (Cichy, Zrównoważony, Wydajność); „Maksimum” uruchamia wentylatory na pełnych obrotach, „Fabryczne” wraca do tabeli BIOS. Temperatura i obroty są odczytywane z BIOS."
 }

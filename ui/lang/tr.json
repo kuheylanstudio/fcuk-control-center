@@ -511,5 +511,16 @@
   "unsup.title": "Bu bilgisayarda kullanılamaz",
   "unsup.fan": "Fan eğrisi ve denetleyici güç modu Clevo/Monster gömülü denetleyicisine özeldir ve bu bilgisayarda o denetleyici yok. Uygulama fanlara ve denetleyiciye hiçbir komut göndermez; fanları bilgisayarın kendisi ya da üreticinin uygulaması yönetmeye devam eder. Profiller işlemci, ekran kartı ve ekran ayarlarını yine uygular.",
   "unsup.kb": "Klavye RGB ışığı Clevo/Monster gömülü denetleyicisine özeldir ve bu bilgisayarda o denetleyici yok. Uygulama klavyeye hiçbir komut göndermez; klavye ışığını üreticinin uygulaması ya da Fn tuşları yönetmeye devam eder.",
-  "unsup.dll": "Gömülü denetleyici bulundu ama kitaplığı yüklenemedi, bu yüzden bu özellik kapalı: {err}"
+  "unsup.dll": "Gömülü denetleyici bulundu ama kitaplığı yüklenemedi, bu yüzden bu özellik kapalı: {err}",
+  "err.hpUnsupported": "bu HP modelinde yok",
+  "err.hpRc": "HP BIOS komutu reddetti (kod {rc})",
+  "err.hpNoCurve": "HP BIOS'u özel fan eğrisini desteklemiyor; fanlar BIOS'un kendi tablosunda",
+  "msg.hpCurveAuto": "HP: özel eğri yok, fanlar BIOS tablosunda (otomatik)",
+  "val.hpFanTable": "BIOS tablosu (HP'de özel eğri yok)",
+  "hp.power.quiet": "Sessiz (HP Serin)",
+  "hp.power.balanced": "Dengeli (HP)",
+  "hp.power.perf": "Performans (HP)",
+  "unsup.hpFan": "Bu HP modelinin BIOS'u fan okuma ve maksimum fan komutlarını kabul etmedi. Uygulama fanlara hiçbir komut göndermez; fanları BIOS ve HP'nin kendi uygulaması yönetmeye devam eder.",
+  "unsup.hpKb": "Bu HP modelinin klavyesi BIOS üzerinden bölgeli RGB desteklemiyor (tek renkli ya da tuş başına RGB klavye). Uygulama klavyeye hiçbir komut göndermez.",
+  "fan.hpIntro": "HP Omen / Victus: fanları BIOS yönetir, özel fan eğrisi yoktur. Profiller BIOS termal modunu (Sessiz, Dengeli, Performans) seçer; \"Maksimum\" fanları tam devire alır, \"Fabrika\" BIOS tablosuna döner. Sıcaklık ve devir BIOS'tan okunur."
 }
