@@ -262,14 +262,14 @@ class Updater:
             if self.is_admin():
                 # Gorev Zamanlayici is nesnesinin disinda: kurulum gorevi sonlandirinca setup.exe olmesin
                 ps = ("$r = Invoke-CimMethod -ClassName Win32_Process -MethodName Create "
-                      "-Arguments @{CommandLine='\"%s\" /S'}; exit [int]$r.ReturnValue" % exe.replace("'", "''"))
+                      "-Arguments @{CommandLine='\"%s\" /S /open'}; exit [int]$r.ReturnValue" % exe.replace("'", "''"))
                 rc = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", ps],
                                     creationflags=NO_WINDOW, capture_output=True, timeout=60).returncode
                 if rc != 0:
                     raise OSError("setup.exe başlatılamadı (WMI kodu %d)" % rc)
             else:
                 import ctypes
-                r = ctypes.windll.shell32.ShellExecuteW(None, "runas", exe, "/S", os.path.dirname(exe), 0)
+                r = ctypes.windll.shell32.ShellExecuteW(None, "runas", exe, "/S /open", os.path.dirname(exe), 0)
                 if r <= 32:
                     raise OSError("Yönetici izni verilmedi" if r == 5 else "setup.exe başlatılamadı (kod %d)" % r)
         except Exception as exc:

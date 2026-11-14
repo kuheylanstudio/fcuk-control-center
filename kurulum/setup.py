@@ -7,6 +7,7 @@
   setup.exe              pencereli kurulum (önce eski Control Center taraması gösterilir)
   setup.exe /S           sessiz kurulum, çıkış kodu: 0 tamam, 2 uyarılı tamam, 1 hata
   setup.exe /S /restore  sessiz kurulum, önce sistem geri yükleme noktası oluşturur
+  setup.exe /S /open     sessiz kurulum, bitince arayüzü açar (uygulama içi güncelleme böyle çağırır)
   setup.exe /S /reboot   sessiz kurulum, başarılıysa bilgisayarı yeniden başlatır (yoksa elle yeniden başlatın)
 Kurulum sonrası yeniden başlatma gerekir; pencereli kurulum bunu söyler ve "Şimdi yeniden başlat" düğmesi sunar.
 """
@@ -131,9 +132,11 @@ def open_app():
         subprocess.Popen(["explorer.exe", EXE], creationflags=NO_WINDOW)
 
 
-def silent(restore=False, reboot=False):
+def silent(restore=False, reboot=False, open_after=False):
     dev = {}
     rc = run_script("Install", lambda k, m: dev.update(clevo=(m == "clevo")) if k == "CIHAZ" else None, restore=restore)
+    if open_after and rc != 1:  # uygulama içi güncelleme: kapanan pencere yeni sürümle yeniden açılır
+        open_app()
     # /reboot: başarılı kurulumdan sonra yeniden başlat. Clevo/Monster değilse sürücü/Fn değişikliği yok: gerekmez.
     if reboot and rc != 1 and dev.get("clevo", True):
         subprocess.Popen(["shutdown.exe", "/r", "/t", "10"], creationflags=NO_WINDOW)
@@ -362,7 +365,7 @@ def gui():
 def main():
     args = [a.lower() for a in sys.argv[1:]]
     if "/s" in args or "--sessiz" in args or "/silent" in args:
-        sys.exit(silent(restore="/restore" in args, reboot="/reboot" in args))
+        sys.exit(silent(restore="/restore" in args, reboot="/reboot" in args, open_after="/open" in args))
     gui()
 
 
