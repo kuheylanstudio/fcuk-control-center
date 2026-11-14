@@ -36,9 +36,10 @@ css.textContent = `
 .hw-item:first-child{padding-top:0;border-top:0}
 .kv b.ok{color:var(--live-ink)} .kv b.warn{color:var(--warn)} .kv b.bad{color:var(--danger)}
 .tiles.wide2{grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}
-.ctl{display:grid;gap:var(--s-2);align-content:start}
-.ctl .row{display:flex;align-items:center;gap:var(--s-2)}
-.ctl select{flex:1;min-width:0}
+.ctl{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s-2);align-content:start}
+.ctl .row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-2);min-width:0}
+.ctl select{flex:1 1 13em;min-width:0;width:100%}
+.ctl .row .btn{flex:none}
 .ctl .tag{font:600 var(--fs-1)/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;color:var(--live-ink)}
 `;
 document.head.append(css);
