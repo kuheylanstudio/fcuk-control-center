@@ -502,5 +502,6 @@
   "err.nvWrite": "could not write setting (NVAPI {code})",
   "err.nvSave": "could not save settings (NVAPI {code})",
   "err.cpuNoSetting": "setting not available on this processor",
-  "err.cpuWrite": "could not write {name}"
+  "err.cpuWrite": "could not write {name}",
+  "set.adminUntrusted": "Administrator mode is only available in the version installed to Program Files with setup.exe. An administrator task installed from any other folder would let every program that can write to that folder gain administrator rights without a UAC prompt."
 }

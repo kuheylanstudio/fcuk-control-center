@@ -33,7 +33,7 @@ $Data      = Join-Path $env:ProgramData 'FCUK Control Center'
 $Stamp     = Get-Date -Format 'yyyyMMdd-HHmmss'
 $Backup    = Join-Path $Data "yedek\$Stamp"
 $LogFile   = Join-Path $Data 'kurulum.log'
-$CfgDir    = Join-Path $env:APPDATA 'KendiControlCenter'
+$Veri      = Join-Path $Dest 'veri'   # yonetici motorun ayar ve gunlugu (standart kullaniciya salt okunur)
 $UninstKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\FCUKControlCenter'
 $Tasks     = @('KendiControlCenter', 'KendiControlCenter Tepsi')
 $Api       = 'http://127.0.0.1:47815'
@@ -337,7 +337,7 @@ Add-Content -Path $LogFile -Value "`r`n===== $Mode $(Get-Date -Format s) $AppTit
 # ---------------------------------------------------------------------------- Uninstall
 if ($Mode -eq 'Uninstall') {
     $wsh = New-Object -ComObject WScript.Shell
-    if ($wsh.Popup("$AppTitle kaldırılsın mı?`n`nAyarlarınız (%APPDATA%\KendiControlCenter) silinmez.", 0, $AppTitle, 4 + 32) -ne 6) { exit 0 }
+    if ($wsh.Popup("$AppTitle kaldırılsın mı?`n`nAyarlarınız $Data\ayarlar altına yedeklenir.", 0, $AppTitle, 4 + 32) -ne 6) { exit 0 }
     Step 'FCUK Control Center kapatılıyor'
     Stop-Fcuk
     foreach ($t in $Tasks) { & schtasks.exe /delete /tn $t /f 2>$null | Out-Null }
@@ -351,6 +351,7 @@ if ($Mode -eq 'Uninstall') {
     }
     Ok 'Üretici Fn programları yeniden çalışabilir (üretici Control Center yeniden kurulabilir)'
     Remove-Shortcuts
+    if (Test-Path $Veri) { [void](Copy-Tree $Veri (Join-Path $Data 'ayarlar')) }
     Remove-Item $Dest -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item $UninstKey -Recurse -Force -ErrorAction SilentlyContinue
     if (Test-Path $Exe) { Warn "$Dest tamamen silinemedi" } else { Ok "Silindi: $Dest" }
@@ -398,9 +399,9 @@ try {
     Restore-Drivers $drivers
 
     Step "Dosyalar kopyalanıyor: $Dest"
-    if (-not (Copy-Tree $Payload $Dest -Mirror)) {
+    if (-not (Copy-Tree $Payload $Dest -Mirror -ExcludeDirs $Veri)) {
         Start-Sleep -Seconds 2; Stop-Fcuk
-        if (-not (Copy-Tree $Payload $Dest -Mirror)) { throw "Dosyalar kopyalanamadı: $Dest" }
+        if (-not (Copy-Tree $Payload $Dest -Mirror -ExcludeDirs $Veri)) { throw "Dosyalar kopyalanamadı: $Dest" }
     }
     Copy-Item $PSCommandPath (Join-Path $Dest 'kaldir.ps1') -Force
     $root = $Payload.TrimEnd('\')
@@ -413,11 +414,9 @@ try {
     if ($clevo -and -not (Test-Path (Join-Path $Dest '_internal\lib\InsydeDCHU.dll'))) { Warn 'InsydeDCHU.dll pakette yok: fan / güç modu / klavye ışığı çalışmaz' }
 
     Step 'Windows açılış görevleri kuruluyor (motor yönetici, tepsi normal yetki)'
-    $res = Join-Path $CfgDir 'task_result.txt'
-    Remove-Item $res -ErrorAction SilentlyContinue
+    # Sonuc, kullanicinin yazabildigi bir dosyadan degil surecin cikis kodundan okunur
     $p = Start-Process $Exe -ArgumentList '--install-task' -WorkingDirectory $Dest -Wait -PassThru
-    $r = (Get-Content $res -ErrorAction SilentlyContinue | Out-String).Trim()
-    if ($r -ne '0') { throw "Görevler kurulamadı: $r (çıkış $($p.ExitCode))" }
+    if ($p.ExitCode -ne 0) { throw "Görevler kurulamadı (çıkış $($p.ExitCode)); ayrıntı: $(Join-Path $Veri 'crash.log')" }
     foreach ($t in $Tasks) { if (-not (Get-ScheduledTask -TaskName $t -ErrorAction SilentlyContinue)) { throw "Görev yok: $t" } }
     Ok "Görevler: $($Tasks -join ', ')"
 

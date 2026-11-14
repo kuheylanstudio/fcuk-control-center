@@ -502,5 +502,6 @@
   "err.nvWrite": "ayar yazılamadı (NVAPI {code})",
   "err.nvSave": "ayarlar kaydedilemedi (NVAPI {code})",
   "err.cpuNoSetting": "bu işlemcide olmayan ayar",
-  "err.cpuWrite": "{name} yazılamadı"
+  "err.cpuWrite": "{name} yazılamadı",
+  "set.adminUntrusted": "Yönetici modu yalnızca setup.exe ile Program Files'a kurulmuş sürümde açılır. Başka bir klasörden kurulan yönetici görevi, o klasöre yazabilen her programa UAC sormadan yönetici yetkisi verirdi."
 }

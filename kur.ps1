@@ -10,7 +10,9 @@ $src  = Split-Path -Parent $MyInvocation.MyCommand.Path
 $dist = Join-Path $src "dist\KendiControlCenter"
 $dest = Join-Path $env:ProgramFiles "Kendi Control Center"
 $exe  = Join-Path $dest "KendiControlCenter.exe"
-$cfg  = Join-Path $env:APPDATA "KendiControlCenter"
+# Yonetici bolumu kullanicinin yazabildigi %APPDATA%'ya YAZMAZ (oradaki bir baglanti/junction yonetici yazmasini
+# baska bir dosyaya yonlendirebilir). Gunluk ve motor ayarlari kurulum klasorundeki veri\ altinda (salt okunur).
+$veri = Join-Path $dest "veri"
 
 if (-not $Install) {
     Set-Location $src
@@ -26,13 +28,13 @@ if (-not $Install) {
     if ($LASTEXITCODE -ne 0) { throw "PyInstaller basarisiz" }
     Write-Host "Derlendi: $dist"
     Start-Process powershell -Verb RunAs -Wait -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$($MyInvocation.MyCommand.Path)`"", "-Install"
-    Get-Content (Join-Path $cfg "kurulum.txt") -ErrorAction SilentlyContinue
+    Get-Content (Join-Path $veri "kurulum.txt") -ErrorAction SilentlyContinue
     exit
 }
 
 # ------------------------------------------------------------------ yonetici bolumu
-$log = Join-Path $cfg "kurulum.txt"
-New-Item -ItemType Directory -Force $cfg | Out-Null
+$log = Join-Path $veri "kurulum.txt"
+New-Item -ItemType Directory -Force $veri | Out-Null
 "--- $(Get-Date -Format s)" | Set-Content $log -Encoding utf8
 function Log($m) { $m | Add-Content $log -Encoding utf8 }
 try {
@@ -44,14 +46,13 @@ try {
     } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; Log "durduruldu: $($_.ProcessId) $($_.Name)" }
     Start-Sleep 1
 
-    robocopy $dist $dest /MIR /NFL /NDL /NJH /NJS /NP | Out-Null
+    robocopy $dist $dest /MIR /XD $veri /NFL /NDL /NJH /NJS /NP | Out-Null   # veri\ (ayarlar, gunluk) korunur
     if ($LASTEXITCODE -ge 8) { throw "kopyalama basarisiz (robocopy $LASTEXITCODE)" }
     Log "kopyalandi: $dest"
 
-    Remove-Item (Join-Path $cfg "task_result.txt") -ErrorAction SilentlyContinue
-    Start-Process $exe -ArgumentList "--install-task" -Wait
-    $r = Get-Content (Join-Path $cfg "task_result.txt") -ErrorAction SilentlyContinue
-    if ($r -ne "0") { throw "gorev kurulamadi: $r" }
+    # Sonuc cikis kodundan okunur (eskiden kullanicinin yazabildigi task_result.txt'den)
+    $p = Start-Process $exe -ArgumentList "--install-task" -Wait -PassThru
+    if ($p.ExitCode -ne 0) { throw "gorev kurulamadi (kod $($p.ExitCode)); ayrinti: $(Join-Path $veri 'crash.log')" }
     Log "gorevler: motor (yonetici, oturum acilisinda, cokunce yeniden) + tepsi (normal yetki, oturum acilisinda)"
 
     # Monster "Fn hotkeys and OSD" paketi (FnKey + eski CC arayuzu) artik gereksiz: Fn tuslarini ve OSD'yi

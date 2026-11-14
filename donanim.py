@@ -48,14 +48,146 @@ def is_admin():
         return False
 
 
+def system_dir():
+    """Windows\\System32 (ortam degiskeninden degil, API'den: degiskenler kullanici tarafindan degistirilebilir)."""
+    try:
+        buf = ctypes.create_unicode_buffer(520)
+        if ctypes.windll.kernel32.GetSystemDirectoryW(buf, 520):
+            return buf.value
+    except (OSError, AttributeError):
+        pass
+    return r"C:\Windows\System32"
+
+
+def program_files():
+    """64 bit Program Files klasoru (CSIDL_PROGRAM_FILES)."""
+    try:
+        buf = ctypes.create_unicode_buffer(520)
+        if ctypes.windll.shell32.SHGetFolderPathW(None, 0x26, None, 0, buf) == 0:
+            return buf.value
+    except (OSError, AttributeError):
+        pass
+    return r"C:\Program Files"
+
+
+# Yonetici surec komutlari ADLA cagirirsa Windows once programin ve calisma klasorunun icine bakar; oraya
+# birakilmis sahte bir powercfg.exe yonetici olarak calisir. Bu yuzden yalnizca bilinen tam yollar kullanilir.
+TOOLS = {
+    "schtasks": ("schtasks.exe",),
+    "powercfg": ("powercfg.exe",),
+    "powershell": (r"WindowsPowerShell\v1.0\powershell.exe",),
+    "nvidia-smi": ("nvidia-smi.exe", r"%PF%\NVIDIA Corporation\NVSMI\nvidia-smi.exe"),
+}
+
+
+def tool_path(name):
+    """Bilinen bir sistem aracinin tam yolu; bulunamazsa None."""
+    for rel in TOOLS.get(name, ()):
+        p = rel.replace("%PF%", program_files()) if rel.startswith("%PF%") else os.path.join(system_dir(), rel)
+        if os.path.isfile(p):
+            return p
+    return None
+
+
 def run(args, timeout=8):
-    """Konsol penceresi acmadan komut calistirir; (donus kodu, cikti)."""
+    """Konsol penceresi acmadan komut calistirir; (donus kodu, cikti). Arac adlari tam yola cevrilir."""
+    args = list(args)
+    if not os.path.isabs(args[0]):
+        exe = tool_path(args[0])
+        if not exe:
+            return -1, "%s bulunamadı" % args[0]
+        args[0] = exe
     try:
         p = subprocess.run(args, capture_output=True, timeout=timeout, creationflags=NO_WINDOW)
         out = (p.stdout or b"") + (p.stderr or b"")
         return p.returncode, out.decode("utf-8", "replace").strip()
     except (OSError, subprocess.SubprocessError) as exc:
         return -1, str(exc)
+
+
+# ============================================================================= yerel baglanti denetimi
+class _TcpRow(ctypes.Structure):  # MIB_TCPROW_OWNER_PID
+    _fields_ = [("state", wt.DWORD), ("local_addr", wt.DWORD), ("local_port", wt.DWORD),
+                ("remote_addr", wt.DWORD), ("remote_port", wt.DWORD), ("pid", wt.DWORD)]
+
+
+class _WtsProc(ctypes.Structure):  # WTS_PROCESS_INFOW
+    _fields_ = [("session", wt.DWORD), ("pid", wt.DWORD), ("name", wt.LPWSTR), ("sid", c_void_p)]
+
+
+class PeerCheckError(Exception):
+    """Denetim yapilamadi (API hatasi); 'baska oturum' anlamina gelmez."""
+
+
+def _ntohs(v):
+    v &= 0xFFFF
+    return ((v & 0xFF) << 8) | (v >> 8)
+
+
+def tcp_peer_pid(client_port, server_port):
+    """127.0.0.1 uzerinde bize baglanan istemci soketinin sahibi surec; bulunamazsa None."""
+    iphlp = ctypes.WinDLL("iphlpapi")
+    iphlp.GetExtendedTcpTable.argtypes = [c_void_p, ctypes.POINTER(wt.DWORD), wt.BOOL, wt.ULONG, c_int, wt.ULONG]
+    iphlp.GetExtendedTcpTable.restype = wt.DWORD
+    size = wt.DWORD(0)
+    iphlp.GetExtendedTcpTable(None, ctypes.byref(size), False, 2, 5, 0)  # AF_INET, TCP_TABLE_OWNER_PID_ALL
+    for _ in range(4):
+        size.value = size.value * 2 + 65536
+        buf = (ctypes.c_ubyte * size.value)()
+        r = iphlp.GetExtendedTcpTable(buf, ctypes.byref(size), False, 2, 5, 0)
+        if r == 0:
+            break
+        if r != 122:  # ERROR_INSUFFICIENT_BUFFER disinda
+            raise PeerCheckError("GetExtendedTcpTable %d" % r)
+    else:
+        raise PeerCheckError("TCP tablosu okunamadi")
+    n = ctypes.cast(buf, ctypes.POINTER(wt.DWORD))[0]
+    rows = ctypes.cast(ctypes.addressof(buf) + 4, ctypes.POINTER(_TcpRow))
+    for i in range(n):
+        row = rows[i]
+        if _ntohs(row.local_port) == client_port and _ntohs(row.remote_port) == server_port:
+            return row.pid or None  # TIME_WAIT satirinda pid 0: sahip yok sayilir
+    return None
+
+
+def pid_session(pid):
+    """Surecin oturum kimligi; surec yoksa None."""
+    k32 = ctypes.windll.kernel32
+    s = wt.DWORD()
+    if k32.ProcessIdToSessionId(wt.DWORD(pid), ctypes.byref(s)):
+        return s.value
+    # Erisim izni olmayan (ornegin korumali tarayici) surecler: tum surec listesi tutamac acmadan okunur
+    wts = ctypes.WinDLL("wtsapi32")
+    wts.WTSEnumerateProcessesW.argtypes = [c_void_p, wt.DWORD, wt.DWORD, ctypes.POINTER(ctypes.POINTER(_WtsProc)),
+                                           ctypes.POINTER(wt.DWORD)]
+    wts.WTSFreeMemory.argtypes = [c_void_p]
+    p, n = ctypes.POINTER(_WtsProc)(), wt.DWORD()
+    if not wts.WTSEnumerateProcessesW(None, 0, 1, ctypes.byref(p), ctypes.byref(n)):
+        raise PeerCheckError("WTSEnumerateProcesses %d" % ctypes.GetLastError())
+    try:
+        for i in range(n.value):
+            if p[i].pid == pid:
+                return p[i].session
+    finally:
+        wts.WTSFreeMemory(p)
+    return None
+
+
+_OWN_SESSION = []
+
+
+def peer_in_my_session(client_port, server_port):
+    """Baglanan surec bu oturumda mi? True / False; denetim yapilamazsa PeerCheckError.
+    Baska bir Windows kullanicisi (ayri oturum) ve hizmet hesaplari (oturum 0) boylece reddedilir."""
+    if not _OWN_SESSION:
+        own = pid_session(os.getpid())
+        if own is None:
+            raise PeerCheckError("kendi oturumumuz okunamadi")
+        _OWN_SESSION.append(own)
+    pid = tcp_peer_pid(client_port, server_port)
+    if pid is None:
+        return False
+    return pid_session(pid) == _OWN_SESSION[0]
 
 
 # ============================================================================= gomulu denetleyici
@@ -560,6 +692,7 @@ class Sensors(threading.Thread):
         self.nvml = None
         self.disk_ids = lambda: []  # envanter hazir olunca control_center baglar
         self.disks = {}
+        self.error = ""
 
     def _disk_health(self, now):
         """Disk sicakligi ve NVMe sagligi: 30 sn'de bir (IOCTL ucuz ama SMART gunlugu her saniye gereksiz)."""
@@ -574,7 +707,30 @@ class Sensors(threading.Thread):
                 pass
 
     def run(self):
-        import psutil
+        """Olcum dongusu hicbir hatayla olmez: olurse isi bekcisi, fis/pil kurali ve uykudan donus de dururdu.
+        Dongu cokerse sicakliklar 'bilinmiyor' olarak bildirilir (bekci fanlari denetleyiciye birakir) ve
+        dongu 1 sn sonra bastan kurulur."""
+        while self.running:
+            try:
+                self._loop()
+            except Exception as exc:
+                self.error = "%s: %s" % (type(exc).__name__, exc)
+                s = {"t": time.time(), "sensor_error": self.error}
+                self.snapshot = s
+                self.seq += 1
+                for fn in list(self.listeners):
+                    try:
+                        fn(s, 1.0)
+                    except Exception:
+                        pass
+                time.sleep(1.0)
+
+    def _loop(self):
+        try:
+            import psutil
+        except ImportError:  # betik modunda paket eksik olabilir: diger olcumler surer
+            psutil = None
+            self.error = "psutil kurulu değil: bellek, ağ ve disk ölçülmüyor"
         counters = {
             "perf": r"\Processor Information(*)\% Processor Performance",
             "nominal": r"\Processor Information(*)\Processor Frequency",  # P 2000, E 1500 MHz
@@ -585,12 +741,17 @@ class Sensors(threading.Thread):
         if not self.dchu.available:  # denetleyici yoksa islemci sicakligi icin ACPI isi bolgesi (Kelvin)
             counters["tz"] = r"\Thermal Zone Information(*)\Temperature"
         pdh = Pdh(counters)
-        last_net = psutil.net_io_counters()
-        last_disk = psutil.disk_io_counters()
-        try:
-            last_per = psutil.disk_io_counters(perdisk=True) or {}
-        except Exception:
-            last_per = {}
+        last_net = last_disk = None
+        last_per = {}
+        if psutil:
+            try:
+                last_net, last_disk = psutil.net_io_counters(), psutil.disk_io_counters()
+            except Exception:
+                pass
+            try:
+                last_per = psutil.disk_io_counters(perdisk=True) or {}
+            except Exception:
+                pass
         last_t = time.monotonic()
         nv_awake_until = 0.0
         while self.running:
@@ -653,42 +814,59 @@ class Sensors(threading.Thread):
                 s["gpu_state"] = "active"
             else:
                 s["gpu_state"] = "sleep"
-            vm = psutil.virtual_memory()
-            s["ram_used"], s["ram_total"] = round(vm.used / 2 ** 30, 1), round(vm.total / 2 ** 30, 1)
-            net = psutil.net_io_counters()
-            s["net_down"] = round((net.bytes_recv - last_net.bytes_recv) / dt / 1024)
-            s["net_up"] = round((net.bytes_sent - last_net.bytes_sent) / dt / 1024)
-            last_net = net
+            if psutil:
+                try:
+                    vm = psutil.virtual_memory()
+                    s["ram_used"], s["ram_total"] = round(vm.used / 2 ** 30, 1), round(vm.total / 2 ** 30, 1)
+                except Exception:
+                    pass
+                try:
+                    net = psutil.net_io_counters()
+                    if net and last_net:
+                        s["net_down"] = round((net.bytes_recv - last_net.bytes_recv) / dt / 1024)
+                        s["net_up"] = round((net.bytes_sent - last_net.bytes_sent) / dt / 1024)
+                    last_net = net
+                except Exception:
+                    pass
+                try:
+                    disk = psutil.disk_io_counters()
+                    if disk and last_disk:
+                        s["disk_read"] = round((disk.read_bytes - last_disk.read_bytes) / dt / 2 ** 20, 1)
+                        s["disk_write"] = round((disk.write_bytes - last_disk.write_bytes) / dt / 2 ** 20, 1)
+                    last_disk = disk
+                except Exception:
+                    pass
+                try:
+                    du = psutil.disk_usage("C:\\")
+                    s["disk_used"], s["disk_total"] = round(du.used / 2 ** 30), round(du.total / 2 ** 30)
+                except Exception:
+                    pass
             try:
-                disk = psutil.disk_io_counters()
-                s["disk_read"] = round((disk.read_bytes - last_disk.read_bytes) / dt / 2 ** 20, 1)
-                s["disk_write"] = round((disk.write_bytes - last_disk.write_bytes) / dt / 2 ** 20, 1)
-                last_disk = disk
-            except (AttributeError, TypeError):
-                pass
-            try:
-                du = psutil.disk_usage("C:\\")
-                s["disk_used"], s["disk_total"] = round(du.used / 2 ** 30), round(du.total / 2 ** 30)
-            except OSError:
-                pass
-            try:  # disk basina okuma/yazma hizi ve doluluk (PhysicalDriveN)
-                per = psutil.disk_io_counters(perdisk=True) or {}
-                io = {}
-                for name, cur in per.items():
-                    prev = last_per.get(name)
-                    if prev and name.startswith("PhysicalDrive"):
-                        io[name[13:]] = {"r": round((cur.read_bytes - prev.read_bytes) / dt / 2 ** 20, 1),
-                                         "w": round((cur.write_bytes - prev.write_bytes) / dt / 2 ** 20, 1),
-                                         "busy": round(min(100.0, (cur.read_time + cur.write_time - prev.read_time
-                                                                   - prev.write_time) / (dt * 10.0)), 0)}
-                s["disk_io"] = io
-                last_per = per
+                s["battery"] = power_status()
             except Exception:
                 pass
-            self._disk_health(t0)
+            if psutil:
+                try:  # disk basina okuma/yazma hizi ve doluluk (PhysicalDriveN)
+                    per = psutil.disk_io_counters(perdisk=True) or {}
+                    io = {}
+                    for name, cur in per.items():
+                        prev = last_per.get(name)
+                        if prev and name.startswith("PhysicalDrive"):
+                            io[name[13:]] = {"r": round((cur.read_bytes - prev.read_bytes) / dt / 2 ** 20, 1),
+                                             "w": round((cur.write_bytes - prev.write_bytes) / dt / 2 ** 20, 1),
+                                             "busy": round(min(100.0, (cur.read_time + cur.write_time
+                                                                       - prev.read_time - prev.write_time)
+                                                               / (dt * 10.0)), 0)}
+                    s["disk_io"] = io
+                    last_per = per
+                except Exception:
+                    pass
+            try:
+                self._disk_health(t0)
+            except Exception:
+                pass
             if self.disks:
                 s["disks"] = self.disks
-            s["battery"] = power_status()
             for k, h in self.history.items():
                 if k in s:
                     h.append(s[k])

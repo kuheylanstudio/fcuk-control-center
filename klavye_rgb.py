@@ -23,8 +23,10 @@ import donanim
 
 APP_NAME = "KendiControlCenter"
 _APPDATA = os.environ.get("APPDATA", os.path.expanduser("~"))
-CONFIG_DIR = os.path.join(_APPDATA, APP_NAME)
-CONFIG_PATH = os.path.join(CONFIG_DIR, "config.json")
+USER_DIR = os.path.join(_APPDATA, APP_NAME)
+USER_CONFIG_PATH = os.path.join(USER_DIR, "config.json")
+CONFIG_DIR = USER_DIR      # yonetici motorda set_data_dir() ile Program Files altindaki veri klasorune doner
+CONFIG_PATH = USER_CONFIG_PATH
 OLD_CONFIG_PATH = os.path.join(_APPDATA, "KlavyeRGB", "config.json")  # eski Klavye RGB ayarlari tasinir
 
 # (kimlik, ad, palet kullanir mi, hiz etiketi, aciklama)
@@ -389,25 +391,42 @@ class Engine(threading.Thread):
 
 
 # ----------------------------------------------------------------------------- ayarlar
-def load_config():
-    cfg = json.loads(json.dumps(DEFAULTS))
-    path = CONFIG_PATH if os.path.exists(CONFIG_PATH) else OLD_CONFIG_PATH
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            saved = json.load(f)
-        if isinstance(saved.get("cc"), dict):
-            cfg["cc"] = saved["cc"]
-        for key in ("mode", "brightness", "autostart", "presets", "lang"):
-            if key in saved:
-                cfg[key] = saved[key]
-        for mid, vals in saved.get("modes", {}).items():
-            if mid in cfg["modes"] and isinstance(vals, dict):
-                cfg["modes"][mid].update(vals)
-    except (OSError, ValueError):
-        pass
-    if cfg["mode"] not in MODE_IDS:
-        cfg["mode"] = "gecis"
-    return cfg
+def set_data_dir(path):
+    """Ayar ve gunluk klasorunu degistirir. Yonetici motor kullanicinin yazabildigi %APPDATA%'ya yazmaz:
+    orada bir baglanti (junction/symlink) yonetici yazmasini istenen herhangi bir dosyaya yonlendirebilir."""
+    global CONFIG_DIR, CONFIG_PATH
+    CONFIG_DIR = path
+    CONFIG_PATH = os.path.join(path, "config.json")
+
+
+def read_config():
+    """Kayitli ayarlari HAM olarak okur: (sozluk ya da None, sorun metni). Hicbir girdide hata firlatmaz;
+    alanlarin dogrulanmasi cagiranin isidir (control_center.sanitize_loaded).
+    Okunamayan/bozuk dosya config.bozuk.json adiyla kenara alinir ki sonraki kayit onu ezmesin."""
+    paths = []
+    for p in (CONFIG_PATH, USER_CONFIG_PATH, OLD_CONFIG_PATH):  # yonetici motor ilk acilista kullanicininkini tasir
+        if p not in paths:
+            paths.append(p)
+    for path in paths:
+        if not os.path.exists(path):
+            continue
+        problem = ""
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                return data, ""
+            problem = "ayar dosyası beklenen biçimde değil"
+        except (OSError, ValueError, RecursionError) as exc:
+            problem = "ayar dosyası okunamadı (%s)" % type(exc).__name__
+        if path == CONFIG_PATH:
+            try:
+                os.replace(path, os.path.join(CONFIG_DIR, "config.bozuk.json"))
+                problem += "; eski dosya config.bozuk.json olarak saklandı"
+            except OSError:
+                pass
+        return None, problem
+    return None, ""
 
 
 def save_config(cfg):
