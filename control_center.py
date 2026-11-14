@@ -37,7 +37,7 @@ import nvidia
 import profiller
 from ceviri import t
 
-VERSION = "2.0.3"
+VERSION = "2.0.4"
 PORT = 47815
 HOSTS = ("127.0.0.1:%d" % PORT, "localhost:%d" % PORT)
 BASE = "http://127.0.0.1:%d" % PORT

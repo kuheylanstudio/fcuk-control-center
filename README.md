@@ -8,7 +8,7 @@ bilgisayarlarda da donanım tespiti, canlı izleme, NVIDIA ve işlemci ayarları
 > *The source code of this project was written with Anthropic's Claude Opus 5.5 AI model.*
 
 <p align="center">
-  <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v2.0.3/FCUK-Control-Center-Setup-2.0.3.exe"><img alt="İndir: FCUK-Control-Center-Setup-2.0.3.exe" src="https://img.shields.io/badge/%C4%B0ndir-FCUK--Control--Center--Setup--2.0.3.exe-2ea44f?style=for-the-badge&logo=windows&logoColor=white"></a>
+  <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v2.0.4/FCUK-Control-Center-Setup-2.0.4.exe"><img alt="İndir: FCUK-Control-Center-Setup-2.0.4.exe" src="https://img.shields.io/badge/%C4%B0ndir-FCUK--Control--Center--Setup--2.0.4.exe-2ea44f?style=for-the-badge&logo=windows&logoColor=white"></a>
   <br>
   <sub>Windows 10/11 (64 bit) · <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/latest">tüm sürümler ve SHA-256</a></sub>
 </p>
@@ -33,11 +33,11 @@ yazmayı gerektirir. Uygulama hiçbir çekirdek sürücüsü kurmaz.
 
 ### setup.exe (önerilen)
 
-1. **[FCUK-Control-Center-Setup-2.0.3.exe](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v2.0.3/FCUK-Control-Center-Setup-2.0.3.exe)** dosyasını indirin.
+1. **[FCUK-Control-Center-Setup-2.0.4.exe](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v2.0.4/FCUK-Control-Center-Setup-2.0.4.exe)** dosyasını indirin.
 2. Çift tıklayın ve yönetici iznini onaylayın. Kurulum penceresi her adımı gösterir; bitince uygulama açılır.
 3. Windows "Bilgisayarınız korundu" (SmartScreen) derse: **Ek bilgi → Yine de çalıştır**. Kurulum programı
    kod imzalı değildir; indirdiğiniz dosyanın [sürüm sayfasındaki](https://github.com/kuheylanstudio/fcuk-control-center/releases/latest)
-   SHA-256 değeriyle aynı olduğunu `Get-FileHash FCUK-Control-Center-Setup-2.0.3.exe` ile denetleyebilirsiniz.
+   SHA-256 değeriyle aynı olduğunu `Get-FileHash FCUK-Control-Center-Setup-2.0.4.exe` ile denetleyebilirsiniz.
 
 İndirilen kurulum programı üreticiye ait DLL'i **içermez**. Clevo / Monster dizüstülerde uygulama `InsydeDCHU.dll`'i
 Windows sürücü deposundaki AcpiBridge sürücüsünden kullanır; ayrıca bir şey yapmanız gerekmez.
@@ -81,7 +81,7 @@ powershell -ExecutionPolicy Bypass -File setup_olustur.ps1   # çıktı: dist\se
 
 Bu şekilde derlenen setup.exe üreticiye ait DLL'i içerir; kendi bilgisayarınız için kullanın, herkese açık
 dağıtmayın. Dağıtılabilir (DLL'siz) paket için: `setup_olustur.ps1 -Dagitim` (çıktı:
-`dist\FCUK-Control-Center-Setup-2.0.3.exe`). İndirme düğmesindeki dosya budur.
+`dist\FCUK-Control-Center-Setup-2.0.4.exe`). İndirme düğmesindeki dosya budur.
 
 ### Kaynaktan
 
