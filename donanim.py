@@ -200,6 +200,12 @@ def peer_in_my_session(client_port, server_port):
 class DCHU:
     """InsydeDCHU.dll sarmalayicisi. Tum cagrilar tek kilitten gecer (motor, sensor ve sunucu ayni anda cagirir)."""
     available = True
+    kind = "clevo"        # Clevo'ya ozel adimlar (Fn olaylari, IFEO) yalnizca bu turde
+    kb_available = True   # klavye isigi bu denetleyicide
+
+    @staticmethod
+    def caps():
+        return {"power": True, "fan": True, "fan_curve": True, "kb": True, "temps": True}
 
     def __init__(self):
         # Surumler farkli islev kumesi tasir (ornek: surucu deposundaki 1.0.0.1'de SetDCHU_DataEx yok). Yalnizca
@@ -354,7 +360,13 @@ class NullDCHU:
     bos, yazmalar Unsupported verir ve donanima HICBIR komut gitmez. Profil adimlari bunu raporda
     'desteklenmiyor' olarak gosterir; geri kalan her sey calisir."""
     available = False
+    kind = "none"
+    kb_available = False
     path = ""
+
+    @staticmethod
+    def caps():
+        return {"power": False, "fan": False, "fan_curve": False, "kb": False, "temps": False}
 
     def __init__(self, reason="", clevo=False):
         self.reason = reason
@@ -421,8 +433,16 @@ def clevo_present():
 
 
 def open_dchu():
-    """Gercek denetleyici ya da (Clevo aygiti yoksa / kitaplik yoksa / yuklenemezse) NullDCHU."""
+    """Gercek denetleyici: Clevo/Monster ise DCHU, MSI ise msi.MsiEC (MSI_ACPI WMI + USB klavye), hicbiri
+    degilse (ya da kitaplik yuklenemezse) NullDCHU."""
     if not clevo_present():
+        try:
+            import msi
+            m = msi.open_msi(unsupported=Unsupported)
+        except Exception:
+            m = None
+        if m is not None:
+            return m
         return NullDCHU(ceviri.t("err.notClevo"), clevo=False)
     try:
         return DCHU()

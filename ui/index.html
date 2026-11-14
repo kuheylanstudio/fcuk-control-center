@@ -325,6 +325,7 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
       <button class="nav" type="button" data-view="genel" aria-current="page"><span data-i18n="nav.genel">Genel bakış</span><small data-i18n="nav.genel.sub">Canlı ölçümler</small></button>
       <button class="nav" type="button" data-view="performans"><span data-i18n="nav.performans">Performans</span><small data-i18n="nav.performans.sub">Beş profil</small></button>
       <button class="nav" type="button" data-view="fan"><span data-i18n="nav.fan">Fanlar</span><small data-i18n="nav.fan.sub">Eğri ve devir</small></button>
+      <button class="nav" type="button" data-view="msi" hidden><span data-i18n="nav.msi">MSI</span><small data-i18n="nav.msi.sub">Mod, Cooler Boost, pil</small></button>
       <button class="nav" type="button" data-view="ses"><span data-i18n="nav.ses">Ses ve ekran</span><small data-i18n="nav.ses.sub">Seviye, mikrofon, Hz</small></button>
       <button class="nav" type="button" data-view="klavye"><span data-i18n="nav.klavye">Klavye</span><small data-i18n="nav.klavye.sub">RGB modları</small></button>
       <button class="nav" type="button" data-view="ayarlar"><span data-i18n="nav.ayarlar">Ayarlar</span><small data-i18n="nav.ayarlar.sub">Dil, yönetici, açılış</small></button>
@@ -436,7 +437,7 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
           <p data-i18n="fan.intro">Eğriyi gömülü denetleyici çalıştırır, uygulama kapalıyken de geçerli kalır. İlk nokta (45 °C) ve son nokta (100 °C'de %100) denetleyicide sabittir; hiçbir eğri soğutmayı tamamen kesemez. Isı koruması: işlemci 93 °C'yi ya da kart 87 °C'yi 5 saniye aşarsa fanlar fabrika tablosuna döner, soğuyunca eğri geri gelir.</p>
         </header>
         <div class="split">
-          <div class="tile">
+          <div class="tile" id="fanCurveTile">
             <div class="tile-top"><span class="lbl" data-i18n="fan.curve">İşlemci fan eğrisi</span><span class="legend"><span><i></i><span data-i18n="fan.legend.factory">Fabrika</span></span><span><i class="m"></i><span data-i18n="fan.legend.active">Etkin</span></span><span><i class="d"></i><span data-i18n="fan.legend.now">Şu an</span></span></span></div>
             <svg class="curve" id="curve" viewBox="0 0 440 230" role="img" data-i18n-aria="fan.curve.aria" aria-label="Sıcaklığa göre fan görevi eğrisi"></svg>
           </div>
@@ -445,7 +446,7 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
               <div class="tile"><span class="lbl" data-i18n="ov.cpuFan">İşlemci fanı</span><div><span class="big" id="fRpm1">–</span><span class="unit">rpm</span></div><div class="kv"><span data-i18n="fan.duty">Görev</span><b id="fDuty1">–</b></div><div class="kv"><span data-i18n="fan.temp">Sıcaklık</span><b id="fT1">–</b></div></div>
               <div class="tile"><span class="lbl" data-i18n="ov.gpuFan">Kart fanı</span><div><span class="big" id="fRpm2">–</span><span class="unit">rpm</span></div><div class="kv"><span data-i18n="fan.duty">Görev</span><b id="fDuty2">–</b></div><div class="kv"><span data-i18n="fan.temp">Sıcaklık</span><b id="fT2">–</b></div></div>
             </div>
-            <fieldset class="field">
+            <fieldset class="field" id="fanControl">
               <legend class="lbl" data-i18n="fan.control">Fan denetimi</legend>
               <div class="seg auto">
                 <label><input type="radio" name="fanm" value="profile"><span data-i18n="fan.byProfile">Profile göre</span></label>
@@ -454,6 +455,39 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
               </div>
             </fieldset>
             <p class="hint" id="guardTxt"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MSI: gomulu denetleyici ayarlari (yalnizca MSI'da gorunur) -->
+    <section class="view" id="v-msi" data-i18n-aria="nav.msi" aria-label="MSI" hidden>
+      <div class="page">
+        <header class="page-head">
+          <h2 data-i18n="msi.title">MSI ayarları</h2>
+          <p data-i18n="msi.intro">Ayarlar MSI'ın kendi ACPI-WMI köprüsü (MSI_ACPI) üzerinden gömülü denetleyiciye yazılır; ek sürücü kurulmaz. Yalnızca firmware'i tanınan modellerde yazma açılır.</p>
+        </header>
+        <p class="hint" id="msiNote" role="note"></p>
+        <div class="tiles">
+          <div class="tile form" id="msiShiftTile">
+            <span class="lbl" data-i18n="msi.shift">Performans modu</span>
+            <div class="seg auto" id="msiShift"></div>
+          </div>
+          <div class="tile form" id="msiFanTile">
+            <span class="lbl" data-i18n="msi.fan">Fan modu</span>
+            <div class="seg auto" id="msiFan"></div>
+            <label class="switch" id="msiBoostRow"><input type="checkbox" id="msiBoost"><span class="track" aria-hidden="true"></span><span data-i18n="msi.boost">Cooler Boost (fanlar tam hız)</span></label>
+          </div>
+          <div class="tile form" id="msiChargeTile">
+            <label class="lbl" for="msiCharge" data-i18n="msi.charge">Pil şarj sınırı</label>
+            <select id="msiCharge"></select>
+            <p class="hint" data-i18n="msi.chargeHint">Pil bu yüzdeye kadar şarj olur, 10 puan altına düşünce yeniden şarj başlar.</p>
+          </div>
+          <div class="tile">
+            <span class="lbl" data-i18n="msi.info">Denetleyici</span>
+            <div class="kv"><span data-i18n="msi.fw">EC firmware</span><b id="msiFw">–</b></div>
+            <div class="kv"><span data-i18n="msi.access">Erişim</span><b id="msiAccess">–</b></div>
+            <div class="kv"><span data-i18n="msi.kb">Klavye ışığı</span><b id="msiKb">–</b></div>
           </div>
         </div>
       </div>
@@ -654,6 +688,7 @@ function show(id) {
   document.querySelectorAll('.view').forEach(v => { v.hidden = v.id !== 'v-' + id; });
   if (id === 'ses') loadAudio();
   if (id === 'fan') drawCurve();
+  if (id === 'msi') api('/api/state').then(st => { meta.msi = st.msi; renderMsi(); }).catch(() => {});  // Fn tuslariyla degismis olabilir
   if (sensor) renderSensors(sensor);
   try { localStorage.setItem('cc.view', id); } catch (e) { /* depolama yok */ }
 }
@@ -722,7 +757,7 @@ function renderSensors(s) {
     setText('gpuLoad', pct(fmt(s.gpu_load)));
     setText('gpuClock', awake && s.gpu_clock != null ? fmt(s.gpu_clock) + ' MHz' : '–');
     setText('gpuVram', awake && s.gpu_vram_total ? fmt(s.gpu_vram_used / 1024, 1) + ' / ' + fmt(s.gpu_vram_total / 1024, 1) + ' GB' : '–');
-    setText('fanCpuRpm', fmt(s.cpu_rpm));
+    setText('fanCpuRpm', s.cpu_rpm == null && s.cpu_duty != null ? pct(fmt(s.cpu_duty)) : fmt(s.cpu_rpm));
     setText('fanCpuDuty', pct(fmt(s.cpu_duty)));
     setText('fanGpu', fmt(s.gpu_rpm) + ' rpm · ' + pct(fmt(s.gpu_duty)));
     setText('powBig', fmt(s.cpu_power, 1));
@@ -844,7 +879,8 @@ function paintProfile() {
     $('#ruleBat').value = cc.rules.on_battery || '';
     $('#ruleAc').value = cc.rules.on_ac || '';
     $('#ruleHz').checked = cc.rules.refresh !== false;
-    setText('fanModeTxt', FAN_MODE_TXT[cc.fan_mode] || '–');
+    const mf = meta && meta.msi && meta.msi.fan;  // MSI: denetleyicinin kendi fan modu adi
+    setText('fanModeTxt', cc.fan_mode !== 1 && mf ? t('msi.fan.' + mf) : (FAN_MODE_TXT[cc.fan_mode] || '–'));
     const pf = id ? (profById(id) || {}).fan : null;
     const fm = cc.fan_mode === 1 ? 'max' : cc.fan_mode === 6 ? 'profile' : pf === 'auto' ? 'profile' : 'auto';
     const r = document.querySelector(`input[name=fanm][value=${fm}]`); if (r) r.checked = true;
@@ -1368,10 +1404,81 @@ function initPresets() {
   });
 }
 
+/* ---------- MSI ---------- */
+// Yalnizca motorun bildirdigi (firmware tablosunda olan) secenekler cizilir; olmayan hic gosterilmez.
+const MSI_SHIFT = ['eco', 'comfort', 'sport', 'turbo'], MSI_FAN = ['auto', 'silent', 'basic', 'advanced'];
+function renderMsi() {
+  const m = meta.msi;
+  const nav = document.querySelector('.nav[data-view="msi"]');
+  if (!m || !(m.read || m.kb)) { nav.hidden = true; return; }
+  nav.hidden = false;
+  const seg = (box, key, ids, cur, prefix) => {
+    box.textContent = '';
+    for (const id of ids) {
+      const l = el('label'), i = el('input');
+      i.type = 'radio'; i.name = 'msi_' + key; i.value = id; i.checked = id === cur;
+      i.addEventListener('change', () => msiSet(key, id));
+      l.append(i, el('span', '', t(prefix + id)));
+      box.append(l);
+    }
+  };
+  seg($('#msiShift'), 'shift', MSI_SHIFT.filter(x => m.shifts.includes(x)), m.shift, 'msi.shift.');
+  seg($('#msiFan'), 'fan', MSI_FAN.filter(x => m.fans.includes(x)), m.fan, 'msi.fan.');
+  $('#msiShiftTile').hidden = !m.shifts.length;
+  $('#msiFan').hidden = !m.fans.length;
+  $('#msiBoostRow').hidden = !m.cooler;
+  $('#msiFanTile').hidden = !m.fans.length && !m.cooler;
+  $('#msiBoost').checked = !!m.boost;
+  const ch = $('#msiCharge');
+  ch.textContent = '';
+  for (const v of m.charge_steps) ch.append(new Option(v === 100 ? t('msi.chargeOff') : pct(v), v));
+  if (m.charge != null) ch.value = m.charge;
+  $('#msiChargeTile').hidden = !m.charge_steps.length;
+  setText('msiFw', m.fw || '–');
+  setText('msiAccess', m.write ? t('msi.rw') : m.read ? t('msi.ro') : t('msi.none'));
+  setText('msiKb', m.kb ? m.kb_name : t('val.unsupported'));
+  $('#msiNote').textContent = m.write ? '' : (m.reason ? m.reason + '. ' : '') + t('msi.roNote');
+}
+async function msiSet(key, value) {
+  try {
+    const r = await api('/api/msi', { key, value });
+    meta.msi = r.msi; if (r.cc) { cc = r.cc; paintProfile(); }
+  } catch (e) {
+    banner(t('msi.fail', { err: e.message }));
+    try { meta.msi = (await api('/api/state')).msi; } catch (e2) { /* motor yok */ }
+  }
+  renderMsi();
+}
+function initMsi() {
+  $('#msiBoost').addEventListener('change', e => msiSet('boost', e.target.checked));
+  $('#msiCharge').addEventListener('change', e => msiSet('charge', +e.target.value));
+}
+
 /* ---------- bu bilgisayarda olmayan ozellikler ---------- */
-// Clevo/Monster gomulu denetleyicisi yoksa fan ve klavye isigi sayfalari denetim gostermez, nedenini soyler.
-// Motor da o denetleyiciye hicbir komut gondermez (donanim.NullDCHU).
+// Denetleyici (Clevo/Monster ya da taninan MSI) yoksa fan ve klavye isigi sayfalari denetim gostermez, nedenini
+// soyler. Motor da desteklenmeyen hicbir ozellige komut gondermez (donanim.NullDCHU, msi.MsiEC).
+function hideUnsupported(id, text) {
+  const sec = $('#v-' + id);
+  if (!sec || sec.querySelector('.nosup')) return;
+  for (const c of sec.children) c.hidden = true;
+  const box = el('div', 'nosup');
+  box.setAttribute('role', 'note');
+  box.append(el('h2', '', t('unsup.title')), el('p', '', text));
+  sec.prepend(box);
+  const sub = document.querySelector(`.nav[data-view="${id}"] small`);
+  if (sub) sub.textContent = t('nav.unsup');
+}
 function applySupport() {
+  renderMsi();
+  const caps = meta.caps || { fan: meta.ec, fan_curve: meta.ec, kb: meta.ec, temps: meta.ec };
+  if (meta.ec_kind === 'msi') {
+    // MSI: egri yok (profil egrisi fan moduna eslenir); okuma varsa fan sayfasi gorev/devir gosterir
+    $('#fanCurveTile').hidden = !caps.fan_curve;
+    $('#fanControl').hidden = !caps.fan;
+    if (!caps.fan && !caps.temps) hideUnsupported('fan', t('msi.unsupFan'));
+    if (!caps.kb) hideUnsupported('klavye', t('msi.unsupKb'));
+    return;
+  }
   if (meta.ec) return;
   for (const [id, key] of [['fan', 'unsup.fan'], ['klavye', 'unsup.kb']]) {
     const sec = $('#v-' + id);
@@ -1394,6 +1501,7 @@ async function init() {
   initPresets();
   initPerformance();
   initAudio();
+  initMsi();
   initSettings();
   document.querySelectorAll('.nav').forEach(b => b.addEventListener('click', () => show(b.dataset.view)));
   requestAnimationFrame(paintLive);

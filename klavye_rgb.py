@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 # FCUK Control Center
 # Bu dosya Anthropic'in Claude Opus 5.5 yapay zeka modeliyle yazilmistir. MIT lisansi, bkz. LICENSE.
-"""Klavye RGB - Monster / Clevo dizustu klavyeleri icin ozel renk modlari.
+"""Klavye RGB - Monster / Clevo ve MSI dizustu klavyeleri icin ozel renk modlari.
 
-Control Center'in kendi kitapligi (InsydeDCHU.dll) uzerinden klavye rengini ayarlar.
+Clevo'da Control Center'in kendi kitapligi (InsydeDCHU.dll), MSI'da USB HID klavye (msi_klavye.py) uzerinden
+klavye rengini ayarlar; motor icin ikisi de ayni set_color(r, g, b) cagrisidir.
 Bu dosya motor ve donanim katmanidir; uygulama control_center.py ile baslar.
 """
 import colorsys
@@ -428,7 +429,7 @@ class Engine(threading.Thread):
             last = now
             mode, pal, speed, source, bright = self.settings
             value = None
-            kb_ok = getattr(self.kb, "available", True)
+            kb_ok = getattr(self.kb, "kb_available", getattr(self.kb, "available", True))  # MSI: USB klavye ayri
             if not kb_ok and mode in ("ses", "ekran", "sistem", "oyun"):
                 mode = "sabit"  # klavye isigi yok: ses/ekran ornekleme ve olcum bosuna calismasin
             if mode != "oyun" and game is not None:
