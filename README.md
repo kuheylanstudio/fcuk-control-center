@@ -23,6 +23,7 @@ bilgisayarlarda da donanım tespiti, canlı izleme, NVIDIA ve işlemci ayarları
 | **İşlemci** | İşlemci modeline göre yalnızca etkili olan ayarlar: turbo modu, EPP (Speed Shift), P ve E çekirdek frekans tavanları (melez Intel), işlemci durumu sınırları, çekirdek zamanlayıcı politikası, çekirdek park etme | Her bilgisayar (Windows güç planı) |
 | **Performans profilleri** | Beş profil: Tam Sessiz → Ultra Performans; her biri gömülü denetleyici güç modu, fan eğrisi, işlemci, ekran kartı ve ekran yenileme hızını birlikte ayarlar | Clevo / Monster |
 | **Fanlar, klavye RGB, Fn tuşları** | Özel fan eğrisi, 8 klavye ışık modu, Fn tuşu ekran bildirimleri | Clevo / Monster |
+| **Lenovo Legion (deneysel)** | Güç modu (Sessiz/Dengeli/Performans) profillerle, fan hızı ve sıcaklık, tam devir fan, Özel modda fan eğrisi, ekran kartı modu (hibrit / tümleşik / yalnızca harici kart), pil koruma ve hızlı şarj, 4 bölgeli klavyede tüm ışık modları. Gerçek Legion donanımında henüz denenmedi; desteklenmeyen özellik hiçbir komut göndermez | Lenovo Legion (LENOVO_GAMEZONE_DATA) |
 | **Ses ve ekran** | Hoparlör / mikrofon seviyesi, yenileme hızı | Her bilgisayar |
 | **Dil** | 14 dil, Windows bölge ayarına göre otomatik | |
 
@@ -145,6 +146,7 @@ Pencere ve tepsi simgesi her zaman normal kullanıcı yetkisiyle çalışır.
 ```
 control_center.py  giriş noktası, yerel HTTP sunucusu (yalnızca 127.0.0.1:47815), görevler
 donanim.py         gömülü denetleyici (DCHU), PDH sayaçları, NVML, ekran, ses, sensör döngüsü
+lenovo_legion.py   Lenovo Legion arka ucu (DCHU ile aynı arayüz), lenovo_wmi.py (WMI), lenovo_kb.py (klavye HID)
 envanter.py        donanım envanteri (CIM), P/E çekirdek tespiti, NVMe SMART ve disk sıcaklığı (IOCTL)
 nvidia.py          NVIDIA sürücü ayarları (NVAPI DRS), kart bilgisi (NVML)
 islemci.py         modele göre işlemci ayarları (Windows güç planı)
@@ -157,6 +159,8 @@ ui/index.html      arayüz (Edge --app penceresi)
 ```
 
 Geliştirme sırasında kurulu motoru atlayıp kodu doğrudan çalıştırmak için: `python control_center.py --dev`
+
+Testler (donanım gerekmez, sahte WMI/HID): `python -m unittest discover -s tests`
 
 ## Lisans
 

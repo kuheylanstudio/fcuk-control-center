@@ -200,6 +200,8 @@ def peer_in_my_session(client_port, server_port):
 class DCHU:
     """InsydeDCHU.dll sarmalayicisi. Tum cagrilar tek kilitten gecer (motor, sensor ve sunucu ayni anda cagirir)."""
     available = True
+    kind = "clevo"
+    kb_available = True  # Clevo'da klavye isigi denetleyicinin parcasi
 
     def __init__(self):
         # Surumler farkli islev kumesi tasir (ornek: surucu deposundaki 1.0.0.1'de SetDCHU_DataEx yok). Yalnizca
@@ -355,6 +357,8 @@ class NullDCHU:
     'desteklenmiyor' olarak gosterir; geri kalan her sey calisir."""
     available = False
     path = ""
+    kind = ""
+    kb_available = False
 
     def __init__(self, reason="", clevo=False):
         self.reason = reason
@@ -421,8 +425,16 @@ def clevo_present():
 
 
 def open_dchu():
-    """Gercek denetleyici ya da (Clevo aygiti yoksa / kitaplik yoksa / yuklenemezse) NullDCHU."""
+    """Gercek denetleyici ya da (Clevo aygiti yoksa / kitaplik yoksa / yuklenemezse) NullDCHU.
+    Clevo degilse Lenovo Legion denenir (lenovo_legion: BIOS'ta LENOVO + Legion ve LENOVO_GAMEZONE_DATA)."""
     if not clevo_present():
+        try:
+            import lenovo_legion
+            dev = lenovo_legion.open_legion()
+            if dev is not None:
+                return dev
+        except Exception:  # tespit hatasi: suphede donanima dokunulmaz
+            pass
         return NullDCHU(ceviri.t("err.notClevo"), clevo=False)
     try:
         return DCHU()
@@ -802,7 +814,8 @@ class Sensors(threading.Thread):
             "energy": r"\Energy Meter(*)\Power",
             "gpu": r"\GPU Engine(*)\Utilization Percentage",
         }
-        if not self.dchu.available:  # denetleyici yoksa islemci sicakligi icin ACPI isi bolgesi (Kelvin)
+        # denetleyici yoksa (ya da Lenovo okuyamazsa) islemci sicakligi icin ACPI isi bolgesi (Kelvin)
+        if not self.dchu.available or getattr(self.dchu, "kind", "") == "lenovo":
             counters["tz"] = r"\Thermal Zone Information(*)\Temperature"
         pdh = Pdh(counters)
         last_net = last_disk = None

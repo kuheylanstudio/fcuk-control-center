@@ -510,6 +510,10 @@ def state():
         "autostart": bool(App.cfg.get("autostart")),
         "dll": App.dchu.path,
         "ec": App.dchu.available,
+        "ec_kind": App.dchu.kind,  # "clevo" | "lenovo" | "" (denetleyici yok)
+        "kb": bool(getattr(App.dchu, "kb_available", App.dchu.available)),  # klavye isigi ayrica olabilir/olmayabilir
+        "kb_reason": getattr(App.dchu, "kb_reason", ""),
+        "lenovo": lenovo_state(),
         "ec_clevo": bool(getattr(App.dchu, "clevo", True)),  # aygit var, yalnizca kitaplik yok
         "ec_reason": getattr(App.dchu, "reason", ""),
         "cpu": App.inventory.data.get("cpu"),
@@ -518,6 +522,16 @@ def state():
         "trusted_install": trusted_install(),
         "notices": list(App.notices),
     }
+
+
+def lenovo_state():
+    """Lenovo Legion'a ozel ozellikler (ekran karti modu, pil); Lenovo degilse None."""
+    if App.dchu.kind != "lenovo":
+        return None
+    try:
+        return App.dchu.extras()
+    except Exception as exc:
+        return {"error": str(exc)}
 
 
 def nvidia_state():
@@ -741,6 +755,21 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 return self._json({"error": t("err.fanMode")}, 400)
             return self._json({"ok": True, "cc": mgr.status()})
+        if path == "/api/lenovo":  # yalnizca Lenovo Legion: desteklenmeyen ozellik hicbir komut gondermez
+            if App.dchu.kind != "lenovo":
+                return self._json({"error": t("err.lenovoNo")}, 400)
+            feat, val = body.get("feature"), body.get("value")
+            try:
+                reboot = False
+                if feat == "gpu":
+                    reboot = App.dchu.set_gpu_mode(val)
+                elif feat == "battery":
+                    App.dchu.set_battery_mode(val)
+                else:
+                    return self._json({"error": t("err.lenovoNo")}, 400)
+            except (hw.Unsupported, ValueError) as exc:
+                return self._json({"error": str(exc) or t("err.lenovoNo")}, 400)
+            return self._json({"ok": True, "reboot": bool(reboot), "lenovo": lenovo_state()})
         if path == "/api/audio":
             which = body.get("which")
             if which not in ("speaker", "mic"):
@@ -964,7 +993,7 @@ def serve():
     # Fn tusu olaylarini ac (Clevo "events enabled", komut 0x46). Bunu eskiden FnKey.exe acilista yapiyordu;
     # gonderilmezse denetleyici Fn bildirimlerini AcpiBridge'e iletmez (14.11.2026 olculdu). Yeniden
     # baslatmaya dek kalicidir; her acilista gonderilir.
-    if App.dchu.available:
+    if App.dchu.kind == "clevo":
         try:
             App.dchu.set_wmi(0x46, 0)
         except Exception:
@@ -998,7 +1027,7 @@ def serve():
     App.engine.settings = core.snapshot(App.cfg)
     App.engine.start()
     App.sensors.start()
-    if hw.is_admin() and App.dchu.available:  # yalnizca Clevo/Monster: Monster Fn programlari engellenir
+    if hw.is_admin() and App.dchu.kind == "clevo":  # yalnizca Clevo/Monster: Monster Fn programlari engellenir
         threading.Thread(target=fn_block_loop, daemon=True).start()
     if cc.get("profile") in profiller.BY_ID:  # yeniden baslatmadan sonra denetleyici ayarlari geri gelsin
         threading.Thread(target=App.manager.apply, args=(cc["profile"], "reason.startup"), daemon=True).start()
