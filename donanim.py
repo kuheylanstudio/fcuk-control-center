@@ -250,10 +250,12 @@ class DCHU:
         return v.value
 
     def get_buf(self, cmd):
-        b = (c_ubyte * 256)()
+        # Kitaplik 256 baytlik tampon bekledigini soyler ama 257 bayt yaziyor (14.11.2026 olculdu: 12 ve 13).
+        # 256'lik tampon her cagrida yigini bir bayt tasirir ve rastgele erisim ihlallerine yol acar; payli ayir.
+        b = (c_ubyte * 512)()
         with self.lock:
             self.dll.GetDCHU_Data_Buffer(cmd, b)
-        return bytes(b)
+        return bytes(b[:256])
 
     def set_data(self, cmd, data):
         b = (c_ubyte * len(data))(*data)
