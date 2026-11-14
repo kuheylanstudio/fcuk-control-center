@@ -16,7 +16,10 @@ kartinin son %15-20'lik hiz dilimi en pahali dilimdir; tavani oradan cekmek isiy
 oranda keser, hissedilen hizi az etkiler. Sessiz profillerin hepsi bunun uzerine kurulu.
 """
 import ctypes
+import ctypes.wintypes as wt
+import re
 import threading
+import time
 
 import ceviri
 import donanim as hw
@@ -96,7 +99,72 @@ BY_ID = {p["id"]: p for p in PROFILES}
 def name(pid):
     """Profilin etkin dildeki adi (PROFILES'taki ad Turkce kaynaktir)."""
     return t("prof." + pid)
-DEFAULTS = {"profile": "", "on_battery": "", "on_ac": "", "refresh": True}
+DEFAULTS = {"profile": "", "on_battery": "", "on_ac": "", "refresh": True, "apps": [], "apps_on": True}
+
+# ----------------------------------------------------------------------------- uygulamaya gore profil
+# Kural: {"exe": "valorant.exe", "profile": "ultra"}. Listede ilk eslesen kazanir (oncelik = sira).
+APP_MAX = 40
+APP_POLL = 3.0  # sn: surec listesi bu araliklarla taranir (psutil, birkac 10 ms)
+_EXE = re.compile(r'[^\\/:*?"<>|\x00-\x1f]{1,80}\.exe')
+# Secim listesinde gosterilmeyen Windows kabugu ve kendi surecimiz
+_SHELL = {"explorer.exe", "applicationframehost.exe", "textinputhost.exe", "systemsettings.exe",
+          "searchhost.exe", "startmenuexperiencehost.exe", "shellexperiencehost.exe", "lockapp.exe",
+          "msedgewebview2.exe", "fcukcontrolcenter.exe", "python.exe", "pythonw.exe"}
+
+
+def clean_exe(v):
+    """Kullanicinin yazdigi ad ya da tam yol -> kucuk harfli 'oyun.exe'; gecersizse ''."""
+    if not isinstance(v, str):
+        return ""
+    v = v.strip().strip('"').replace("/", "\\").rsplit("\\", 1)[-1].strip().lower()
+    if v and not v.endswith(".exe"):
+        v += ".exe"
+    return v if _EXE.fullmatch(v) else ""
+
+
+def clean_apps(raw):
+    """Uygulama kurallari: gecerli exe adi + bilinen profil, tekrarsiz, en fazla APP_MAX."""
+    out, seen = [], set()
+    for r in raw if isinstance(raw, list) else []:
+        if not isinstance(r, dict):
+            continue
+        exe, pid = clean_exe(r.get("exe")), r.get("profile")
+        if exe and pid in BY_ID and exe not in seen:
+            seen.add(exe)
+            out.append({"exe": exe, "profile": pid})
+        if len(out) >= APP_MAX:
+            break
+    return out
+
+
+def running_exes():
+    """Calisan tum sureclerin kucuk harfli adlari."""
+    import psutil
+    return {p.info["name"].lower() for p in psutil.process_iter(["name"]) if p.info.get("name")}
+
+
+def window_apps():
+    """Gorunur ve basligi olan penceresi bulunan uygulamalar (kural eklerken secim listesi icin)."""
+    import psutil
+    user32 = ctypes.windll.user32
+    pids = set()
+
+    @ctypes.WINFUNCTYPE(wt.BOOL, wt.HWND, wt.LPARAM)
+    def each(hwnd, _):
+        if user32.IsWindowVisible(hwnd) and user32.GetWindowTextLengthW(hwnd) > 0:
+            pid = wt.DWORD()
+            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+            pids.add(pid.value)
+        return True
+
+    user32.EnumWindows(each, 0)
+    names = set()
+    for pid in pids:
+        try:
+            names.add(psutil.Process(pid).name().lower())
+        except Exception:
+            pass
+    return sorted(n for n in names if n.endswith(".exe") and n not in _SHELL)
 
 
 # ----------------------------------------------------------------------------- guc plani
@@ -212,6 +280,10 @@ class Manager:
         self._blind = 0       # ust uste kac olcumde sicaklik okunamadi
         self._last_ac = None
         self._gpu_locked = False
+        self.app = ""           # profili su an bir uygulama kurali belirliyor (exe adi)
+        self._app_rule = ""     # o kuralin profili
+        self._app_prev = ""     # uygulama acilmadan onceki profil: kapaninca buna donulur
+        self._app_applied = ""  # kuralin uyguladigi profil (pilde ac_only ise Performans'a donusmus)
         self.defaults = {k: _read(BALANCED, k) for k in ("park", "park1")}
         sensors.listeners.append(self._tick)
 
@@ -280,11 +352,13 @@ class Manager:
                 "power_mode": self.dchu.power_mode(), "fan_mode": self.dchu.fan_mode(),
                 "power_name": getattr(self.dchu, "power_name", lambda: None)(),  # Acer profil adi
                 "fan_fixed": getattr(self.dchu, "fan_fixed", lambda: None)(),
-                "scheme_active": active_scheme() == SCHEME, "admin": hw.is_admin(), "rules": self.cfg}
+                "scheme_active": active_scheme() == SCHEME, "admin": hw.is_admin(), "rules": self.cfg,
+                "app": self.app}
 
     # ------------------------------------------------------------------ uygula
-    def apply(self, pid, reason="reason.manual"):
-        """reason: ceviri anahtari (reason.*); rapora o anki dilde yazilir."""
+    def apply(self, pid, reason="reason.manual", persist=True):
+        """reason: ceviri anahtari (reason.*) ya da (anahtar, {degiskenler}); rapora o anki dilde yazilir.
+        persist=False: uygulama kurali gecici uygular; kayitli profil (yeniden baslatmada gelen) degismez."""
         p = BY_ID.get(pid)
         if not p:
             raise ValueError(t("err.unknownProfile"))
@@ -311,13 +385,15 @@ class Manager:
                 step(t("step.display"), lambda: self._refresh(p))
             if p["id"] != pid:
                 rep.insert(0, {"step": t("step.note"), "ok": True, "msg": t("msg.batteryUltra")})
-            rep.insert(0, {"step": t("step.reason"), "ok": True, "msg": t(reason)})
+            why = t(reason[0], **reason[1]) if isinstance(reason, tuple) else t(reason)
+            rep.insert(0, {"step": t("step.reason"), "ok": True, "msg": why})
             self.applied = p["id"]
             self.guard = ""
             self._hot = self._cool = self._blind = 0
             self.report = rep
-            self.cfg["profile"] = pid
-            self.save()
+            if persist:
+                self.cfg["profile"] = pid
+                self.save()
             return rep
 
     def _power_key(self, mode):
@@ -410,15 +486,19 @@ class Manager:
     def _tick(self, s, dt):
         """Sensor her olcumde cagirir: uykudan donus, fis/pil kurali ve isi korumasi."""
         if dt > 15 and self.applied:  # uyku veya hazirda bekletmeden dondu: denetleyici ayarlari sifirlanmis olabilir
-            threading.Thread(target=self.apply, args=(self.applied, "reason.wake"), daemon=True).start()
+            threading.Thread(target=self.apply, args=(self.applied, "reason.wake", not self._app_owns()),
+                             daemon=True).start()
         ac = (s.get("battery") or {}).get("ac")
         if self._last_ac is not None and ac != self._last_ac:
             target = self.cfg.get("on_ac" if ac else "on_battery") or ""
             cur = BY_ID.get(self.applied)
             if not target and not ac and cur and cur.get("ac_only"):
                 target = "performans"
-            if target:
-                why = "reason.ac" if ac else "reason.battery"
+            why = "reason.ac" if ac else "reason.battery"
+            if self._app_owns():
+                # Uygulama kurali onceliklidir: kuralin profili yeniden uygulanir (pilde Ultra -> Performans)
+                threading.Thread(target=self._apply_app, args=(self._app_rule, why), daemon=True).start()
+            elif target:
                 threading.Thread(target=self.apply, args=(target, why), daemon=True).start()
         self._last_ac = ac
         if hw.has(self.dchu, "fan_fixed") and self.dchu.fan_mode() == hw.FAN_FIXED:
@@ -442,6 +522,48 @@ class Manager:
             self._guard_step(s, p)
         finally:
             self.lock.release()
+
+    # ------------------------------------------------------------------ uygulama kurallari
+    def _app_owns(self):
+        """Etkin profili hala uygulama kurali mi belirliyor (kullanici sonradan elle degistirmediyse)?"""
+        return bool(self.app) and self.applied == self._app_applied
+
+    def _apply_app(self, pid, reason):
+        self.apply(pid, reason, persist=False)
+        self._app_applied = self.applied
+
+    def app_step(self, running):
+        """Calisan surec adlarina (kucuk harfli kume) gore uygulama kurallarini isletir.
+        - Bir kural eslesirse (listede ilk eslesen) profili uygulanir; onceki profil hatirlanir.
+        - Eslesen kalmayinca, profil arada elle ya da baska kuralla degistirilmediyse onceki profile donulur.
+        - Ayni uygulama calistikca yeniden uygulanmaz: oyun sirasinda elle secilen profile dokunulmaz."""
+        rules = (self.cfg.get("apps") or []) if self.cfg.get("apps_on", True) else []
+        hit = next((r for r in rules if r["exe"] in running), None)
+        if hit:
+            if hit["exe"] == self.app and hit["profile"] == self._app_rule:
+                return
+            if not self.app:  # kayitli profil = son elle / fis-pil kuraliyla secilen (kurallar kaydetmez)
+                self._app_prev = self.cfg.get("profile") or self.applied
+            self.app, self._app_rule = hit["exe"], hit["profile"]
+            self._apply_app(hit["profile"], ("reason.app", {"app": hit["exe"]}))
+            return
+        if not self.app:
+            return
+        exe, prev, owns = self.app, self._app_prev, self._app_owns()
+        self.app = self._app_rule = self._app_prev = self._app_applied = ""
+        if owns and prev in BY_ID and prev != self.applied:
+            self.apply(prev, ("reason.appClosed", {"app": exe}))
+
+    def watch_apps(self, log=None):
+        """Arka plan dongusu: APP_POLL saniyede bir surec listesini tarar. Kural yokken tarama yapilmaz."""
+        while True:
+            try:
+                if (self.cfg.get("apps") and self.cfg.get("apps_on", True)) or self.app:
+                    self.app_step(running_exes())
+            except Exception as exc:
+                if log:
+                    log("uygulama kurali: %s" % exc)
+            time.sleep(APP_POLL)
 
     @staticmethod
     def _temp(s, key):

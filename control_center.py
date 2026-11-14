@@ -252,6 +252,8 @@ def sanitize_cc(raw):
             out[k] = raw[k]
     if "refresh" in raw:
         out["refresh"] = bool(raw["refresh"])
+    out["apps"] = profiller.clean_apps(raw.get("apps"))
+    out["apps_on"] = bool(raw.get("apps_on", True))
     # Profilden once etkin olan guc plani (ureticinin kendi plani olabilir): "Fabrika" ona geri doner
     prev = raw.get("prev_scheme")
     if isinstance(prev, str) and re.fullmatch(r"[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}", prev):
@@ -729,6 +731,8 @@ class Handler(BaseHTTPRequestHandler):
                 "ac": (s.get("battery") or {}).get("ac", True), "notices": list(App.notices)})
         if path == "/api/now":  # yalnizca son olcum (gecmissiz): ek sayfalar saniyede bir okur
             return self._json(App.sensors.snapshot)
+        if path == "/api/apps":  # kural eklerken secim listesi: penceresi acik uygulamalar
+            return self._json({"apps": profiller.window_apps()})
         if path == "/api/hardware":
             return self._json(App.inventory.data)
         if path == "/api/nvidia":
@@ -768,7 +772,7 @@ class Handler(BaseHTTPRequestHandler):
                 if sen.seq != seq:
                     seq = sen.seq
                     msg["s"] = sen.snapshot
-                    msg["p"] = {"profile": App.manager.applied, "guard": App.manager.guard}
+                    msg["p"] = {"profile": App.manager.applied, "guard": App.manager.guard, "app": App.manager.app}
                 self.wfile.write(("data: %s\n\n" % json.dumps(msg, ensure_ascii=False)).encode("utf-8"))
                 self.wfile.flush()
                 time.sleep(0.05)
@@ -821,6 +825,10 @@ class Handler(BaseHTTPRequestHandler):
                     mgr.cfg[k] = body[k]
             if "refresh" in body:
                 mgr.cfg["refresh"] = bool(body["refresh"])
+            if "apps" in body:  # uygulamaya gore profil: tum liste birden gelir (sira = oncelik)
+                mgr.cfg["apps"] = profiller.clean_apps(body["apps"])
+            if "apps_on" in body:
+                mgr.cfg["apps_on"] = bool(body["apps_on"])
             save()
             return self._json({"ok": True, "cc": mgr.status()})
         if path == "/api/fan":
@@ -1160,6 +1168,17 @@ def alert(text, icon=0x10):
     ctypes.windll.user32.MessageBoxW(None, text, "FCUK Control Center", icon)
 
 
+def startup_profile(cc):
+    """Yeniden baslatmadan sonra kayitli profil geri gelsin (denetleyici ayarlari sifirlanmis olabilir); ARDINDAN
+    uygulama kurallari izlenir. Sira onemli: tersi olsaydi acik bir oyunun profili baslangic profiliyle ezilirdi."""
+    if cc.get("profile") in profiller.BY_ID:
+        try:
+            App.manager.apply(cc["profile"], "reason.startup")
+        except Exception as exc:
+            log("baslangic profili: %s" % exc)
+    App.manager.watch_apps(log)
+
+
 def serve():
     """Motoru bu surecte calistirir; sunucu kapanana dek doner."""
     try:
@@ -1221,8 +1240,7 @@ def serve():
                      args=(lambda: App.cfg.get("update_mode", "auto"), lambda: App.engine.running)).start()
     if hw.is_admin() and App.dchu.available and getattr(App.dchu, "kind", "clevo") == "clevo":  # yalnizca Clevo/Monster: Monster Fn programlari engellenir
         threading.Thread(target=fn_block_loop, daemon=True).start()
-    if cc.get("profile") in profiller.BY_ID:  # yeniden baslatmadan sonra denetleyici ayarlari geri gelsin
-        threading.Thread(target=App.manager.apply, args=(cc["profile"], "reason.startup"), daemon=True).start()
+    threading.Thread(target=startup_profile, args=(cc,), daemon=True).start()
     App.server.serve_forever()
     App.server.server_close()
     return True

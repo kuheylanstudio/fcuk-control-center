@@ -780,5 +780,21 @@
   "sup.why.modeMissing": "{mode} modu bu modelde yok.",
   "sup.blocked": "Bu bilgisayarda desteklenmiyor: {why}",
   "sup.blockedPlain": "Bu bilgisayarda desteklenmiyor.",
-  "sup.why.fnOther": "Fn tuşlarını bu bilgisayarın kendi sürücüsü ve uygulaması yönetir; uygulama bunlara dokunmaz."
+  "sup.why.fnOther": "Fn tuşlarını bu bilgisayarın kendi sürücüsü ve uygulaması yönetir; uygulama bunlara dokunmaz.",
+  "apps.title": "Uygulamaya göre profil",
+  "apps.on": "Açık",
+  "apps.hint": "Listedeki bir uygulama açılınca profili uygulanır, kapanınca önceki profile dönülür. Üstteki kural önceliklidir. Uygulama açıkken profili elle değiştirirseniz seçiminiz korunur.",
+  "apps.placeholder": "oyun.exe ya da tam yol",
+  "apps.add": "Ekle",
+  "apps.empty": "Henüz kural yok. Bir oyunun .exe adını yazın ya da açık uygulamalardan seçin.",
+  "apps.running": "Şu an çalışıyor: profili bu kural belirliyor",
+  "apps.profileFor": "{app} için profil",
+  "apps.up": "Yukarı taşı",
+  "apps.down": "Aşağı taşı",
+  "apps.remove": "Kuralı sil",
+  "apps.exists": "{app} için zaten bir kural var.",
+  "apps.invalid": "Geçersiz uygulama adı: {app}",
+  "apps.added": "{app} açılınca {name} uygulanacak.",
+  "reason.app": "Uygulama açıldı: {app}",
+  "reason.appClosed": "Uygulama kapandı: {app}"
 }

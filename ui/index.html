@@ -225,6 +225,13 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
 .field-top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:var(--s-1) var(--s-3)}
 .field-top>*,.tile-top>*{min-width:0;overflow-wrap:anywhere}
 .hint{color:var(--text-3);font-size:var(--fs-2)}
+.apps{display:grid;gap:var(--s-2);margin:0;padding:0;list-style:none}
+.apps li{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;align-items:center;gap:var(--s-2);padding:6px 8px;border:1px solid var(--line);border-radius:var(--r-2);background:var(--surface)}
+.apps li.on{border-color:var(--live-ink)}
+.apps .exe{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 var(--fs-3)/1.2 var(--f-display)}
+.apps .btn{padding:6px 9px}
+.apps .empty{display:block;color:var(--text-3);border-style:dashed}
+.app-add{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:var(--s-2);align-items:center}
 .grad{height:12px;border-radius:var(--r-1)}
 .stops{display:flex;flex-wrap:wrap;gap:var(--s-2)}
 .stops li{display:flex}
@@ -451,6 +458,19 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
             <div class="frow"><label for="ruleAc" data-i18n="perf.onAc">Fişe takılınca</label><select id="ruleAc"></select></div>
             <label class="switch"><input type="checkbox" id="ruleHz"><span class="track" aria-hidden="true"></span><span data-i18n="perf.refreshToo">Profiller ekran yenileme hızını da değiştirsin</span></label>
             <div class="frow"><span class="hint" data-i18n="perf.factoryHint">Fabrika durumu: Eğlence modu, otomatik fan, Dengeli güç planı.</span><button class="btn danger" id="factory" type="button" data-i18n="perf.factory">Fabrika</button></div>
+          </div>
+        </div>
+        <!-- Uygulamaya gore profil: listedeki uygulama acilinca profili uygulanir, kapaninca onceki profile donulur -->
+        <div class="tile form" id="appsTile">
+          <div class="frow"><span class="lbl" data-i18n="apps.title">Uygulamaya göre profil</span>
+            <label class="switch"><input type="checkbox" id="appsOn"><span class="track" aria-hidden="true"></span><span data-i18n="apps.on">Açık</span></label></div>
+          <span class="hint" data-i18n="apps.hint">Listedeki bir uygulama açılınca profili uygulanır, kapanınca önceki profile dönülür. Üstteki kural önceliklidir. Uygulama açıkken profili elle değiştirirseniz seçiminiz korunur.</span>
+          <ul class="apps" id="appsList"></ul>
+          <div class="app-add">
+            <input type="text" id="appExe" list="appSuggest" autocomplete="off" spellcheck="false" data-i18n-placeholder="apps.placeholder" placeholder="oyun.exe">
+            <datalist id="appSuggest"></datalist>
+            <select id="appProf" aria-label="Profil"></select>
+            <button class="btn solid" id="appAdd" type="button" data-i18n="apps.add">Ekle</button>
           </div>
         </div>
         <!-- Lenovo Legion: yalnizca bu modelde olan ozellikler (renderLenovo doldurur) -->
@@ -709,6 +729,7 @@ const pct = v => t('fmt.pct', { v });
 function applyI18n(root = document) {
   root.querySelectorAll('[data-i18n]').forEach(n => { n.textContent = t(n.dataset.i18n); });
   root.querySelectorAll('[data-i18n-title]').forEach(n => { n.title = t(n.dataset.i18nTitle); });
+  root.querySelectorAll('[data-i18n-placeholder]').forEach(n => { n.placeholder = t(n.dataset.i18nPlaceholder); });
   root.querySelectorAll('[data-i18n-aria]').forEach(n => n.setAttribute('aria-label', t(n.dataset.i18nAria)));
   root.querySelectorAll('[data-i18n-ph]').forEach(n => { n.placeholder = t(n.dataset.i18nPh); });
 }
@@ -829,8 +850,8 @@ function onSensor(s, p) {
   for (const k of Object.keys(hist)) {
     if (s[k] != null) { hist[k].push(s[k]); if (hist[k].length > 180) hist[k].shift(); }
   }
-  if (p && cc && (p.profile !== cc.profile || p.guard !== cc.guard)) {
-    cc.profile = p.profile; cc.guard = p.guard;
+  if (p && cc && (p.profile !== cc.profile || p.guard !== cc.guard || (p.app || '') !== (cc.app || ''))) {
+    cc.profile = p.profile; cc.guard = p.guard; cc.app = p.app || '';
     paintProfile();
   }
   renderSensors(s);
@@ -952,6 +973,10 @@ function renderProfiles() {
     c.append(head, el('p', '', p.desc), dl, foot);
     cards.append(c);
   }
+  const ap = $('#appProf');
+  ap.textContent = '';
+  for (const p of meta.profiles) ap.append(new Option(p.name, p.id));
+  ap.value = 'ultra' in profIds() ? 'ultra' : (meta.profiles[0] || {}).id || '';
   for (const id of ['ruleBat', 'ruleAc']) {
     const s = $('#' + id);
     s.textContent = '';
@@ -965,7 +990,7 @@ function paintProfile() {
   document.querySelectorAll('.pbtn').forEach(b => b.setAttribute('aria-pressed', b.dataset.id === id ? 'true' : 'false'));
   document.querySelectorAll('.card').forEach(c => c.setAttribute('aria-current', c.dataset.id === id ? 'true' : 'false'));
   const chip = $('#profChip');
-  chip.textContent = id ? profName(id) : t('chip.noProfile');
+  chip.textContent = id ? (cc && cc.app ? profName(id) + ' · ' + cc.app : profName(id)) : t('chip.noProfile');
   chip.classList.toggle('on', !!id);
   $('#guardChip').hidden = !(cc && cc.guard);
   $('#guardTxt').textContent = cc && cc.guard ? cc.guard : '';
@@ -973,6 +998,7 @@ function paintProfile() {
     $('#ruleBat').value = cc.rules.on_battery || '';
     $('#ruleAc').value = cc.rules.on_ac || '';
     $('#ruleHz').checked = cc.rules.refresh !== false;
+    renderApps();
     const mf = meta && meta.msi && meta.msi.fan;  // MSI: denetleyicinin kendi fan modu adi
     setText('fanModeTxt', cc.fan_mode === 7 && cc.fan_fixed != null ? FAN_MODE_TXT[7] + ' ' + pct(cc.fan_fixed)
       : cc.fan_mode !== 1 && mf ? t('msi.fan.' + mf) : (FAN_MODE_TXT[cc.fan_mode] || '–'));
@@ -1011,6 +1037,62 @@ async function applyProfile(id) {
   } catch (e) { banner(t('perf.applyFail', { err: e.message })); }
   busy = false; lockProfiles(false);
   paintProfile();
+}
+const profIds = () => Object.fromEntries(((meta && meta.profiles) || []).map(p => [p.id, 1]));
+/* ---------- uygulamaya gore profil ---------- */
+const appRules = () => (cc && cc.rules && cc.rules.apps) || [];
+async function saveApps(body) {
+  try { cc = (await api('/api/rules', body)).cc; paintProfile(); return true; }
+  catch (e) { banner(t('perf.ruleFail', { err: e.message })); return false; }
+}
+function renderApps() {
+  const ul = $('#appsList'), rules = appRules();
+  $('#appsOn').checked = !cc || cc.rules.apps_on !== false;
+  ul.textContent = '';
+  if (!rules.length) { ul.append(el('li', 'empty', t('apps.empty'))); return; }
+  rules.forEach((r, i) => {
+    const li = el('li', cc.app === r.exe ? 'on' : '');
+    const name = el('span', 'exe', r.exe); name.title = cc.app === r.exe ? t('apps.running') : r.exe;
+    const sel = el('select'); sel.setAttribute('aria-label', t('apps.profileFor', { app: r.exe }));
+    for (const p of meta.profiles) sel.append(new Option(p.name, p.id));
+    sel.value = r.profile;
+    sel.addEventListener('change', () => saveApps({ apps: appRules().map((x, j) => j === i ? { exe: x.exe, profile: sel.value } : x) }));
+    const mv = (d, txt, key) => {
+      const b = el('button', 'btn', txt); b.type = 'button'; b.title = t(key); b.setAttribute('aria-label', t(key) + ': ' + r.exe);
+      b.disabled = i + d < 0 || i + d >= rules.length;
+      b.addEventListener('click', () => { const a = appRules().slice(); [a[i], a[i + d]] = [a[i + d], a[i]]; saveApps({ apps: a }); });
+      return b;
+    };
+    const del = el('button', 'btn danger', '✕'); del.type = 'button'; del.title = t('apps.remove'); del.setAttribute('aria-label', t('apps.remove') + ': ' + r.exe);
+    del.addEventListener('click', () => saveApps({ apps: appRules().filter((_, j) => j !== i) }));
+    li.append(name, sel, mv(-1, '↑', 'apps.up'), mv(1, '↓', 'apps.down'), del);
+    ul.append(li);
+  });
+}
+async function suggestApps() {
+  try {
+    const r = await api('/api/apps');
+    const dl = $('#appSuggest'); dl.textContent = '';
+    for (const a of r.apps || []) dl.append(new Option(a));
+  } catch (e) { /* oneri listesi istege bagli */ }
+}
+function initApps() {
+  $('#appsOn').addEventListener('change', e => saveApps({ apps_on: e.target.checked }));
+  const inp = $('#appExe');
+  inp.addEventListener('focus', suggestApps);
+  const add = async () => {
+    let exe = inp.value.trim().replace(/^"|"$/g, '').split(/[\/]/).pop().toLowerCase();
+    if (!exe) { inp.focus(); return; }
+    if (!exe.endsWith('.exe')) exe += '.exe';
+    if (appRules().some(x => x.exe === exe)) { banner(t('apps.exists', { app: exe }), true); return; }
+    const before = appRules().length;
+    if (await saveApps({ apps: appRules().concat([{ exe, profile: $('#appProf').value }]) })) {
+      if (appRules().length === before) banner(t('apps.invalid', { app: exe }));
+      else { inp.value = ''; banner(t('apps.added', { app: exe, name: profName($('#appProf').value) }), true); }
+    }
+  };
+  $('#appAdd').addEventListener('click', add);
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
 }
 function initPerformance() {
   const rules = async body => {
@@ -1993,6 +2075,7 @@ async function init() {
   initPicker();
   initPresets();
   initPerformance();
+  initApps();
   initAudio();
   initMsi();
   initSettings();

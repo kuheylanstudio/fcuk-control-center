@@ -780,5 +780,21 @@
   "sup.why.modeMissing": "{mode} mode isn't available on this model.",
   "sup.blocked": "Not supported on this computer: {why}",
   "sup.blockedPlain": "Not supported on this computer.",
-  "sup.why.fnOther": "Fn keys are handled by this computer's own driver and app; this app does not touch them."
+  "sup.why.fnOther": "Fn keys are handled by this computer's own driver and app; this app does not touch them.",
+  "apps.title": "Per-app profiles",
+  "apps.on": "On",
+  "apps.hint": "When a listed app starts, its profile is applied; when it closes, the previous profile returns. Rules higher in the list win. If you change the profile by hand while the app is running, your choice is kept.",
+  "apps.placeholder": "game.exe or full path",
+  "apps.add": "Add",
+  "apps.empty": "No rules yet. Type a game's .exe name or pick one of the running apps.",
+  "apps.running": "Running now: this rule sets the profile",
+  "apps.profileFor": "Profile for {app}",
+  "apps.up": "Move up",
+  "apps.down": "Move down",
+  "apps.remove": "Remove rule",
+  "apps.exists": "There is already a rule for {app}.",
+  "apps.invalid": "Invalid app name: {app}",
+  "apps.added": "{name} will be applied when {app} starts.",
+  "reason.app": "App started: {app}",
+  "reason.appClosed": "App closed: {app}"
 }
