@@ -510,9 +510,10 @@ def state():
         "autostart": bool(App.cfg.get("autostart")),
         "dll": App.dchu.path,
         "ec": App.dchu.available,
-        "ec_kind": App.dchu.kind,  # "clevo" | "alienware" | "" (denetleyici yok)
+        "ec_kind": App.dchu.kind,  # "clevo" | "alienware" | "lenovo" | ... | "" (denetleyici yok)
         "kb": bool(getattr(App.dchu, "kb_available", App.dchu.available)),  # klavye isigi ayrica olabilir/olmayabilir
         "kb_reason": getattr(App.dchu, "kb_reason", ""),
+        "lenovo": lenovo_state(),
         "ec_clevo": bool(getattr(App.dchu, "clevo", True)),  # aygit var, yalnizca kitaplik yok
         "ec_reason": getattr(App.dchu, "reason", ""),
         "cpu": App.inventory.data.get("cpu"),
@@ -521,6 +522,16 @@ def state():
         "trusted_install": trusted_install(),
         "notices": list(App.notices),
     }
+
+
+def lenovo_state():
+    """Lenovo Legion'a ozel ozellikler (ekran karti modu, pil); Lenovo degilse None."""
+    if App.dchu.kind != "lenovo":
+        return None
+    try:
+        return App.dchu.extras()
+    except Exception as exc:
+        return {"error": str(exc)}
 
 
 def nvidia_state():
@@ -744,6 +755,21 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 return self._json({"error": t("err.fanMode")}, 400)
             return self._json({"ok": True, "cc": mgr.status()})
+        if path == "/api/lenovo":  # yalnizca Lenovo Legion: desteklenmeyen ozellik hicbir komut gondermez
+            if App.dchu.kind != "lenovo":
+                return self._json({"error": t("err.lenovoNo")}, 400)
+            feat, val = body.get("feature"), body.get("value")
+            try:
+                reboot = False
+                if feat == "gpu":
+                    reboot = App.dchu.set_gpu_mode(val)
+                elif feat == "battery":
+                    App.dchu.set_battery_mode(val)
+                else:
+                    return self._json({"error": t("err.lenovoNo")}, 400)
+            except (hw.Unsupported, ValueError) as exc:
+                return self._json({"error": str(exc) or t("err.lenovoNo")}, 400)
+            return self._json({"ok": True, "reboot": bool(reboot), "lenovo": lenovo_state()})
         if path == "/api/audio":
             which = body.get("which")
             if which not in ("speaker", "mic"):
@@ -1125,6 +1151,8 @@ def run_mode(admin):
     if "--install-task" in sys.argv:
         return install_task()
     if "--block-fn" in sys.argv:  # kur.ps1'den, yonetici
+        if not hw.clevo_present():  # Monster Fn programlari yalnizca Clevo/Monster'da engellenir
+            return 0
         return 0 if admin and fn_block_once() >= 0 else 5
     if "--tray" in sys.argv:
         import tepsi

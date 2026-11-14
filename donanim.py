@@ -201,6 +201,7 @@ class DCHU:
     """InsydeDCHU.dll sarmalayicisi. Tum cagrilar tek kilitten gecer (motor, sensor ve sunucu ayni anda cagirir)."""
     available = True
     kind = "clevo"
+    kb_available = True  # Clevo'da klavye isigi denetleyicinin parcasi
 
     def __init__(self):
         # Surumler farkli islev kumesi tasir (ornek: surucu deposundaki 1.0.0.1'de SetDCHU_DataEx yok). Yalnizca
@@ -357,6 +358,7 @@ class NullDCHU:
     available = False
     kind = ""
     path = ""
+    kb_available = False
 
     def __init__(self, reason="", clevo=False, message=None):
         self.reason = reason
@@ -424,11 +426,13 @@ def clevo_present():
 
 
 def open_dchu():
-    """Clevo denetleyicisi, Alienware/Dell AWCC denetleyicisi ya da (hicbiri yoksa / acilamazsa) NullDCHU.
+    """Clevo denetleyicisi, bir marka arka ucu ya da (hicbiri yoksa / acilamazsa) NullDCHU.
 
-    Alienware yolu yalnizca uretici Alienware/Dell ise ve AWCC WMI sinifi gecerli bir sistem tanimi
-    donduruyorsa secilir; aksi halde denetleyiciye hicbir yazma komutu gitmez."""
+    Clevo koprusu (ACPI CLV aygiti) takiliysa her zaman Clevo yolu secilir. Degilse markalar sirayla denenir; her
+    marka kendi tespitini yapar (uretici + model + WMI sinifi) ve kendisi degilse None doner. Tespit hatasi
+    da None sayilir: suphede donanima dokunulmaz. Kurulumdaki tespit (kurulum.ps1 Get-Cihaz) ayni kurallari kullanir."""
     if not clevo_present():
+        # Alienware/Dell: arayuz var ama acilamadiysa (cogu zaman yonetici yetkisi yok) nedeni gosterilir
         try:
             import alienware
             ec, err = alienware.open_alienware()
@@ -436,9 +440,17 @@ def open_dchu():
             ec, err = None, str(exc)
         if ec is not None:
             return ec
-        if err:  # Alienware/Dell ama arayuz acilamadi (cogu zaman yonetici yetkisi yok)
+        if err:
             msg = ceviri.t("err.awOpen", err=err)
             return NullDCHU(msg, clevo=False, message=msg)
+        # Lenovo Legion (BIOS'ta LENOVO + Legion ve LENOVO_GAMEZONE_DATA)
+        try:
+            import lenovo_legion
+            dev = lenovo_legion.open_legion()
+            if dev is not None:
+                return dev
+        except Exception:
+            pass
         return NullDCHU(ceviri.t("err.notClevo"), clevo=False)
     try:
         return DCHU()
@@ -818,7 +830,8 @@ class Sensors(threading.Thread):
             "energy": r"\Energy Meter(*)\Power",
             "gpu": r"\GPU Engine(*)\Utilization Percentage",
         }
-        if not self.dchu.available:  # denetleyici yoksa islemci sicakligi icin ACPI isi bolgesi (Kelvin)
+        # denetleyici yoksa (ya da Lenovo okuyamazsa) islemci sicakligi icin ACPI isi bolgesi (Kelvin)
+        if not self.dchu.available or getattr(self.dchu, "kind", "") == "lenovo":
             counters["tz"] = r"\Thermal Zone Information(*)\Temperature"
         pdh = Pdh(counters)
         last_net = last_disk = None
