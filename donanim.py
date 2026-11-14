@@ -202,6 +202,7 @@ class DCHU:
     available = True
     vendor = "clevo"
     kind = "clevo"        # Clevo'ya ozel adimlar (Fn olaylari, IFEO) yalnizca bu turde
+    fan_curve_ok = True   # sicakliga bagli fan egrisini denetleyici calistirir
     kb_available = True   # klavye isigi bu denetleyicide
 
     @staticmethod
@@ -363,6 +364,7 @@ class NullDCHU:
     available = False
     vendor = ""
     kind = ""
+    fan_curve_ok = False
     path = ""
     kb_available = False
 
@@ -456,8 +458,6 @@ def caps(dev):
         out.update(c)
         if "temp" not in c and "temps" in c:
             out["temp"] = bool(c["temps"])
-        if "fan_read" not in c:
-            out["fan_read"] = bool(c.get("fan_read", out["temp"]))
         if "fan_max" not in c and "fan" in c:
             out["fan_max"] = bool(c["fan"])
         # Lenovo adlari: curve (ozel egri), fullspeed (tam devir), sensor (okuma yolu), klavye ayri nesnede
@@ -469,6 +469,13 @@ def caps(dev):
             out["temp"] = out["fan_read"] = bool(c["sensor"])
         if "kb" not in c:
             out["kb"] = bool(getattr(dev, "kb_available", False))
+        # Acer: sicaklik ozelligi ayrica (temps_ok), egri yok (fan_curve_ok), fan devri fan_speed
+        if not any(k in c for k in ("temp", "temps", "sensor")):
+            out["temp"] = bool(getattr(dev, "temps_ok", False))
+        if "fan_read" not in c:
+            out["fan_read"] = bool(c.get("fan_speed", out["temp"]))
+        if getattr(dev, "fan_curve_ok", True) is False:
+            out["fan_curve"] = False
     else:
         ok = bool(getattr(dev, "available", False))
         out = {k: ok and v for k, v in CAPS_ALL.items()}
@@ -538,6 +545,14 @@ def open_dchu():
             m = None
         if m is not None:
             return m
+        # Acer Predator/Nitro (uretici Acer + model Predator/Nitro + AcerGamingFunction; yoklama yalnizca okuma)
+        try:
+            import acer_predator
+            dev = acer_predator.detect()
+        except Exception:
+            dev = None
+        if dev is not None:
+            return dev
         return NullDCHU(ceviri.t("err.notClevo"), clevo=False)
     try:
         return DCHU()

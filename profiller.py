@@ -199,12 +199,18 @@ class Manager:
         elif msi and fan[0] == "curve":  # MSI'da ozel egri yok: sessiz egri Silent, digerleri Auto fan modu
             quiet = fan[1][3] <= 60 and fan[2][3] <= 60
             fan_txt = t("msi.fan." + ("silent" if quiet and "silent" in self.dchu.conf["fan"] else "auto"))
+        elif fan[0] == "curve" and not getattr(self.dchu, "fan_curve_ok", True):
+            # egri yok (Acer): fanlari secilen guc modunun kendi tablosu yonetir
+            fan_txt = t("val.fanByMode") if getattr(self.dchu, "fan_ok", True) else t("val.unsupported")
+        power_txt = ((self._msi_power(p["ec"]) if msi else hw.power_text(self.dchu, p["ec"])) if ec
+                     else t("val.unsupported"))
+        if ec and hasattr(self.dchu, "profile_power_label"):
+            power_txt = self.dchu.profile_power_label(p)
         gpu_txt = t("val.gpuCap", mhz=p["gpu"][1]) if p["gpu"] else t("val.gpuFree")
         if not self.sensors.gpu_name:
             gpu_txt = t("val.unsupported")
         return [
-            (t("row.powerMode"), (self._msi_power(p["ec"]) if msi else hw.power_text(self.dchu, p["ec"])) if ec
-             else t("val.unsupported")),
+            (t("row.powerMode"), power_txt),
             (t("row.cpuCap"), caps),
             (t("row.turboEpp"), "%s / %d" % (t("boost.%d" % c["boost"]), c["epp"])),
             (t("row.sched"), t("sched.%d" % c["sched"])),
@@ -230,6 +236,7 @@ class Manager:
     def status(self):
         return {"profile": self.applied, "report": self.report, "guard": self.guard,
                 "power_mode": self.dchu.power_mode(), "fan_mode": self.dchu.fan_mode(),
+                "power_name": getattr(self.dchu, "power_name", lambda: None)(),  # Acer profil adi
                 "scheme_active": active_scheme() == SCHEME, "admin": hw.is_admin(), "rules": self.cfg}
 
     # ------------------------------------------------------------------ uygula
@@ -271,11 +278,17 @@ class Manager:
             return rep
 
     def _ec(self, p):
+        if hasattr(self.dchu, "apply_profile_power"):  # Acer: profil kendi guc moduna eslenir
+            return self.dchu.apply_profile_power(p, hw.power_status()["ac"])
         msg = self.dchu.set_power_mode(p["ec"])
         return msg if isinstance(msg, str) and msg else t("power.%d" % p["ec"])
 
     def _fan(self, p):
         kind = p["fan"][0]
+        if kind == "curve" and not getattr(self.dchu, "fan_curve_ok", True):
+            # Egri desteklenmiyor (Acer): fanlar guc modunun fabrika tablosunda; elle hiz da kalkar
+            self.dchu.set_fan_mode(hw.FAN_AUTO)
+            return t("msg.fanByMode")
         if kind == "curve":
             if not hw.caps(self.dchu)["fan_curve"] and getattr(self.dchu, "vendor", "") == "hp":
                 # Ozel egri yok (HP BIOS'u): fanlar uretici tablosunda kalir; NullDCHU'da bu da Unsupported verir
@@ -356,6 +369,12 @@ class Manager:
                 why = "reason.ac" if ac else "reason.battery"
                 threading.Thread(target=self.apply, args=(target, why), daemon=True).start()
         self._last_ac = ac
+        guard = getattr(self.dchu, "custom_guard", None)
+        if guard:  # Acer elle fan hizi: kendi isi korumasi
+            msg = guard(s)
+            if msg:
+                self.guard = msg
+                self.notify(msg)
         p = BY_ID.get(self.applied)
         if not p or p["fan"][0] != "curve" or not hw.caps(self.dchu)["fan_curve"]:
             return

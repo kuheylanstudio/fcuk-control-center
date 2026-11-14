@@ -459,9 +459,24 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
                 <label><input type="radio" name="fanm" value="profile"><span data-i18n="fan.byProfile">Profile göre</span></label>
                 <label><input type="radio" name="fanm" value="auto"><span data-i18n="fan.factoryOpt">Fabrika</span></label>
                 <label><input type="radio" name="fanm" value="max"><span data-i18n="fan.max">Maksimum</span></label>
+                <label id="fanCustomOpt" hidden><input type="radio" name="fanm" value="custom"><span data-i18n="fan.custom">Özel hız</span></label>
               </div>
             </fieldset>
             <p class="hint" id="guardTxt"></p>
+            <div id="acerBox" hidden>
+              <fieldset class="field" id="acerPowerBox">
+                <legend class="lbl" data-i18n="acer.power">Güç modu</legend>
+                <div class="seg auto" id="acerPower"></div>
+              </fieldset>
+              <div class="field" id="acerSpeedBox" hidden>
+                <div class="field-top"><label class="lbl" for="acerCpu" data-i18n="acer.cpuSpeed">İşlemci fanı hızı</label><output id="acerCpuOut"></output></div>
+                <input type="range" id="acerCpu" min="20" max="100" step="5" value="50">
+                <div class="field-top"><label class="lbl" for="acerGpu" data-i18n="acer.gpuSpeed">Kart fanı hızı</label><output id="acerGpuOut"></output></div>
+                <input type="range" id="acerGpu" min="20" max="100" step="5" value="50">
+                <button class="btn" type="button" id="acerSpeedApply" data-i18n="acer.speedApply">Bu hızı uygula</button>
+                <p class="hint" data-i18n="acer.speedHint">Özel hızda ısı koruması açıktır: işlemci 93 °C'yi ya da kart 87 °C'yi 5 saniye aşarsa fanlar otomatiğe döner.</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -627,10 +642,10 @@ function applyI18n(root = document) {
   root.querySelectorAll('[data-i18n-ph]').forEach(n => { n.placeholder = t(n.dataset.i18nPh); });
 }
 if (window.I18N) applyI18n();
-const PAL_HINT = { one: t('pal.one'), steps: t('pal.steps'), loop: t('pal.loop'), range: t('pal.range'), slots: t('pal.slots') };
+const PAL_HINT = { one: t('pal.one'), steps: t('pal.steps'), loop: t('pal.loop'), range: t('pal.range'), slots: t('pal.slots'), zones: t('pal.zones') };
 const SPECTRUM = 'var(--spectrum)';
 const LEVEL = { tam_sessiz: 1, sessiz_kullanim: 2, sessiz_oyun: 3, performans: 4, ultra: 5 };
-const FAN_MODE_TXT = { 0: t('fanmode.0'), 1: t('fanmode.1'), 6: t('fanmode.6') };
+const FAN_MODE_TXT = { 0: t('fanmode.0'), 1: t('fanmode.1'), 6: t('fanmode.6'), 7: t('fanmode.7') };  // 7: Acer ozel hiz
 const NO_LINK = t('err.noLink');
 
 let meta = null, cfg = null, cc = null, frozen = false, pending = null, quitting = false, saveTimer = 0;
@@ -889,9 +904,10 @@ function paintProfile() {
     const mf = meta && meta.msi && meta.msi.fan;  // MSI: denetleyicinin kendi fan modu adi
     setText('fanModeTxt', cc.fan_mode !== 1 && mf ? t('msi.fan.' + mf) : (FAN_MODE_TXT[cc.fan_mode] || '–'));
     const pf = id ? (profById(id) || {}).fan : null;
-    const fm = cc.fan_mode === 1 ? 'max' : cc.fan_mode === 6 ? 'profile' : pf === 'auto' ? 'profile' : 'auto';
+    const fm = cc.fan_mode === 1 ? 'max' : cc.fan_mode === 7 ? 'custom' : cc.fan_mode === 6 ? 'profile' : pf === 'auto' ? 'profile' : 'auto';
     const r = document.querySelector(`input[name=fanm][value=${fm}]`); if (r) r.checked = true;
     document.querySelector('input[name=fanm][value=profile]').disabled = !id;
+    const ap = document.querySelector(`input[name=acerp][value="${cc.power_name}"]`); if (ap) ap.checked = true;
   }
   renderReport();
   drawCurve();
@@ -943,7 +959,8 @@ function initPerformance() {
     catch (e) { banner(t('perf.factoryFail', { err: e.message })); }
   });
   document.querySelectorAll('input[name=fanm]').forEach(r => r.addEventListener('change', async () => {
-    try { cc = (await api('/api/fan', { mode: r.value })).cc; }
+    const body = r.value === 'custom' ? { mode: 'custom', cpu: +$('#acerCpu').value, gpu: +$('#acerGpu').value } : { mode: r.value };
+    try { cc = (await api('/api/fan', body)).cc; }
     catch (e) { banner(t('fan.modeFail', { err: e.message })); }
     paintProfile();
   }));
@@ -1112,13 +1129,15 @@ function buildKeyboard() {
 }
 
 /* ---------- klavye modlari ---------- */
-const modeMeta = id => meta.modes.find(m => m.id === id);
+const modeMeta = id => meta.modes.find(m => m.id === id) || meta.modes[0];
+// sabit sirali yuva adlari: oyun modunda tus yuvalari, bolgeler modunda klavye bolgeleri (Acer)
+const slotNames = m => (m.pal === 'zones' ? meta.zones : m.pal === 'slots' ? meta.slots : null);
 function stripCss(m, pal) {
   if (m.id === 'gokkusagi') return SPECTRUM;
   if (m.id === 'ekran') return 'repeating-linear-gradient(90deg,var(--line-strong) 0 6px,transparent 6px 12px)';
   if (!pal.length) return 'var(--line)';
   if (m.pal === 'one' || pal.length === 1) return pal[0];
-  if (m.pal === 'steps' || m.pal === 'slots') return `linear-gradient(90deg,${pal.map((c, i) => `${c} ${i / pal.length * 100}% ${(i + 1) / pal.length * 100}%`).join(',')})`;
+  if (m.pal === 'steps' || m.pal === 'slots' || m.pal === 'zones') return `linear-gradient(90deg,${pal.map((c, i) => `${c} ${i / pal.length * 100}% ${(i + 1) / pal.length * 100}%`).join(',')})`;
   if (m.pal === 'loop') return `linear-gradient(90deg,${[...pal, pal[0]].join(',')})`;
   return `linear-gradient(90deg,${pal.join(',')})`;
 }
@@ -1232,14 +1251,14 @@ function renderSettings() {
 function renderStops() {
   const ul = $('#stops');
   if (!ul) return;
-  const m = modeMeta(cfg.mode), pal = cfg.modes[m.id].palette, solo = m.pal === 'one', fixed = m.pal === 'slots';
+  const m = modeMeta(cfg.mode), pal = cfg.modes[m.id].palette, solo = m.pal === 'one', names = slotNames(m), fixed = !!names;
   ul.textContent = '';
   (solo ? pal.slice(0, 1) : pal).forEach((hx, i) => {
     const li = el('li'), b = el('button', 'stop' + (solo ? ' solo' : ''));
     b.type = 'button';
-    b.setAttribute('aria-label', fixed ? t('kb.slotAria', { name: meta.slots[i], hex: hx }) : t('kb.stopAria', { i: i + 1, hex: hx }));
+    b.setAttribute('aria-label', fixed ? t('kb.slotAria', { name: names[i], hex: hx }) : t('kb.stopAria', { i: i + 1, hex: hx }));
     const sw = el('span', 'sw'); sw.style.background = hx;
-    b.append(sw, el('span', 'hx', fixed ? meta.slots[i] || hx : hx));
+    b.append(sw, el('span', 'hx', fixed ? names[i] || hx : hx));
     if (fixed) b.title = hx;
     b.addEventListener('click', () => openPicker(b, i));
     li.append(b);
@@ -1306,7 +1325,7 @@ function applyPick(writeHex) {
   pal[pick.i] = hex;
   if (pick.anchor && pick.anchor.isConnected) {
     $('.sw', pick.anchor).style.background = hex;
-    const slot = modeMeta(cfg.mode).pal === 'slots' ? meta.slots[pick.i] : null;
+    const names = slotNames(modeMeta(cfg.mode)), slot = names ? names[pick.i] : null;
     if (slot) pick.anchor.title = hex; else $('.hx', pick.anchor).textContent = hex;
     pick.anchor.setAttribute('aria-label', slot ? t('kb.slotAria', { name: slot, hex }) : t('kb.stopAria', { i: pick.i + 1, hex }));
   }
@@ -1493,6 +1512,7 @@ function initMsi() {
 /* ---------- bu bilgisayarda olmayan ozellikler ---------- */
 // Denetleyici (Clevo/Monster ya da taninan bir marka arka ucu) yoksa fan ve klavye isigi sayfalari denetim gostermez, nedenini
 // soyler. Motor da desteklenmeyen hicbir ozellige komut gondermez (donanim.NullDCHU, msi.MsiEC).
+// Acer'da ozellikler ayri ayri yoklanir (meta.caps): olmayan ozellik gizlenir.
 function hideUnsupported(id, text) {
   const sec = $('#v-' + id);
   if (!sec || sec.querySelector('.nosup')) return;
@@ -1546,6 +1566,46 @@ function applySupport() {
     const mx = document.querySelector('input[name=fanm][value=max]');
     if (mx && !caps.fan_max) mx.disabled = true;
   }
+  if (meta.hw === 'acer') {
+    if (meta.kb === false) hideUnsupported('klavye', t('unsup.kbModel'));
+    setupAcer(meta.caps || {});
+  }
+}
+function setupAcer(caps) {
+  if (!caps.fan && !caps.power) { hideUnsupported('fan', t('unsup.fanModel')); return; }
+  $('#fanCurveTile').hidden = true;  // Acer'da sicakliga bagli egri yok
+  setText('fanIntro', t('acer.fanIntro'));
+  const sub = document.querySelector('.nav[data-view="fan"] small');
+  if (sub) sub.textContent = t('nav.fan.subAcer');
+  $('#acerBox').hidden = false;
+  document.querySelector('input[name=fanm]').closest('fieldset').hidden = !caps.fan;
+  $('#fanCustomOpt').hidden = !caps.fan_speed;
+  $('#acerSpeedBox').hidden = !caps.fan_speed;
+  const seg = $('#acerPower');
+  $('#acerPowerBox').hidden = !caps.power;
+  seg.textContent = '';
+  for (const m of caps.power_modes || []) {
+    const lab = el('label'), inp = el('input');
+    inp.type = 'radio'; inp.name = 'acerp'; inp.value = m;
+    inp.addEventListener('change', async () => {
+      try { cc = (await api('/api/power', { mode: m })).cc; }
+      catch (e) { banner(t('acer.powerFail', { err: e.message })); }
+      paintProfile();
+    });
+    lab.append(inp, el('span', '', t('acer.power.' + m)));
+    seg.append(lab);
+  }
+  for (const id of ['acerCpu', 'acerGpu']) {
+    const r = $('#' + id), out = $('#' + id + 'Out');
+    setRange(r, +r.value, out);
+    r.addEventListener('input', () => setRange(r, +r.value, out));
+  }
+  $('#acerSpeedApply').addEventListener('click', async () => {
+    try { cc = (await api('/api/fan', { mode: 'custom', cpu: +$('#acerCpu').value, gpu: +$('#acerGpu').value })).cc; }
+    catch (e) { banner(t('fan.modeFail', { err: e.message })); }
+    paintProfile();
+  });
+  paintProfile();
 }
 
 /* ---------- baslangic ---------- */

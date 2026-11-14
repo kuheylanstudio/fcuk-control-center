@@ -52,7 +52,7 @@ OLD_TASKS = ("KendiControlCenter", "KendiControlCenter Tepsi")  # onceki surumle
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 PAL_KIND = {"sabit": "one", "nefes": "steps", "gecis": "loop", "gokkusagi": None,
             "nabiz": "steps", "ses": "range", "sistem": "range", "ekran": None,
-            "oyun": "slots"}
+            "oyun": "slots", "bolgeler": "zones"}
 BROWSERS = (
     r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
     r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
@@ -188,8 +188,8 @@ def _palette(v, kind, default):
         return []
     if not isinstance(v, list):
         return list(default)
-    if kind == "slots":  # sabit sirali yuvalar: gecersiz yuva varsayilaniyla doldurulur
-        slots = core.DEFAULTS["modes"]["oyun"]["palette"]
+    if kind in ("slots", "zones"):  # sabit sirali yuvalar: gecersiz yuva varsayilaniyla doldurulur
+        slots = core.DEFAULTS["modes"]["oyun" if kind == "slots" else "bolgeler"]["palette"]
         base = list(default) + slots[len(default):]
         return [v[i].lower() if i < len(v) and isinstance(v[i], str) and HEX.fullmatch(v[i]) else base[i]
                 for i in range(len(slots))]
@@ -493,7 +493,7 @@ def state():
         "gpu_name": App.sensors.gpu_name,
         "modes": [{"id": m[0], "label": t("mode." + m[0]), "pal": PAL_KIND[m[0]],
                    "speed": SPEED_KEY.get(m[3]) and t(SPEED_KEY[m[3]]), "desc": t("mode.%s.desc" % m[0])}
-                  for m in core.MODES],
+                  for m in core.MODES if m[0] != "bolgeler" or (getattr(App.dchu, "caps", None) or {}).get("kb_zones")],
         "sources": [{"id": s[0], "label": t("src." + s[0])} for s in core.SOURCES],
         "layouts": [{"id": k, "label": t("keys." + k)} for k in core.GAME_LAYOUTS],
         "slots": [t("slot." + k) for k in core.GAME_SLOTS],
@@ -520,6 +520,8 @@ def state():
         "caps": caps(),
         "msi": msi_state(),
         "hp": App.dchu.describe() if getattr(App.dchu, "vendor", "") == "hp" else None,
+        "hw": getattr(App.dchu, "vendor", ""),  # Acer arayuzu: "clevo", "acer" ya da "" (denetleyici yok)
+        "zones": [t("zone.%d" % i) for i in range(1, 5)],
         "cpu": App.inventory.data.get("cpu"),
         "nvidia": bool(App.sensors.gpu_name),
         "igpu_name": App.sensors.igpu_name,
@@ -663,6 +665,7 @@ class Handler(BaseHTTPRequestHandler):
                 "profile": mgr.applied, "guard": mgr.guard, "lang": ceviri.lang(),
                 "profiles": [{"id": p["id"], "name": profiller.name(p["id"]), "ac_only": bool(p.get("ac_only"))}
                              for p in profiller.PROFILES],
+                # tepsinin fan menusu: fan denetlenebiliyor mu (Acer/HP'de modele bagli)
                 "ec": hw.caps(App.dchu)["fan_max"], "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
                 "gpu_state": s.get("gpu_state"), "cpu_power": s.get("cpu_power"),
                 "ac": (s.get("battery") or {}).get("ac", True), "notices": list(App.notices)})
@@ -766,6 +769,10 @@ class Handler(BaseHTTPRequestHandler):
                 mgr.apply(mgr.applied, "reason.fanProfile")
             elif mode in ("auto", "max"):
                 App.dchu.set_fan_mode(hw.FAN_MAX if mode == "max" else hw.FAN_AUTO)
+                mgr.guard = ""
+            elif mode == "custom" and hasattr(App.dchu, "set_fan_speed"):  # Acer: elle fan hizi (%)
+                App.dchu.set_fan_speed(_int(body.get("cpu"), 0, 100, 50), _int(body.get("gpu"), 0, 100, 50))
+                mgr.guard = ""
             else:
                 return self._json({"error": t("err.fanMode")}, 400)
             return self._json({"ok": True, "cc": mgr.status()})
@@ -796,6 +803,14 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError as exc:
                 return self._json({"error": str(exc), "msi": msi_state()}, 400)
             return self._json({"ok": True, "msi": msi_state(), "cc": mgr.status()})
+        if path == "/api/power":  # Acer: guc modunu dogrudan sec (profilden bagimsiz)
+            if not hasattr(App.dchu, "apply_profile_power"):
+                return self._json({"error": t("err.acerNoPower")}, 400)
+            name = body.get("mode")
+            if name not in (App.dchu.caps or {}).get("power_modes", []):
+                return self._json({"error": t("err.unknownPower")}, 400)
+            App.dchu.set_power_mode(name)
+            return self._json({"ok": True, "cc": mgr.status()})
         if path == "/api/audio":
             which = body.get("which")
             if which not in ("speaker", "mic"):
@@ -1013,10 +1028,10 @@ def serve():
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
     except (OSError, AttributeError):
         pass
-    # Clevo/Monster koprusu (ACPI\CLV) varsa InsydeDCHU, Alienware/Dell AWCC arayuzu varsa alienware.py;
-    # ikisi de yoksa NullDCHU: fan/guc modu/klavye isigi kapanir ve gomulu denetleyiciye HICBIR komut gitmez;
-    # izleme, NVIDIA ve islemci ayarlari calisir. Baska ureticilerin (Armoury Crate, Vantage, MSI Center...)
-    # denetleyicilerine dokunulmaz.
+    # Clevo/Monster koprusu (ACPI\CLV) varsa InsydeDCHU; yoksa marka arka uclari (HP, Alienware, Lenovo, MSI, Acer,
+    # Gigabyte) kendi tespitleriyle denenir; hicbiri yoksa NullDCHU: fan/guc modu/klavye isigi kapanir ve gomulu
+    # denetleyiciye HICBIR komut gitmez; izleme, NVIDIA ve islemci ayarlari calisir. Ureticilerin kendi
+    # uygulamalarina (Armoury Crate, Vantage, MSI Center, Omen, PredatorSense...) dokunulmaz.
     App.dchu = hw.open_dchu()
     App.inventory = envanter.Inventory()
     App.inventory.start()
@@ -1111,6 +1126,8 @@ def fans_to_factory():
             close = getattr(dchu, "close", None)  # MSI: WMI isci sureci
             if close:
                 close()
+        return True
+    except hw.Unsupported:  # fan denetimi olmayan Acer modeli: fanlar zaten kendi tablosunda
         return True
     except Exception:
         log("fanlar fabrika tablosuna alinamadi: " + traceback.format_exc().replace("\n", " | "))
