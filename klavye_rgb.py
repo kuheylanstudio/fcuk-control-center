@@ -3,7 +3,8 @@
 # Bu dosya Anthropic'in Claude Opus 5.5 yapay zeka modeliyle yazilmistir. MIT lisansi, bkz. LICENSE.
 """Klavye RGB - Monster / Clevo dizustu klavyeleri icin ozel renk modlari.
 
-Control Center'in kendi kitapligi (InsydeDCHU.dll) uzerinden klavye rengini ayarlar.
+Clevo/Monster'da Control Center'in kendi kitapligi (InsydeDCHU.dll), Acer Predator/Nitro'da WMI
+(acer_predator.AcerGaming, 4 bolge) uzerinden klavye rengini ayarlar.
 Bu dosya motor ve donanim katmanidir; uygulama control_center.py ile baslar.
 """
 import colorsys
@@ -43,6 +44,8 @@ MODES = [
     ("ekran", "Ekran rengi", False, "Tepki hızı", "Ekrandaki baskın rengi klavyeye yansıtır."),
     ("oyun", "Oyun tepkisi", True, "Tepki hızı",
      "Ateş etme ve yetenek tuşlarında parlar; LoL'de kill, ölüm, can ve ulti olaylarına tepki verir."),
+    # Yalnizca bolgeli klavyede (Acer Predator/Nitro 4 bolge) listelenir: her bolgeye ayri sabit renk
+    ("bolgeler", "Bölge renkleri", True, None, "Klavyenin dört bölgesi soldan sağa ayrı renkte sabit yanar."),
 ]
 MODE_IDS = [m[0] for m in MODES]
 SOURCES = [
@@ -70,6 +73,7 @@ DEFAULTS = {
         "ekran": {"palette": [], "speed": 55},
         "oyun": {"palette": ["#140a33", "#ffffff", "#00b4ff", "#00ff6a", "#ffb000", "#ff0040", "#c000ff"],
                  "speed": 55, "keys": "lol"},
+        "bolgeler": {"palette": ["#ff0040", "#ff8a00", "#00e0ff", "#7a00ff"], "speed": 50},
     },
     "presets": {},
 }
@@ -428,7 +432,8 @@ class Engine(threading.Thread):
             last = now
             mode, pal, speed, source, bright = self.settings
             value = None
-            kb_ok = getattr(self.kb, "available", True)
+            kb_ok = getattr(self.kb, "kb_available", getattr(self.kb, "available", True))
+            zones = None
             if not kb_ok and mode in ("ses", "ekran", "sistem", "oyun"):
                 mode = "sabit"  # klavye isigi yok: ses/ekran ornekleme ve olcum bosuna calismasin
             if mode != "oyun" and game is not None:
@@ -436,6 +441,11 @@ class Engine(threading.Thread):
             try:
                 if mode == "sabit":
                     col = pal[0] if pal else (255, 255, 255)
+                    self.info = ""
+                elif mode == "bolgeler":  # bolgeli klavye: her bolge kendi rengi; yoksa ilk renk sabit
+                    col = pal[0] if pal else (255, 255, 255)
+                    if pal and hasattr(self.kb, "set_zones"):
+                        zones = tuple(pal[min(i, len(pal) - 1)] for i in range(4))
                     self.info = ""
                 elif mode == "nefes":
                     phase += dt / period(speed, 9.0, 1.0)
@@ -506,9 +516,14 @@ class Engine(threading.Thread):
                 out = tuple(int(clamp(c * bright / 255.0) * 255 + 0.5) for c in col)
                 self.current = out
                 self.value = value
-                if out != sent or now - sent_at > 1.0:  # uyku/Fn tusu sonrasi rengi geri getirmek icin tekrar yolla
-                    self.kb.set_color(*out)
-                    sent, sent_at = out, now
+                key = out if zones is None else tuple(
+                    tuple(int(clamp(c * bright / 255.0) * 255 + 0.5) for c in z) for z in zones)
+                if key != sent or now - sent_at > 1.0:  # uyku/Fn tusu sonrasi rengi geri getirmek icin tekrar yolla
+                    if zones is None:
+                        self.kb.set_color(*out)
+                    else:
+                        self.kb.set_zones(key)
+                    sent, sent_at = key, now
                 self.error = ""
             except Exception as exc:  # motor hic durmasin
                 self.error = "%s: %s" % (type(exc).__name__, exc)

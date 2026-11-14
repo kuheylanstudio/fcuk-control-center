@@ -192,11 +192,17 @@ class Manager:
         ec = getattr(self.dchu, "available", True)
         if not ec:
             fan_txt = t("val.unsupported")
+        elif fan[0] == "curve" and not getattr(self.dchu, "fan_curve_ok", True):
+            # egri yok (Acer): fanlari secilen guc modunun kendi tablosu yonetir
+            fan_txt = t("val.fanByMode") if getattr(self.dchu, "fan_ok", True) else t("val.unsupported")
+        power_txt = t("power.%d" % p["ec"]) if ec else t("val.unsupported")
+        if ec and hasattr(self.dchu, "profile_power_label"):
+            power_txt = self.dchu.profile_power_label(p)
         gpu_txt = t("val.gpuCap", mhz=p["gpu"][1]) if p["gpu"] else t("val.gpuFree")
         if not self.sensors.gpu_name:
             gpu_txt = t("val.unsupported")
         return [
-            (t("row.powerMode"), t("power.%d" % p["ec"]) if ec else t("val.unsupported")),
+            (t("row.powerMode"), power_txt),
             (t("row.cpuCap"), caps),
             (t("row.turboEpp"), "%s / %d" % (t("boost.%d" % c["boost"]), c["epp"])),
             (t("row.sched"), t("sched.%d" % c["sched"])),
@@ -215,6 +221,7 @@ class Manager:
     def status(self):
         return {"profile": self.applied, "report": self.report, "guard": self.guard,
                 "power_mode": self.dchu.power_mode(), "fan_mode": self.dchu.fan_mode(),
+                "power_name": getattr(self.dchu, "power_name", lambda: None)(),  # Acer profil adi
                 "scheme_active": active_scheme() == SCHEME, "admin": hw.is_admin(), "rules": self.cfg}
 
     # ------------------------------------------------------------------ uygula
@@ -256,11 +263,17 @@ class Manager:
             return rep
 
     def _ec(self, p):
+        if hasattr(self.dchu, "apply_profile_power"):  # Acer: profil kendi guc moduna eslenir
+            return self.dchu.apply_profile_power(p, hw.power_status()["ac"])
         self.dchu.set_power_mode(p["ec"])
         return t("power.%d" % p["ec"])
 
     def _fan(self, p):
         kind = p["fan"][0]
+        if kind == "curve" and not getattr(self.dchu, "fan_curve_ok", True):
+            # Egri desteklenmiyor (Acer): fanlar guc modunun fabrika tablosunda; elle hiz da kalkar
+            self.dchu.set_fan_mode(hw.FAN_AUTO)
+            return t("msg.fanByMode")
         if kind == "curve":
             self.dchu.set_fan_curve(p["fan"][1], p["fan"][2])
             return t("msg.customCurve")
@@ -337,8 +350,14 @@ class Manager:
                 why = "reason.ac" if ac else "reason.battery"
                 threading.Thread(target=self.apply, args=(target, why), daemon=True).start()
         self._last_ac = ac
+        guard = getattr(self.dchu, "custom_guard", None)
+        if guard:  # Acer elle fan hizi: kendi isi korumasi
+            msg = guard(s)
+            if msg:
+                self.guard = msg
+                self.notify(msg)
         p = BY_ID.get(self.applied)
-        if not p or p["fan"][0] != "curve" or not getattr(self.dchu, "available", True):
+        if not p or p["fan"][0] != "curve" or not getattr(self.dchu, "available", True)                 or not getattr(self.dchu, "fan_curve_ok", True):
             return
         # Profil uygulanirken (kilit dolu) bekci dokunmaz: apply() sonunda bekci durumunu zaten sifirlar.
         if not self.lock.acquire(blocking=False):

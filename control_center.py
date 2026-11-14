@@ -52,7 +52,7 @@ OLD_TASKS = ("KendiControlCenter", "KendiControlCenter Tepsi")  # onceki surumle
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 PAL_KIND = {"sabit": "one", "nefes": "steps", "gecis": "loop", "gokkusagi": None,
             "nabiz": "steps", "ses": "range", "sistem": "range", "ekran": None,
-            "oyun": "slots"}
+            "oyun": "slots", "bolgeler": "zones"}
 BROWSERS = (
     r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
     r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
@@ -188,8 +188,8 @@ def _palette(v, kind, default):
         return []
     if not isinstance(v, list):
         return list(default)
-    if kind == "slots":  # sabit sirali yuvalar: gecersiz yuva varsayilaniyla doldurulur
-        slots = core.DEFAULTS["modes"]["oyun"]["palette"]
+    if kind in ("slots", "zones"):  # sabit sirali yuvalar: gecersiz yuva varsayilaniyla doldurulur
+        slots = core.DEFAULTS["modes"]["oyun" if kind == "slots" else "bolgeler"]["palette"]
         base = list(default) + slots[len(default):]
         return [v[i].lower() if i < len(v) and isinstance(v[i], str) and HEX.fullmatch(v[i]) else base[i]
                 for i in range(len(slots))]
@@ -493,7 +493,7 @@ def state():
         "gpu_name": App.sensors.gpu_name,
         "modes": [{"id": m[0], "label": t("mode." + m[0]), "pal": PAL_KIND[m[0]],
                    "speed": SPEED_KEY.get(m[3]) and t(SPEED_KEY[m[3]]), "desc": t("mode.%s.desc" % m[0])}
-                  for m in core.MODES],
+                  for m in core.MODES if m[0] != "bolgeler" or (getattr(App.dchu, "caps", None) or {}).get("kb_zones")],
         "sources": [{"id": s[0], "label": t("src." + s[0])} for s in core.SOURCES],
         "layouts": [{"id": k, "label": t("keys." + k)} for k in core.GAME_LAYOUTS],
         "slots": [t("slot." + k) for k in core.GAME_SLOTS],
@@ -512,6 +512,10 @@ def state():
         "ec": App.dchu.available,
         "ec_clevo": bool(getattr(App.dchu, "clevo", True)),  # aygit var, yalnizca kitaplik yok
         "ec_reason": getattr(App.dchu, "reason", ""),
+        "hw": getattr(App.dchu, "vendor", ""),  # "clevo", "acer" ya da "" (denetleyici yok)
+        "caps": getattr(App.dchu, "caps", None),
+        "kb": bool(getattr(App.dchu, "kb_available", App.dchu.available)),
+        "zones": [t("zone.%d" % i) for i in range(1, 5)],
         "cpu": App.inventory.data.get("cpu"),
         "nvidia": bool(App.sensors.gpu_name),
         "igpu_name": App.sensors.igpu_name,
@@ -738,8 +742,20 @@ class Handler(BaseHTTPRequestHandler):
                 mgr.apply(mgr.applied, "reason.fanProfile")
             elif mode in ("auto", "max"):
                 App.dchu.set_fan_mode(hw.FAN_MAX if mode == "max" else hw.FAN_AUTO)
+                mgr.guard = ""
+            elif mode == "custom" and hasattr(App.dchu, "set_fan_speed"):  # Acer: elle fan hizi (%)
+                App.dchu.set_fan_speed(_int(body.get("cpu"), 0, 100, 50), _int(body.get("gpu"), 0, 100, 50))
+                mgr.guard = ""
             else:
                 return self._json({"error": t("err.fanMode")}, 400)
+            return self._json({"ok": True, "cc": mgr.status()})
+        if path == "/api/power":  # Acer: guc modunu dogrudan sec (profilden bagimsiz)
+            if not hasattr(App.dchu, "apply_profile_power"):
+                return self._json({"error": t("err.acerNoPower")}, 400)
+            name = body.get("mode")
+            if name not in (App.dchu.caps or {}).get("power_modes", []):
+                return self._json({"error": t("err.unknownPower")}, 400)
+            App.dchu.set_power_mode(name)
             return self._json({"ok": True, "cc": mgr.status()})
         if path == "/api/audio":
             which = body.get("which")
@@ -954,6 +970,7 @@ def serve():
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
     except (OSError, AttributeError):
         pass
+    # Acer Predator/Nitro'da (AcerGamingFunction WMI) acer_predator.AcerGaming; o da yoksa asagidaki gibi.
     # Clevo/Monster koprusu (ACPI\CLV) yoksa ya da InsydeDCHU.dll yuklenemezse NullDCHU: fan/guc modu/klavye
     # isigi kapanir ve gomulu denetleyiciye HICBIR komut gitmez; izleme, NVIDIA ve islemci ayarlari calisir.
     # Baska ureticilerin Control Center'larina (Armoury Crate, Vantage, MSI Center, Alienware...) dokunulmaz.
@@ -964,7 +981,7 @@ def serve():
     # Fn tusu olaylarini ac (Clevo "events enabled", komut 0x46). Bunu eskiden FnKey.exe acilista yapiyordu;
     # gonderilmezse denetleyici Fn bildirimlerini AcpiBridge'e iletmez (14.11.2026 olculdu). Yeniden
     # baslatmaya dek kalicidir; her acilista gonderilir.
-    if App.dchu.available:
+    if getattr(App.dchu, "vendor", "") == "clevo":
         try:
             App.dchu.set_wmi(0x46, 0)
         except Exception:
@@ -998,7 +1015,7 @@ def serve():
     App.engine.settings = core.snapshot(App.cfg)
     App.engine.start()
     App.sensors.start()
-    if hw.is_admin() and App.dchu.available:  # yalnizca Clevo/Monster: Monster Fn programlari engellenir
+    if hw.is_admin() and getattr(App.dchu, "vendor", "") == "clevo":  # yalnizca Clevo/Monster: Monster Fn programlari engellenir
         threading.Thread(target=fn_block_loop, daemon=True).start()
     if cc.get("profile") in profiller.BY_ID:  # yeniden baslatmadan sonra denetleyici ayarlari geri gelsin
         threading.Thread(target=App.manager.apply, args=(cc["profile"], "reason.startup"), daemon=True).start()
@@ -1042,10 +1059,12 @@ def enable_crash_log():
 def fans_to_factory():
     """Motor tamamen durdugunda fanlari denetleyicinin kendi tablosuna birak (isi bekcisi artik yok)."""
     try:
-        dchu = hw.open_dchu()  # Clevo degilse NullDCHU: denetleyiciye komut gitmez
+        dchu = hw.open_dchu()  # Clevo da Acer de degilse NullDCHU: denetleyiciye komut gitmez
         if not dchu.available:
             return True
         dchu.set_fan_mode(hw.FAN_AUTO)
+        return True
+    except hw.Unsupported:  # fan denetimi olmayan Acer modeli: fanlar zaten kendi tablosunda
         return True
     except Exception:
         log("fanlar fabrika tablosuna alinamadi: " + traceback.format_exc().replace("\n", " | "))

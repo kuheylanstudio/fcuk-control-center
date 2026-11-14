@@ -200,6 +200,9 @@ def peer_in_my_session(client_port, server_port):
 class DCHU:
     """InsydeDCHU.dll sarmalayicisi. Tum cagrilar tek kilitten gecer (motor, sensor ve sunucu ayni anda cagirir)."""
     available = True
+    vendor = "clevo"     # Fn olaylari, Monster Fn engeli gibi Clevo'ya ozgu adimlar yalnizca bunda
+    fan_curve_ok = True  # sicakliga bagli fan egrisini denetleyici calistirir
+    kb_available = True
 
     def __init__(self):
         # Surumler farkli islev kumesi tasir (ornek: surucu deposundaki 1.0.0.1'de SetDCHU_DataEx yok). Yalnizca
@@ -354,6 +357,9 @@ class NullDCHU:
     bos, yazmalar Unsupported verir ve donanima HICBIR komut gitmez. Profil adimlari bunu raporda
     'desteklenmiyor' olarak gosterir; geri kalan her sey calisir."""
     available = False
+    vendor = ""
+    fan_curve_ok = False
+    kb_available = False
     path = ""
 
     def __init__(self, reason="", clevo=False):
@@ -421,8 +427,17 @@ def clevo_present():
 
 
 def open_dchu():
-    """Gercek denetleyici ya da (Clevo aygiti yoksa / kitaplik yoksa / yuklenemezse) NullDCHU."""
+    """Gercek denetleyici: Clevo/Monster (DCHU), Acer Predator/Nitro (acer_predator.AcerGaming) ya da hicbiri
+    yoksa / kitaplik yuklenemezse NullDCHU. Acer yolu yalnizca uretici Acer, model Predator/Nitro ve WMI'da
+    AcerGamingFunction sinifi varsa secilir; yoklama yalnizca okuma yontemleriyle yapilir."""
     if not clevo_present():
+        try:
+            import acer_predator
+            dev = acer_predator.detect()
+        except Exception:
+            dev = None
+        if dev is not None:
+            return dev
         return NullDCHU(ceviri.t("err.notClevo"), clevo=False)
     try:
         return DCHU()
@@ -802,7 +817,7 @@ class Sensors(threading.Thread):
             "energy": r"\Energy Meter(*)\Power",
             "gpu": r"\GPU Engine(*)\Utilization Percentage",
         }
-        if not self.dchu.available:  # denetleyici yoksa islemci sicakligi icin ACPI isi bolgesi (Kelvin)
+        if not getattr(self.dchu, "temps_ok", self.dchu.available):  # denetleyici sicaklik vermiyorsa ACPI isi bolgesi (Kelvin)
             counters["tz"] = r"\Thermal Zone Information(*)\Temperature"
         pdh = Pdh(counters)
         last_net = last_disk = None
