@@ -60,6 +60,9 @@ SOURCES = [
 GAME_LAYOUTS = ["lol", "cs"]
 GAME_SLOTS_USED = {"lol": [0, 2, 3, 4, 5, 6], "cs": [0, 1]}  # duzende kullanilan yuvalar
 GAME_SLOTS = ["bg", "fire", "q", "w", "e", "r", "spell"]
+#                bg         fire       q          w          e          r          spell
+GAME_PALETTE = ["#140a33", "#ffffff", "#00c8ff", "#c040ff", "#ff8a00", "#ffffff", "#ff3fa4"]
+GAME_PALETTE_OLD = ["#140a33", "#ffffff", "#00b4ff", "#00ff6a", "#ffb000", "#ff0040", "#c000ff"]  # 2.5.1 ve oncesi
 DEFAULTS = {
     "mode": "gecis",
     "brightness": 100,
@@ -74,8 +77,8 @@ DEFAULTS = {
         "ses": {"palette": ["#1b00ff", "#00e5ff", "#ff00c8", "#ff2a00"], "speed": 60},
         "sistem": {"palette": ["#0060ff", "#00ff60", "#ffd000", "#ff0000"], "speed": 50, "source": "cpu_temp"},
         "ekran": {"palette": [], "speed": 55},
-        "oyun": {"palette": ["#140a33", "#ffffff", "#00b4ff", "#00ff6a", "#ffb000", "#ff0040", "#c000ff"],
-                 "speed": 55, "keys": "lol"},
+        # LoL renkleri can yesilinin ve kirmizisinin ustunde de secilsin diye yesil/kirmizi disi tonlardir
+        "oyun": {"palette": GAME_PALETTE, "speed": 55, "keys": "lol"},
         "bolgeler": {"palette": ["#ff0040", "#ff8a00", "#00e0ff", "#7a00ff"], "speed": 50},
     },
     "presets": {},
@@ -298,13 +301,15 @@ class SystemInfo:
 # LoL / CS2 olaylarinin renkleri ve sureleri (sn): (renk ya da None=gokkusagi, sure, bicim)
 GAME_EVENTS = {
     "kill": ((255, 196, 0), 0.9, "pop"),
-    "assist": ((0, 229, 255), 0.5, "pop"),
+    "assist": ((60, 120, 255), 0.6, "pop"),
     "death": ((255, 0, 0), 1.4, "pop"),
     "objective": ((160, 64, 255), 1.4, "double"),
-    "multi2": (None, 1.2, "rainbow"),
-    "multi3": (None, 1.8, "rainbow"),
-    "multi4": (None, 2.4, "rainbow"),
-    "multi5": (None, 3.5, "rainbow"),
+    # Seri kill: kill sayisi kadar vurus. Her kademenin kendi rengi var, penta gokkusagi.
+    # Sure = vurus sayisi * PULSE_PERIOD (penta biraz uzun: daha genis, daha gorkemli vuruslar).
+    "multi2": ((255, 210, 0), 0.64, "pulse2"),
+    "multi3": ((0, 140, 255), 0.96, "pulse3"),
+    "multi4": ((255, 0, 200), 1.28, "pulse4"),
+    "multi5": (None, 2.4, "pulse5"),
     "ace": ((255, 255, 255), 1.6, "double"),
     "win": (None, 5.0, "rainbow"),
     "lose": ((255, 0, 0), 3.0, "slow"),
@@ -331,8 +336,17 @@ def heartbeat(x):
     return max(math.exp(-((x - 0.12) / 0.06) ** 2), 0.65 * math.exp(-((x - 0.34) / 0.08) ** 2))
 
 
-def game_envelope(shape, x):
-    """Bir parlamanin 0..1 suresi boyunca siddeti (0..1)."""
+PULSE_PERIOD = 0.32  # seri kill vuruslari arasi sure (sn)
+
+
+def game_envelope(shape, x, dur=1.0):
+    """Bir parlamanin 0..1 suresi boyunca siddeti (0..1). dur: parlamanin saniye cinsinden suresi."""
+    if shape.startswith("pulse"):  # pulseN: tam N keskin vurus (her biri aniden parlar, sonerek soner)
+        n = max(1, int(shape[5:] or 1))
+        body = min(1.0, n * PULSE_PERIOD / dur)
+        if x < body:
+            return (1.0 - (x / body * n) % 1.0) ** 1.6
+        return 0.0
     if shape == "pop":
         return (1.0 - x) ** 2
     if shape == "double":  # ulti / hedef: iki guclu vurus
@@ -399,7 +413,10 @@ class GameFx:
             else:
                 self.flash(col, now, fade, "pop")
         live = src.connected
-        for ev in src.pop_events():
+        events = src.pop_events()
+        if any(e.startswith("multi") for e in events):  # seri kill kendi parlamasini verir: tek kill'i bastirma
+            events = [e for e in events if e != "kill"]
+        for ev in events:
             col, dur, shape = GAME_EVENTS.get(ev, ((255, 255, 255), 0.6, "pop"))
             self.flash(col, now, dur, shape)
         health = src.health if live else None
@@ -429,7 +446,7 @@ class GameFx:
             if c is None:
                 r, g, b = colorsys.hsv_to_rgb((now * 0.9 + f[1]) % 1.0, 1.0, 1.0)
                 c = (r * 255, g * 255, b * 255)
-            col = mix(col, c, clamp(game_envelope(f[3], x)))
+            col = mix(col, c, clamp(game_envelope(f[3], x, f[2])))
         self.flashes = alive
         if "fire" in held:  # otomatik silah: basili tutuldukca titresin
             col = mix(col, pal[1], 0.55 + 0.45 * math.sin(now * 2 * math.pi * 12) ** 2)

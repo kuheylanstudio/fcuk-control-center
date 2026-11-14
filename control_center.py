@@ -209,6 +209,8 @@ def _mode_values(mid, vals, base):
         src = vals.get("source")
         out["source"] = src if src in [s[0] for s in core.SOURCES] else base.get("source", "cpu_temp")
     if mid == "oyun":
+        if out["palette"] == core.GAME_PALETTE_OLD:  # eski varsayilan renkler hic degistirilmemis: yenisine gec
+            out["palette"] = list(core.GAME_PALETTE)
         keys = vals.get("keys")
         keys = "cs" if keys == "fps" else keys  # 2.0.4 gelistirme surumundeki genel FPS duzeni -> CS2
         out["keys"] = keys if keys in core.GAME_LAYOUTS else base.get("keys", "lol")
