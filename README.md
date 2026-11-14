@@ -152,6 +152,9 @@ nvidia.py          NVIDIA sürücü ayarları (NVAPI DRS), kart bilgisi (NVML)
 islemci.py         modele göre işlemci ayarları (Windows güç planı)
 profiller.py       beş performans profili, ısı koruması, fiş/pil kuralları
 klavye_rgb.py      klavye ışık motoru
+msi.py             MSI: EC firmware tablosu ve güvenlik kuralları (shift/fan modu, Cooler Boost, pil sınırı)
+msi_wmi.py         MSI_ACPI (root\WMI) taşıma katmanı, sürücüsüz
+msi_klavye.py      MSI USB klavye ışığı (SteelSeries 1038, eski 3 bölgeli 1770)
 engelle.py         eski Monster Fn programlarını tam yollarıyla engeller (IFEO yol filtresi)
 fntus.py, tepsi.py Fn tuşları, ekran bildirimi ve tepsi simgesi (ayrı, normal yetkili süreç)
 ceviri.py, ui/lang dil dosyaları
@@ -160,7 +163,18 @@ ui/index.html      arayüz (Edge --app penceresi)
 
 Geliştirme sırasında kurulu motoru atlayıp kodu doğrudan çalıştırmak için: `python control_center.py --dev`
 
-Testler (donanım gerekmez, sahte WMI/HID): `python -m unittest discover -s tests`
+## MSI dizüstüler (deneysel, gerçek donanımda doğrulanmadı)
+
+Üretici `Micro-Star International` ise `msi.py` devreye girer. Gömülü denetleyiciye ek sürücü kurmadan MSI'ın
+kendi `MSI_ACPI` WMI sınıfıyla ulaşılır (Get_EC, Get_Data/Set_Data, Get_Fan; Set_EC hiç kullanılmaz). Adres ve
+değerler Linux msi-ec sürücüsünün firmware tablolarından alındı (yalnızca adres/değer bilgisi). Korumalar:
+
+- EC firmware'i tablodaki bir girdiyle birebir eşleşmezse yalnızca okuma (sıcaklık, fan) yapılır, yazma denetimleri gizlenir.
+- Get_Data'nın ham EC adresi okuduğu, firmware alanı (0xA0) Get_EC'nin verdiği metinle karşılaştırılarak doğrulanır; tutmazsa EC hiç kullanılmaz.
+- Yalnızca tablodaki adres/değerler yazılır, her yazma geri okunur; tutmazsa o oturumda tüm yazmalar kapanır.
+- Profillerin fan eğrisi MSI'da özel eğri yerine en yakın fan moduna (Silent / Auto) çevrilir.
+
+Testler (sahte WMI/HID ile): `python -m unittest discover -s tests`
 
 ## Lisans
 

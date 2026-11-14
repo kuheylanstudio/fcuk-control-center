@@ -2,14 +2,12 @@
   "locale": "fr-FR",
   "fmt.dec": ",",
   "fmt.pct": "{v} %",
-
   "chip.guard": "Protection thermique",
   "chip.profile.title": "Profil actif",
   "chip.noProfile": "Aucun profil",
   "chip.admin.title": "Droits du service",
   "chip.standard": "Standard",
   "chip.admin": "Admin",
-
   "nav.aria": "Sections",
   "nav.genel": "Vue d'ensemble",
   "nav.genel.sub": "Mesures en direct",
@@ -23,7 +21,6 @@
   "nav.klavye.sub": "Modes RGB",
   "nav.ayarlar": "Paramètres",
   "nav.ayarlar.sub": "Langue, admin, démarrage",
-
   "ov.quick.aria": "Choix rapide du profil",
   "ov.cpu": "Processeur",
   "ov.power": "Puissance",
@@ -56,7 +53,6 @@
   "ac.battery": "Batterie",
   "core.p.title": "Cœur performance {n}, thread {t}",
   "core.e.title": "Cœur efficacité {n}",
-
   "perf.title": "Profils de performances",
   "perf.intro": "Chaque profil règle en une fois le mode d'alimentation du contrôleur, la courbe de ventilation, le Turbo et les plafonds de fréquence du processeur, la fréquence de la carte graphique et le taux de rafraîchissement. Vous en voyez l'effet dans les mesures en direct ci-dessous.",
   "perf.cpuPower": "Puissance CPU",
@@ -79,7 +75,6 @@
   "perf.factoryDone": "État d'usine restauré.",
   "perf.factoryFail": "Impossible de restaurer : {err}",
   "common.sure": "Êtes-vous sûr ?",
-
   "fan.intro": "La courbe est exécutée par le contrôleur embarqué : elle reste active même lorsque l'application est fermée. Le premier point (45 °C) et le dernier (100 % à 100 °C) sont imposés par le contrôleur ; aucune courbe ne peut couper complètement le refroidissement. Protection thermique : si le processeur dépasse 93 °C ou la carte graphique 87 °C pendant 5 secondes, les ventilateurs reviennent à la table d'usine, puis la courbe reprend une fois la température redescendue.",
   "fan.curve": "Courbe du ventilateur CPU",
   "fan.legend.factory": "Usine",
@@ -96,7 +91,6 @@
   "fanmode.0": "Table d'usine",
   "fanmode.1": "Maximum",
   "fanmode.6": "Courbe personnalisée",
-
   "audio.speaker": "Haut-parleurs",
   "audio.mute": "Muet",
   "audio.mic": "Micro",
@@ -105,7 +99,6 @@
   "audio.refreshHint": "60 Hz ménage la carte graphique et la dalle. Silence le choisit automatiquement.",
   "audio.fail": "Impossible de régler le volume : {err}",
   "display.fail": "Impossible de changer le taux de rafraîchissement : {err}",
-
   "kb.modes.aria": "Modes",
   "kb.stage.aria": "Clavier en direct",
   "kb.drawing.aria": "Illustration de la couleur actuelle du clavier",
@@ -136,14 +129,12 @@
   "pal.steps": "Dans l'ordre, de gauche à droite",
   "pal.loop": "De gauche à droite, puis en boucle",
   "pal.range": "Gauche = bas, droite = haut",
-
   "picker.aria": "Sélecteur de couleur",
   "picker.sv": "Saturation et luminosité, réglables avec les flèches",
   "picker.svText": "Saturation {s}, luminosité {v}",
   "picker.hue": "Teinte",
   "picker.hex": "Code couleur",
   "picker.done": "OK",
-
   "set.lang": "Langue",
   "set.langAuto": "Automatique : {name}",
   "set.langHint": "En mode automatique, la langue suit le paramètre de pays ou région de Windows. Après un changement, la fenêtre se recharge dans la nouvelle langue.",
@@ -171,10 +162,8 @@
   "set.version": "Version",
   "set.dll": "Bibliothèque matérielle",
   "set.verNote": "Version {v}",
-
   "err.noLink": "Pas de connexion avec le service. Redémarrez l'application.",
   "err.saveCfg": "Impossible d'enregistrer le réglage : pas de connexion avec le service.",
-
   "mode.speed": "Vitesse",
   "mode.react": "Réactivité",
   "mode.sabit": "Couleur fixe",
@@ -202,7 +191,6 @@
   "info.battery": "Batterie : {v}",
   "info.gpuTemp": "Carte graphique : {t} °C",
   "info.cpuTemp": "Processeur : {t} °C",
-
   "power.0": "Silencieux",
   "power.1": "Économie d'énergie",
   "power.2": "Performance",
@@ -226,7 +214,6 @@
   "lenovo.bat.normal": "Normal",
   "lenovo.bat.conservation": "Préservation (env. 60 %)",
   "lenovo.bat.rapid": "Charge rapide",
-
   "prof.tam_sessiz": "Silence",
   "prof.tam_sessiz.tag": "Ventilateurs au minimum, inaudible",
   "prof.tam_sessiz.desc": "Turbo désactivé, contrôleur en mode Silencieux (processeur bloqué à ~15 W). Ventilateurs au régime minimum jusqu'à 70 °C. Carte graphique verrouillée à 600 MHz, écran à 60 Hz. Mesure avec les 12 threads à pleine charge : 15 W, 59 °C, ventilateur à 29 %. Carte graphique à pleine charge : 600 MHz, 19 W (65 W sans limite). Pour lire, écrire, regarder des films, la nuit.",
@@ -242,7 +229,6 @@
   "prof.ultra": "Ultra Performance",
   "prof.ultra.tag": "Peu importe le bruit, FPS maximum",
   "prof.ultra.desc": "Tout ce qu'offre Performance, avec en plus : ventilateurs actifs dès 50 °C et à 90 % dès 62 °C, pour évacuer la chaleur de la carte graphique en jeu avant qu'elle ne s'accumule. EPP 0, parcage des cœurs désactivé, économie d'énergie PCIe désactivée : latence minimale, mais consommation élevée même au repos. Mesure honnête : avec processeur et carte graphique ensemble à pleine charge, identique à Performance (carte ~70 W / 1960 MHz, processeur ~32 W) ; c'est la limite de ce châssis. Seuls changent les réglages de latence et la ventilation plus précoce. Sur secteur uniquement ; repasse en Performance sur batterie.",
-
   "row.powerMode": "Mode d'alimentation",
   "row.cpuCap": "Plafond CPU",
   "row.turboEpp": "Turbo / EPP",
@@ -271,7 +257,6 @@
   "sched.3": "E uniquement",
   "sched.4": "E en priorité",
   "sched.5": "automatique",
-
   "step.ec": "Mode d'alimentation du contrôleur",
   "step.fan": "Ventilateur",
   "step.cpu": "Processeur",
@@ -294,7 +279,6 @@
   "msg.factory": "usine",
   "msg.unchanged": "inchangé",
   "guard.hot": "Température élevée : ventilateurs rendus temporairement au contrôleur.",
-
   "err.hz": "Impossible de régler {hz} Hz",
   "err.gpuAdmin": "le verrouillage de fréquence nécessite le mode administrateur (Paramètres)",
   "err.schemeActivate": "impossible d'activer le mode de gestion de l'alimentation",
@@ -322,7 +306,6 @@
   "throttle.128": "frein de puissance",
   "throttle.256": "horloge d'affichage",
   "err.ui": "ui/index.html introuvable : {path}",
-
   "tray.engineDown": "Le service ne répond pas",
   "tray.engineStarting": "Démarrage du service…",
   "tray.profile": "Profil : {name}",
@@ -346,7 +329,6 @@
   "tray.applied": "Profil appliqué.",
   "tray.applyFail": "Impossible d'appliquer le profil",
   "tray.fanFail": "Impossible de régler le ventilateur",
-
   "osd.kb": "Clavier",
   "osd.kbLight": "Rétroéclairage",
   "osd.on": "Activé",
@@ -370,5 +352,47 @@
   "err.awKbOpen": "impossible d'ouvrir le périphérique clavier AlienFX",
   "unsup.kbAw": "L'éclairage RVB du clavier n'est pas disponible sur cet ordinateur : {err}. Le contrôle des ventilateurs et du mode d'alimentation fonctionne toujours.",
   "fan.introAw": "Sur Alienware, c'est l'application qui applique la courbe (le contrôleur n'en a pas) : chaque seconde, elle lit la température et règle les ventilateurs. À la fermeture de l'application, les ventilateurs reviennent au profil du contrôleur. La ligne pointillée est une référence, pas une table d'usine. Protection thermique : si le processeur dépasse 93 °C ou la carte 87 °C pendant 5 secondes, ou si la température est illisible, les ventilateurs reviennent au contrôleur.",
-  "fan.legend.reference": "Référence"
+  "fan.legend.reference": "Référence",
+  "nav.msi": "MSI",
+  "nav.msi.sub": "Mode, Cooler Boost, batterie",
+  "msi.title": "Réglages MSI",
+  "msi.intro": "Les réglages sont écrits dans le contrôleur embarqué via le pont ACPI-WMI propre à MSI (MSI_ACPI) ; aucun pilote supplémentaire n'est installé. L'écriture n'est activée que sur les modèles dont le firmware est reconnu.",
+  "msi.shift": "Mode de performance",
+  "msi.fan": "Mode du ventilateur",
+  "msi.boost": "Cooler Boost (ventilateurs à pleine vitesse)",
+  "msi.charge": "Limite de charge de la batterie",
+  "msi.chargeHint": "La batterie se charge jusqu'à ce pourcentage et recommence à charger 10 points en dessous. Prolonge la durée de vie de la batterie d'un portable toujours branché.",
+  "msi.chargeOff": "Pas de limite (100 %)",
+  "msi.info": "Contrôleur",
+  "msi.fw": "Firmware de l'EC",
+  "msi.access": "Accès",
+  "msi.kb": "Éclairage du clavier",
+  "msi.rw": "lecture et écriture",
+  "msi.ro": "lecture seule",
+  "msi.none": "aucun",
+  "msi.roNote": "Par sécurité, rien n'est écrit dans le contrôleur sur cet ordinateur ; seules les températures et les ventilateurs sont lus.",
+  "msi.fail": "Impossible d'appliquer le réglage MSI : {err}",
+  "msi.unsupFan": "Aucun accès sûr au contrôleur embarqué n'a pu être établi sur cet ordinateur MSI. L'application n'envoie aucune commande aux ventilateurs ni au contrôleur ; MSI Center ou l'ordinateur lui-même continue de les gérer.",
+  "msi.unsupKb": "Aucun éclairage de clavier pris en charge n'a été trouvé sur cet ordinateur MSI (RVB par touche SteelSeries ou clavier MSI à 3 zones). Aucune commande n'est envoyée au clavier.",
+  "msi.shift.eco": "Éco",
+  "msi.shift.comfort": "Équilibré",
+  "msi.shift.sport": "Sport",
+  "msi.shift.turbo": "Turbo",
+  "msi.fan.auto": "Automatique",
+  "msi.fan.silent": "Silencieux",
+  "msi.fan.basic": "Basique",
+  "msi.fan.advanced": "Avancé",
+  "msi.noWmi": "Classe WMI MSI_ACPI introuvable",
+  "msi.readFail": "impossible de lire le contrôleur embarqué ({err})",
+  "msi.badFw": "le texte du firmware n'a pas le format attendu ({fw}) ; par sécurité le contrôleur n'est pas utilisé",
+  "msi.mirror": "Get_Data a lu la zone du firmware différemment ({a} / {b}) ; l'accès fonctionne autrement sur ce modèle, par sécurité le contrôleur n'est pas utilisé",
+  "msi.unknownFw": "Le firmware EC {fw} n'est pas dans la liste des modèles reconnus : lecture seule",
+  "msi.readOnly": "lecture seule sur cet ordinateur",
+  "msi.verifyFail": "écriture non vérifiée ({addr} : {want} écrit, {got} lu) ; toutes les écritures sont désactivées pour cette session",
+  "msi.noFeature": "indisponible sur ce modèle",
+  "msi.noMode": "ce modèle n'a pas de mode {mode}",
+  "msi.noCharge": "la limite de charge est désactivée sur ce modèle",
+  "msi.badCharge": "limite de charge non valide",
+  "msi.noCurve": "le contrôleur MSI n'a pas de courbe de ventilateur personnalisée",
+  "msi.curveAs": "Mode ventilateur MSI : {mode}"
 }

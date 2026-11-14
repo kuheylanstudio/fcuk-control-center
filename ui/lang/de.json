@@ -2,14 +2,12 @@
   "locale": "de-DE",
   "fmt.dec": ",",
   "fmt.pct": "{v} %",
-
   "chip.guard": "Hitzeschutz",
   "chip.profile.title": "Aktives Profil",
   "chip.noProfile": "Kein Profil",
   "chip.admin.title": "Rechte des Dienstes",
   "chip.standard": "Standard",
   "chip.admin": "Admin",
-
   "nav.aria": "Bereiche",
   "nav.genel": "Übersicht",
   "nav.genel.sub": "Live-Werte",
@@ -23,7 +21,6 @@
   "nav.klavye.sub": "RGB-Modi",
   "nav.ayarlar": "Einstellungen",
   "nav.ayarlar.sub": "Sprache, Admin, Autostart",
-
   "ov.quick.aria": "Schnelle Profilwahl",
   "ov.cpu": "CPU",
   "ov.power": "Leistung",
@@ -56,7 +53,6 @@
   "ac.battery": "Akku",
   "core.p.title": "Performance-Kern {n}, Thread {t}",
   "core.e.title": "Effizienz-Kern {n}",
-
   "perf.title": "Leistungsprofile",
   "perf.intro": "Jedes Profil stellt gleichzeitig den Energiemodus des Controllers, die Lüfterkurve, Turbo und Taktgrenzen der CPU, den GPU-Takt und die Bildwiederholrate ein. Die Wirkung siehst du unten in den Live-Werten.",
   "perf.cpuPower": "CPU-Leistung",
@@ -79,7 +75,6 @@
   "perf.factoryDone": "Werkszustand wiederhergestellt.",
   "perf.factoryFail": "Zurücksetzen fehlgeschlagen: {err}",
   "common.sure": "Bist du sicher?",
-
   "fan.intro": "Die Kurve läuft auf dem Embedded Controller und bleibt daher auch bei geschlossener App aktiv. Der erste Punkt (45 °C) und der letzte Punkt (100 % bei 100 °C) sind vom Controller fest vorgegeben; keine Kurve kann die Kühlung ganz abschalten. Hitzeschutz: Liegt die CPU 5 Sekunden über 93 °C oder die GPU über 87 °C, wechseln die Lüfter zur Werkstabelle zurück; nach dem Abkühlen greift die Kurve wieder.",
   "fan.curve": "CPU-Lüfterkurve",
   "fan.legend.factory": "Werk",
@@ -96,7 +91,6 @@
   "fanmode.0": "Werkstabelle",
   "fanmode.1": "Maximum",
   "fanmode.6": "Eigene Kurve",
-
   "audio.speaker": "Lautsprecher",
   "audio.mute": "Stumm",
   "audio.mic": "Mikrofon",
@@ -105,7 +99,6 @@
   "audio.refreshHint": "60 Hz schont Grafikkarte und Panel. Lautlos wählt das automatisch.",
   "audio.fail": "Lautstärke konnte nicht eingestellt werden: {err}",
   "display.fail": "Bildwiederholrate konnte nicht geändert werden: {err}",
-
   "kb.modes.aria": "Modi",
   "kb.stage.aria": "Live-Tastatur",
   "kb.drawing.aria": "Grafik mit der aktuellen Tastaturfarbe",
@@ -136,14 +129,12 @@
   "pal.steps": "Nacheinander, von links nach rechts",
   "pal.loop": "Von links nach rechts, dann von vorn",
   "pal.range": "Links niedrig, rechts hoch",
-
   "picker.aria": "Farbwähler",
   "picker.sv": "Sättigung und Helligkeit, mit den Pfeiltasten einstellen",
   "picker.svText": "Sättigung {s}, Helligkeit {v}",
   "picker.hue": "Farbton",
   "picker.hex": "Farbcode",
   "picker.done": "Fertig",
-
   "set.lang": "Sprache",
   "set.langAuto": "Automatisch: {name}",
   "set.langHint": "Bei automatischer Auswahl richtet sich die Sprache nach der Land- bzw. Regionseinstellung von Windows. Nach einer Änderung wird das Fenster in der neuen Sprache neu geladen.",
@@ -171,10 +162,8 @@
   "set.version": "Version",
   "set.dll": "Hardware-Bibliothek",
   "set.verNote": "Version {v}",
-
   "err.noLink": "Keine Verbindung zum Dienst. Starte die App neu.",
   "err.saveCfg": "Einstellung konnte nicht gespeichert werden: keine Verbindung zum Dienst.",
-
   "mode.speed": "Geschwindigkeit",
   "mode.react": "Reaktionszeit",
   "mode.sabit": "Statisch",
@@ -202,7 +191,6 @@
   "info.battery": "Akku: {v}",
   "info.gpuTemp": "GPU: {t} °C",
   "info.cpuTemp": "CPU: {t} °C",
-
   "power.0": "Leise",
   "power.1": "Energiesparen",
   "power.2": "Leistung",
@@ -226,7 +214,6 @@
   "lenovo.bat.normal": "Normal",
   "lenovo.bat.conservation": "Akkuschonung (ca. 60 %)",
   "lenovo.bat.rapid": "Schnellladen",
-
   "prof.tam_sessiz": "Lautlos",
   "prof.tam_sessiz.tag": "Lüfter auf Minimum, unhörbar",
   "prof.tam_sessiz.desc": "Turbo aus, Controller im Modus Leise (CPU bei ~15 W gesperrt). Lüfter bis 70 °C auf minimaler Drehzahl. GPU auf 600 MHz gesperrt, Display auf 60 Hz. Gemessen mit allen 12 Threads unter Volllast: 15 W, 59 °C, Lüfter 29 %. GPU unter Volllast: 600 MHz, 19 W (ohne Sperre 65 W). Zum Lesen, Schreiben, für Filme und die Nacht.",
@@ -242,7 +229,6 @@
   "prof.ultra": "Ultra-Leistung",
   "prof.ultra.tag": "Lautstärke egal, maximale FPS",
   "prof.ultra.desc": "Alles aus Leistung, dazu: Die Lüfter setzen bei 50 °C ein und erreichen bei 62 °C 90 %, damit sich GPU-Wärme im Spiel gar nicht erst staut. EPP 0, Core Parking aus, PCIe-Energiesparen aus: niedrigste Latenz, aber selbst im Leerlauf hoher Verbrauch. Ehrlich gemessen: Mit CPU und GPU gemeinsam unter Volllast identisch mit Leistung (GPU ~70 W / 1960 MHz, CPU ~32 W); das ist die Grenze dieses Gehäuses. Der Unterschied liegt nur in den Latenz-Einstellungen und dem früher anlaufenden Lüfter. Nur am Netzteil; im Akkubetrieb wird auf Leistung zurückgeschaltet.",
-
   "row.powerMode": "Energiemodus",
   "row.cpuCap": "CPU-Taktgrenze",
   "row.turboEpp": "Turbo / EPP",
@@ -271,7 +257,6 @@
   "sched.3": "nur E",
   "sched.4": "E bevorzugt",
   "sched.5": "automatisch",
-
   "step.ec": "Controller-Energiemodus",
   "step.fan": "Lüfter",
   "step.cpu": "CPU",
@@ -294,7 +279,6 @@
   "msg.factory": "Werkseinstellung",
   "msg.unchanged": "unverändert",
   "guard.hot": "Temperatur hoch: Lüfter vorübergehend dem Controller überlassen.",
-
   "err.hz": "{hz} Hz konnten nicht eingestellt werden",
   "err.gpuAdmin": "Taktsperre erfordert den Administratormodus (Einstellungen)",
   "err.schemeActivate": "Energiesparplan konnte nicht aktiviert werden",
@@ -322,7 +306,6 @@
   "throttle.128": "Leistungsbremse",
   "throttle.256": "Displaytakt",
   "err.ui": "ui/index.html nicht gefunden: {path}",
-
   "tray.engineDown": "Dienst reagiert nicht",
   "tray.engineStarting": "Dienst wird gestartet …",
   "tray.profile": "Profil: {name}",
@@ -346,7 +329,6 @@
   "tray.applied": "Profil angewendet.",
   "tray.applyFail": "Profil konnte nicht angewendet werden",
   "tray.fanFail": "Lüfter konnte nicht eingestellt werden",
-
   "osd.kb": "Tastatur",
   "osd.kbLight": "Tastaturlicht",
   "osd.on": "An",
@@ -370,5 +352,47 @@
   "err.awKbOpen": "AlienFX-Tastaturgerät konnte nicht geöffnet werden",
   "unsup.kbAw": "RGB-Tastaturbeleuchtung ist auf diesem Computer nicht verfügbar: {err}. Lüfter- und Energiemodussteuerung funktionieren weiter.",
   "fan.introAw": "Auf Alienware führt die App die Kurve aus (der Controller hat keine eigene): Sie prüft jede Sekunde die Temperatur und stellt die Lüfterdrehzahl ein. Beim Schließen der App kehren die Lüfter zum Controller-Profil zurück. Die gestrichelte Linie ist eine Referenz, keine Werkstabelle. Hitzeschutz: Liegt die CPU 5 Sekunden über 93 °C oder die GPU über 87 °C oder ist die Temperatur nicht lesbar, übernimmt wieder der Controller.",
-  "fan.legend.reference": "Referenz"
+  "fan.legend.reference": "Referenz",
+  "nav.msi": "MSI",
+  "nav.msi.sub": "Modus, Cooler Boost, Akku",
+  "msi.title": "MSI-Einstellungen",
+  "msi.intro": "Die Einstellungen werden über MSIs eigene ACPI-WMI-Brücke (MSI_ACPI) in den Embedded Controller geschrieben; es wird kein zusätzlicher Treiber installiert. Schreiben ist nur bei Modellen mit erkannter Firmware aktiv.",
+  "msi.shift": "Leistungsmodus",
+  "msi.fan": "Lüftermodus",
+  "msi.boost": "Cooler Boost (Lüfter auf voller Drehzahl)",
+  "msi.charge": "Ladegrenze des Akkus",
+  "msi.chargeHint": "Der Akku lädt bis zu diesem Prozentsatz und beginnt 10 Punkte darunter erneut zu laden. Verlängert die Akkulebensdauer bei dauerhaft angeschlossenem Laptop.",
+  "msi.chargeOff": "Keine Grenze (100 %)",
+  "msi.info": "Controller",
+  "msi.fw": "EC-Firmware",
+  "msi.access": "Zugriff",
+  "msi.kb": "Tastaturbeleuchtung",
+  "msi.rw": "Lesen und Schreiben",
+  "msi.ro": "nur Lesen",
+  "msi.none": "keiner",
+  "msi.roNote": "Aus Sicherheitsgründen wird auf diesem Computer nichts in den Controller geschrieben; nur Temperaturen und Lüfter werden gelesen.",
+  "msi.fail": "MSI-Einstellung konnte nicht angewendet werden: {err}",
+  "msi.unsupFan": "Auf diesem MSI-Computer ließ sich kein sicherer Zugriff auf den Embedded Controller herstellen. Die App sendet keine Befehle an Lüfter oder Controller; MSI Center oder der Computer selbst steuert die Lüfter weiter.",
+  "msi.unsupKb": "Auf diesem MSI-Computer wurde keine unterstützte Tastaturbeleuchtung gefunden (SteelSeries Per-Key-RGB oder MSI-3-Zonen-Tastatur). Es werden keine Befehle an die Tastatur gesendet.",
+  "msi.shift.eco": "Eco",
+  "msi.shift.comfort": "Ausgewogen",
+  "msi.shift.sport": "Sport",
+  "msi.shift.turbo": "Turbo",
+  "msi.fan.auto": "Automatisch",
+  "msi.fan.silent": "Leise",
+  "msi.fan.basic": "Basis",
+  "msi.fan.advanced": "Erweitert",
+  "msi.noWmi": "WMI-Klasse MSI_ACPI nicht gefunden",
+  "msi.readFail": "Embedded Controller konnte nicht gelesen werden ({err})",
+  "msi.badFw": "Firmware-Text hat nicht das erwartete Format ({fw}); der Controller wird aus Sicherheitsgründen nicht verwendet",
+  "msi.mirror": "Get_Data hat den Firmware-Bereich anders gelesen ({a} / {b}); der Zugriff funktioniert bei diesem Modell anders, der Controller wird aus Sicherheitsgründen nicht verwendet",
+  "msi.unknownFw": "EC-Firmware {fw} ist nicht in der Liste erkannter Modelle: nur Lesen",
+  "msi.readOnly": "auf diesem Computer nur Lesen",
+  "msi.verifyFail": "Schreiben konnte nicht überprüft werden ({addr}: {want} geschrieben, {got} gelesen); alle Schreibvorgänge sind für diese Sitzung deaktiviert",
+  "msi.noFeature": "bei diesem Modell nicht verfügbar",
+  "msi.noMode": "dieses Modell hat keinen Modus {mode}",
+  "msi.noCharge": "die Ladegrenze ist bei diesem Modell aus",
+  "msi.badCharge": "ungültige Ladegrenze",
+  "msi.noCurve": "der MSI-Controller hat keine eigene Lüfterkurve",
+  "msi.curveAs": "MSI-Lüftermodus: {mode}"
 }

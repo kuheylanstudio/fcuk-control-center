@@ -190,13 +190,18 @@ class Manager:
         elif c["fmax_p"] or c["fmax_e"]:
             caps = t("val.capPE", p=ceviri.num(c["fmax_p"] / 1000.0, 1), e=ceviri.num(c["fmax_e"] / 1000.0, 1))
         ec = getattr(self.dchu, "available", True)
+        msi = getattr(self.dchu, "kind", "") == "msi"
         if not ec:
             fan_txt = t("val.unsupported")
+        elif msi and fan[0] == "curve":  # MSI'da ozel egri yok: sessiz egri Silent, digerleri Auto fan modu
+            quiet = fan[1][3] <= 60 and fan[2][3] <= 60
+            fan_txt = t("msi.fan." + ("silent" if quiet and "silent" in self.dchu.conf["fan"] else "auto"))
         gpu_txt = t("val.gpuCap", mhz=p["gpu"][1]) if p["gpu"] else t("val.gpuFree")
         if not self.sensors.gpu_name:
             gpu_txt = t("val.unsupported")
         return [
-            (t("row.powerMode"), t("power.%d" % p["ec"]) if ec else t("val.unsupported")),
+            (t("row.powerMode"), (self._msi_power(p["ec"]) if msi else t("power.%d" % p["ec"])) if ec
+             else t("val.unsupported")),
             (t("row.cpuCap"), caps),
             (t("row.turboEpp"), "%s / %d" % (t("boost.%d" % c["boost"]), c["epp"])),
             (t("row.sched"), t("sched.%d" % c["sched"])),
@@ -204,6 +209,13 @@ class Manager:
             (t("row.fan"), fan_txt),
             (t("row.display"), t("val.disp60") if p["refresh"] == "min" else t("val.dispMax")),
         ]
+
+    def _msi_power(self, code):
+        """Clevo guc modu kodunun MSI'da karsiligi olan shift modu adi."""
+        import msi
+        modes = (self.dchu.conf or {}).get("shift") or {}
+        name = next((n for n in msi.POWER_TO_SHIFT.get(code, ()) if n in modes), None)
+        return t("msi.shift." + name) if name else t("val.unsupported")
 
     def public(self):
         return [{"id": p["id"], "name": name(p["id"]), "tag": t("prof.%s.tag" % p["id"]),
@@ -262,8 +274,8 @@ class Manager:
     def _fan(self, p):
         kind = p["fan"][0]
         if kind == "curve":
-            self.dchu.set_fan_curve(p["fan"][1], p["fan"][2])
-            return t("msg.customCurve")
+            msg = self.dchu.set_fan_curve(p["fan"][1], p["fan"][2])
+            return msg if isinstance(msg, str) else t("msg.customCurve")  # MSI: en yakin fan moduna cevrilir
         self.dchu.set_fan_mode(hw.FAN_MAX if kind == "max" else hw.FAN_AUTO)
         return t("msg.auto") if kind == "auto" else t("msg.max")
 

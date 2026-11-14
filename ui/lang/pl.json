@@ -2,14 +2,12 @@
   "locale": "pl-PL",
   "fmt.dec": ",",
   "fmt.pct": "{v}%",
-
   "chip.guard": "Ochrona termiczna",
   "chip.profile.title": "Aktywny profil",
   "chip.noProfile": "Brak profilu",
   "chip.admin.title": "Uprawnienia usługi",
   "chip.standard": "Standard",
   "chip.admin": "Administrator",
-
   "nav.aria": "Sekcje",
   "nav.genel": "Przegląd",
   "nav.genel.sub": "Pomiary na żywo",
@@ -23,7 +21,6 @@
   "nav.klavye.sub": "Tryby RGB",
   "nav.ayarlar": "Ustawienia",
   "nav.ayarlar.sub": "Język, administrator, autostart",
-
   "ov.quick.aria": "Szybki wybór profilu",
   "ov.cpu": "Procesor",
   "ov.power": "Moc",
@@ -56,7 +53,6 @@
   "ac.battery": "Bateria",
   "core.p.title": "Rdzeń wydajnościowy {n}, wątek {t}",
   "core.e.title": "Rdzeń energooszczędny {n}",
-
   "perf.title": "Profile wydajności",
   "perf.intro": "Każdy profil jednocześnie ustawia tryb zasilania kontrolera, krzywą wentylatorów, turbo i limity taktowania procesora, taktowanie karty graficznej oraz częstotliwość odświeżania ekranu. Efekt zobaczysz w pomiarach na żywo poniżej.",
   "perf.cpuPower": "Moc procesora",
@@ -79,7 +75,6 @@
   "perf.factoryDone": "Przywrócono ustawienia fabryczne.",
   "perf.factoryFail": "Nie udało się przywrócić: {err}",
   "common.sure": "Na pewno?",
-
   "fan.intro": "Krzywą realizuje wbudowany kontroler, więc działa także przy zamkniętej aplikacji. Pierwszy punkt (45 °C) i ostatni (100% przy 100 °C) są w kontrolerze stałe – żadna krzywa nie wyłączy chłodzenia całkowicie. Ochrona termiczna: jeśli procesor przekroczy 93 °C lub karta 87 °C przez 5 sekund, wentylatory wracają do tabeli fabrycznej, a po ochłodzeniu krzywa wraca.",
   "fan.curve": "Krzywa wentylatora CPU",
   "fan.legend.factory": "Fabryczna",
@@ -96,7 +91,6 @@
   "fanmode.0": "Tabela fabryczna",
   "fanmode.1": "Maksimum",
   "fanmode.6": "Własna krzywa",
-
   "audio.speaker": "Głośnik",
   "audio.mute": "Wyciszony",
   "audio.mic": "Mikrofon",
@@ -105,7 +99,6 @@
   "audio.refreshHint": "60 Hz mniej obciąża kartę graficzną i panel. Profil Pełna cisza ustawia to sam.",
   "audio.fail": "Nie udało się ustawić dźwięku: {err}",
   "display.fail": "Nie udało się zmienić częstotliwości odświeżania: {err}",
-
   "kb.modes.aria": "Tryby",
   "kb.stage.aria": "Klawiatura na żywo",
   "kb.drawing.aria": "Rysunek pokazujący bieżący kolor klawiatury",
@@ -136,14 +129,12 @@
   "pal.steps": "Po kolei, od lewej do prawej",
   "pal.loop": "Od lewej do prawej, potem od początku",
   "pal.range": "Lewo nisko, prawo wysoko",
-
   "picker.aria": "Wybór koloru",
   "picker.sv": "Nasycenie i jasność – regulacja strzałkami",
   "picker.svText": "Nasycenie {s}, jasność {v}",
   "picker.hue": "Odcień",
   "picker.hex": "Kod koloru",
   "picker.done": "Gotowe",
-
   "set.lang": "Język",
   "set.langAuto": "Automatycznie: {name}",
   "set.langHint": "W trybie automatycznym język jest dobierany według ustawień kraju lub regionu w Windows. Po zmianie okno odświeży się w nowym języku.",
@@ -171,10 +162,8 @@
   "set.version": "Wersja",
   "set.dll": "Biblioteka sprzętowa",
   "set.verNote": "Wersja {v}",
-
   "err.noLink": "Brak połączenia z usługą. Uruchom aplikację ponownie.",
   "err.saveCfg": "Nie udało się zapisać ustawienia: brak połączenia z usługą.",
-
   "mode.speed": "Prędkość",
   "mode.react": "Szybkość reakcji",
   "mode.sabit": "Stały kolor",
@@ -202,7 +191,6 @@
   "info.battery": "Bateria: {v}",
   "info.gpuTemp": "Karta graficzna: {t} °C",
   "info.cpuTemp": "Procesor: {t} °C",
-
   "power.0": "Cichy",
   "power.1": "Oszczędzanie energii",
   "power.2": "Wydajność",
@@ -226,7 +214,6 @@
   "lenovo.bat.normal": "Normalne",
   "lenovo.bat.conservation": "Oszczędzanie baterii (ok. 60%)",
   "lenovo.bat.rapid": "Szybkie ładowanie",
-
   "prof.tam_sessiz": "Pełna cisza",
   "prof.tam_sessiz.tag": "Wentylator na minimum, niesłyszalny",
   "prof.tam_sessiz.desc": "Turbo wyłączone, kontroler w trybie cichym (procesor zablokowany na ~15 W). Wentylatory na najniższych obrotach do 70 °C. Karta graficzna zablokowana na 600 MHz, ekran 60 Hz. Pomiar, 12 wątków przy pełnym obciążeniu: 15 W, 59 °C, wentylator 29%. Karta graficzna przy pełnym obciążeniu: 600 MHz, 19 W (bez limitu 65 W). Czytanie, pisanie, filmy, praca nocą.",
@@ -242,7 +229,6 @@
   "prof.ultra": "Ultra wydajność",
   "prof.ultra.tag": "Hałas bez znaczenia, maksymalny FPS",
   "prof.ultra.desc": "Ponad profil Wydajność: wentylatory włączają się przy 50 °C i dochodzą do 90% przy 62 °C, więc ciepło karty graficznej jest odprowadzane w grze, zanim się skumuluje. EPP 0, parkowanie rdzeni wyłączone, oszczędzanie energii PCIe wyłączone: najniższe opóźnienia, ale wysoki pobór mocy nawet w spoczynku. Uczciwy pomiar: przy pełnym obciążeniu procesora i karty jednocześnie wynik jak w profilu Wydajność (karta ~70 W / 1960 MHz, procesor ~32 W) – to limit tej obudowy. Różnica to tylko ustawienia opóźnień i wcześniej startujące wentylatory. Tylko na zasilaczu; po przejściu na baterię przełącza się na profil Wydajność.",
-
   "row.powerMode": "Tryb zasilania",
   "row.cpuCap": "Limit procesora",
   "row.turboEpp": "Turbo / EPP",
@@ -271,7 +257,6 @@
   "sched.3": "tylko E",
   "sched.4": "najpierw E",
   "sched.5": "automatycznie",
-
   "step.ec": "Tryb zasilania kontrolera",
   "step.fan": "Wentylator",
   "step.cpu": "Procesor",
@@ -294,7 +279,6 @@
   "msg.factory": "fabryczne",
   "msg.unchanged": "bez zmian",
   "guard.hot": "Wysoka temperatura: wentylatory tymczasowo przekazane kontrolerowi.",
-
   "err.hz": "Nie udało się ustawić {hz} Hz",
   "err.gpuAdmin": "blokada taktowania wymaga trybu administratora (Ustawienia)",
   "err.schemeActivate": "nie udało się aktywować planu zasilania",
@@ -322,7 +306,6 @@
   "throttle.128": "hamulec mocy",
   "throttle.256": "taktowanie ekranu",
   "err.ui": "Nie znaleziono ui/index.html: {path}",
-
   "tray.engineDown": "Usługa nie odpowiada",
   "tray.engineStarting": "Uruchamianie usługi…",
   "tray.profile": "Profil: {name}",
@@ -346,7 +329,6 @@
   "tray.applied": "Profil zastosowany.",
   "tray.applyFail": "Nie udało się zastosować profilu",
   "tray.fanFail": "Nie udało się ustawić wentylatora",
-
   "osd.kb": "Klawiatura",
   "osd.kbLight": "Podświetlenie",
   "osd.on": "Wł.",
@@ -370,5 +352,47 @@
   "err.awKbOpen": "nie można otworzyć urządzenia klawiatury AlienFX",
   "unsup.kbAw": "Podświetlenie RGB klawiatury jest niedostępne na tym komputerze: {err}. Sterowanie wentylatorami i trybem zasilania nadal działa.",
   "fan.introAw": "Na Alienware krzywą wykonuje aplikacja (kontroler nie ma własnej): co sekundę sprawdza temperaturę i ustawia wentylatory. Po zamknięciu aplikacji wentylatory wracają do profilu kontrolera. Linia przerywana to odniesienie, nie tabela fabryczna. Ochrona termiczna: jeśli procesor przez 5 sekund przekracza 93 °C lub karta 87 °C albo temperatury nie da się odczytać, wentylatory wracają do kontrolera.",
-  "fan.legend.reference": "Odniesienie"
+  "fan.legend.reference": "Odniesienie",
+  "nav.msi": "MSI",
+  "nav.msi.sub": "Tryb, Cooler Boost, bateria",
+  "msi.title": "Ustawienia MSI",
+  "msi.intro": "Ustawienia są zapisywane do wbudowanego kontrolera przez własny mostek ACPI-WMI firmy MSI (MSI_ACPI); nie jest instalowany żaden dodatkowy sterownik. Zapis jest włączony tylko w modelach z rozpoznanym firmware.",
+  "msi.shift": "Tryb wydajności",
+  "msi.fan": "Tryb wentylatora",
+  "msi.boost": "Cooler Boost (wentylatory na pełnych obrotach)",
+  "msi.charge": "Limit ładowania baterii",
+  "msi.chargeHint": "Bateria ładuje się do tego procentu i zaczyna ładować ponownie 10 punktów niżej. Wydłuża żywotność baterii laptopa stale podłączonego do zasilania.",
+  "msi.chargeOff": "Bez limitu (100%)",
+  "msi.info": "Kontroler",
+  "msi.fw": "Firmware EC",
+  "msi.access": "Dostęp",
+  "msi.kb": "Podświetlenie klawiatury",
+  "msi.rw": "odczyt i zapis",
+  "msi.ro": "tylko odczyt",
+  "msi.none": "brak",
+  "msi.roNote": "Ze względów bezpieczeństwa na tym komputerze nic nie jest zapisywane do kontrolera; odczytywane są tylko temperatury i wentylatory.",
+  "msi.fail": "Nie udało się zastosować ustawienia MSI: {err}",
+  "msi.unsupFan": "Na tym komputerze MSI nie udało się uzyskać bezpiecznego dostępu do wbudowanego kontrolera. Aplikacja nie wysyła poleceń do wentylatorów ani kontrolera; MSI Center lub sam komputer nadal nimi zarządza.",
+  "msi.unsupKb": "Na tym komputerze MSI nie znaleziono obsługiwanego podświetlenia klawiatury (SteelSeries RGB na klawisz lub 3-strefowa klawiatura MSI). Do klawiatury nie są wysyłane żadne polecenia.",
+  "msi.shift.eco": "Eko",
+  "msi.shift.comfort": "Zrównoważony",
+  "msi.shift.sport": "Sport",
+  "msi.shift.turbo": "Turbo",
+  "msi.fan.auto": "Automatyczny",
+  "msi.fan.silent": "Cichy",
+  "msi.fan.basic": "Podstawowy",
+  "msi.fan.advanced": "Zaawansowany",
+  "msi.noWmi": "Nie znaleziono klasy WMI MSI_ACPI",
+  "msi.readFail": "nie udało się odczytać wbudowanego kontrolera ({err})",
+  "msi.badFw": "tekst firmware ma nieoczekiwany format ({fw}); ze względów bezpieczeństwa kontroler nie jest używany",
+  "msi.mirror": "Get_Data odczytał obszar firmware inaczej ({a} / {b}); dostęp działa inaczej w tym modelu, ze względów bezpieczeństwa kontroler nie jest używany",
+  "msi.unknownFw": "Firmware EC {fw} nie jest na liście rozpoznanych modeli: tylko odczyt",
+  "msi.readOnly": "na tym komputerze tylko odczyt",
+  "msi.verifyFail": "nie udało się zweryfikować zapisu ({addr}: zapisano {want}, odczytano {got}); wszystkie zapisy w tej sesji są wyłączone",
+  "msi.noFeature": "niedostępne w tym modelu",
+  "msi.noMode": "ten model nie ma trybu {mode}",
+  "msi.noCharge": "limit ładowania jest wyłączony w tym modelu",
+  "msi.badCharge": "nieprawidłowy limit ładowania",
+  "msi.noCurve": "kontroler MSI nie ma własnej krzywej wentylatora",
+  "msi.curveAs": "Tryb wentylatora MSI: {mode}"
 }

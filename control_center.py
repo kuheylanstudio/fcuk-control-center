@@ -516,6 +516,8 @@ def state():
         "lenovo": lenovo_state(),
         "ec_clevo": bool(getattr(App.dchu, "clevo", True)),  # aygit var, yalnizca kitaplik yok
         "ec_reason": getattr(App.dchu, "reason", ""),
+        "caps": caps(),
+        "msi": msi_state(),
         "cpu": App.inventory.data.get("cpu"),
         "nvidia": bool(App.sensors.gpu_name),
         "igpu_name": App.sensors.igpu_name,
@@ -532,6 +534,21 @@ def lenovo_state():
         return App.dchu.extras()
     except Exception as exc:
         return {"error": str(exc)}
+
+
+def caps():
+    """Bu bilgisayarda hangi donanim denetimleri var: arayuz olmayani gizler, motor komut gondermez."""
+    fn = getattr(App.dchu, "caps", None)
+    if fn:
+        return fn()
+    ok = bool(App.dchu.available)
+    kb = bool(getattr(App.dchu, "kb_available", ok))  # Alienware/Lenovo: klavye isigi ayri olabilir
+    return {"power": ok, "fan": ok, "fan_curve": ok, "kb": kb, "temps": ok}
+
+
+def msi_state():
+    fn = getattr(App.dchu, "msi_state", None)
+    return fn() if fn else None
 
 
 def nvidia_state():
@@ -770,6 +787,18 @@ class Handler(BaseHTTPRequestHandler):
             except (hw.Unsupported, ValueError) as exc:
                 return self._json({"error": str(exc) or t("err.lenovoNo")}, 400)
             return self._json({"ok": True, "reboot": bool(reboot), "lenovo": lenovo_state()})
+        if path == "/api/msi":  # MSI'a ozel EC ayarlari: yalnizca tanimli anahtarlar, degerler msi.py'de denetlenir
+            fn = getattr(App.dchu, "msi_set", None)
+            key = body.get("key")
+            if not fn or key not in ("shift", "fan", "boost", "charge"):
+                return self._json({"error": t("err.action")}, 400)
+            try:
+                fn(key, body.get("value"))
+            except hw.Unsupported as exc:
+                return self._json({"error": str(exc), "msi": msi_state()}, 409)
+            except ValueError as exc:
+                return self._json({"error": str(exc), "msi": msi_state()}, 400)
+            return self._json({"ok": True, "msi": msi_state(), "cc": mgr.status()})
         if path == "/api/audio":
             which = body.get("which")
             if which not in ("speaker", "mic"):
@@ -998,7 +1027,7 @@ def serve():
     # Fn tusu olaylarini ac (Clevo "events enabled", komut 0x46). Bunu eskiden FnKey.exe acilista yapiyordu;
     # gonderilmezse denetleyici Fn bildirimlerini AcpiBridge'e iletmez (14.11.2026 olculdu). Yeniden
     # baslatmaya dek kalicidir; her acilista gonderilir.
-    if App.dchu.kind == "clevo":
+    if App.dchu.available and getattr(App.dchu, "kind", "clevo") == "clevo":
         try:
             App.dchu.set_wmi(0x46, 0)
         except Exception:
@@ -1032,7 +1061,7 @@ def serve():
     App.engine.settings = core.snapshot(App.cfg)
     App.engine.start()
     App.sensors.start()
-    if hw.is_admin() and App.dchu.kind == "clevo":  # yalnizca Clevo/Monster: Monster Fn programlari engellenir
+    if hw.is_admin() and App.dchu.available and getattr(App.dchu, "kind", "clevo") == "clevo":  # yalnizca Clevo/Monster: Monster Fn programlari engellenir
         threading.Thread(target=fn_block_loop, daemon=True).start()
     if cc.get("profile") in profiller.BY_ID:  # yeniden baslatmadan sonra denetleyici ayarlari geri gelsin
         threading.Thread(target=App.manager.apply, args=(cc["profile"], "reason.startup"), daemon=True).start()
@@ -1079,7 +1108,12 @@ def fans_to_factory():
         dchu = hw.open_dchu()  # Clevo degilse NullDCHU: denetleyiciye komut gitmez
         if not dchu.available:
             return True
-        dchu.set_fan_mode(hw.FAN_AUTO)
+        try:
+            dchu.set_fan_mode(hw.FAN_AUTO)
+        finally:
+            close = getattr(dchu, "close", None)  # MSI: WMI isci sureci
+            if close:
+                close()
         return True
     except Exception:
         log("fanlar fabrika tablosuna alinamadi: " + traceback.format_exc().replace("\n", " | "))

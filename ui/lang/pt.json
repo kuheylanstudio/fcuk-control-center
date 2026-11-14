@@ -2,14 +2,12 @@
   "locale": "pt-BR",
   "fmt.dec": ",",
   "fmt.pct": "{v}%",
-
   "chip.guard": "Proteção térmica",
   "chip.profile.title": "Perfil ativo",
   "chip.noProfile": "Sem perfil",
   "chip.admin.title": "Permissões do serviço",
   "chip.standard": "Padrão",
   "chip.admin": "Administrador",
-
   "nav.aria": "Seções",
   "nav.genel": "Visão geral",
   "nav.genel.sub": "Dados ao vivo",
@@ -23,7 +21,6 @@
   "nav.klavye.sub": "Efeitos RGB",
   "nav.ayarlar": "Configurações",
   "nav.ayarlar.sub": "Idioma, admin, inicialização",
-
   "ov.quick.aria": "Seleção rápida de perfil",
   "ov.cpu": "CPU",
   "ov.power": "Consumo",
@@ -56,7 +53,6 @@
   "ac.battery": "Bateria",
   "core.p.title": "Núcleo de desempenho {n}, thread {t}",
   "core.e.title": "Núcleo de eficiência {n}",
-
   "perf.title": "Perfis de desempenho",
   "perf.intro": "Cada perfil ajusta de uma vez o modo de energia do controlador, a curva das ventoinhas, o Turbo e os limites de frequência da CPU, o clock da GPU e a taxa de atualização da tela. Você vê o efeito nas medições ao vivo abaixo.",
   "perf.cpuPower": "Consumo da CPU",
@@ -79,7 +75,6 @@
   "perf.factoryDone": "Padrão de fábrica restaurado.",
   "perf.factoryFail": "Não foi possível restaurar: {err}",
   "common.sure": "Tem certeza?",
-
   "fan.intro": "A curva é executada pelo controlador embarcado e continua valendo mesmo com o app fechado. O primeiro ponto (45 °C) e o último (100% a 100 °C) são fixos no controlador; nenhuma curva consegue desligar totalmente a refrigeração. Proteção térmica: se a CPU passar de 93 °C ou a GPU de 87 °C por 5 segundos, as ventoinhas voltam à tabela de fábrica e a curva retorna quando esfriar.",
   "fan.curve": "Curva da ventoinha da CPU",
   "fan.legend.factory": "Fábrica",
@@ -96,7 +91,6 @@
   "fanmode.0": "Tabela de fábrica",
   "fanmode.1": "Máximo",
   "fanmode.6": "Curva personalizada",
-
   "audio.speaker": "Alto-falantes",
   "audio.mute": "Mudo",
   "audio.mic": "Microfone",
@@ -105,7 +99,6 @@
   "audio.refreshHint": "Em 60 Hz a GPU e o painel trabalham menos. O Silêncio Total escolhe isso sozinho.",
   "audio.fail": "Não foi possível ajustar o som: {err}",
   "display.fail": "Não foi possível mudar a taxa de atualização: {err}",
-
   "kb.modes.aria": "Efeitos",
   "kb.stage.aria": "Teclado ao vivo",
   "kb.drawing.aria": "Desenho mostrando a cor atual do teclado",
@@ -136,14 +129,12 @@
   "pal.steps": "Em sequência, da esquerda para a direita",
   "pal.loop": "Da esquerda para a direita, depois recomeça",
   "pal.range": "Esquerda baixo, direita alto",
-
   "picker.aria": "Seletor de cor",
   "picker.sv": "Saturação e brilho; ajuste com as setas",
   "picker.svText": "Saturação {s}, brilho {v}",
   "picker.hue": "Matiz",
   "picker.hex": "Código da cor",
   "picker.done": "OK",
-
   "set.lang": "Idioma",
   "set.langAuto": "Automático: {name}",
   "set.langHint": "No modo automático, o idioma segue a configuração de país ou região do Windows. Ao mudar, a janela é recarregada no novo idioma.",
@@ -171,10 +162,8 @@
   "set.version": "Versão",
   "set.dll": "Biblioteca de hardware",
   "set.verNote": "Versão {v}",
-
   "err.noLink": "Sem conexão com o serviço. Reinicie o app.",
   "err.saveCfg": "Não foi possível salvar a configuração: sem conexão com o serviço.",
-
   "mode.speed": "Velocidade",
   "mode.react": "Resposta",
   "mode.sabit": "Cor fixa",
@@ -202,7 +191,6 @@
   "info.battery": "Bateria: {v}",
   "info.gpuTemp": "GPU: {t} °C",
   "info.cpuTemp": "CPU: {t} °C",
-
   "power.0": "Silencioso",
   "power.1": "Economia de energia",
   "power.2": "Desempenho",
@@ -226,7 +214,6 @@
   "lenovo.bat.normal": "Normal",
   "lenovo.bat.conservation": "Conservação (cerca de 60%)",
   "lenovo.bat.rapid": "Carga rápida",
-
   "prof.tam_sessiz": "Silêncio Total",
   "prof.tam_sessiz.tag": "Ventoinha no mínimo, inaudível",
   "prof.tam_sessiz.desc": "Turbo desligado, controlador no modo silencioso (CPU travada em ~15 W). Ventoinhas no mínimo até 70 °C. GPU travada em 600 MHz, tela em 60 Hz. Medição com 12 threads em carga total: 15 W, 59 °C, ventoinha a 29%. GPU em carga total: 600 MHz, 19 W (65 W sem limite). Leitura, escrita, filmes, madrugada.",
@@ -242,7 +229,6 @@
   "prof.ultra": "Ultra Desempenho",
   "prof.ultra.tag": "Ruído não importa, FPS máximo",
   "prof.ultra.desc": "Tudo do Desempenho e mais: as ventoinhas entram em 50 °C e chegam a 90% em 62 °C, expulsando o calor da GPU antes que se acumule no jogo. EPP 0, estacionamento de núcleos desligado, economia de energia PCIe desligada: latência mínima, mas consumo alto mesmo em repouso. Medição honesta: com CPU e GPU juntas em carga total, rende o mesmo que o Desempenho (GPU ~70 W / 1960 MHz, CPU ~32 W); é o teto deste chassi. A diferença está só nos ajustes de latência e nas ventoinhas que entram mais cedo. Só na tomada; na bateria, cai para Desempenho.",
-
   "row.powerMode": "Modo de energia",
   "row.cpuCap": "Limite da CPU",
   "row.turboEpp": "Turbo / EPP",
@@ -271,7 +257,6 @@
   "sched.3": "só E",
   "sched.4": "prioridade E",
   "sched.5": "automático",
-
   "step.ec": "Modo de energia do controlador",
   "step.fan": "Ventoinha",
   "step.cpu": "CPU",
@@ -294,7 +279,6 @@
   "msg.factory": "fábrica",
   "msg.unchanged": "sem alteração",
   "guard.hot": "Temperatura alta: ventoinhas entregues temporariamente ao controlador.",
-
   "err.hz": "Não foi possível definir {hz} Hz",
   "err.gpuAdmin": "o travamento de clock exige o modo administrador (Configurações)",
   "err.schemeActivate": "não foi possível ativar o plano de energia",
@@ -322,7 +306,6 @@
   "throttle.128": "freio de energia",
   "throttle.256": "clock da tela",
   "err.ui": "ui/index.html não encontrado: {path}",
-
   "tray.engineDown": "O serviço não responde",
   "tray.engineStarting": "Iniciando o serviço…",
   "tray.profile": "Perfil: {name}",
@@ -346,7 +329,6 @@
   "tray.applied": "Perfil aplicado.",
   "tray.applyFail": "Não foi possível aplicar o perfil",
   "tray.fanFail": "Não foi possível ajustar a ventoinha",
-
   "osd.kb": "Teclado",
   "osd.kbLight": "Luz do teclado",
   "osd.on": "Ligado",
@@ -370,5 +352,47 @@
   "err.awKbOpen": "não foi possível abrir o dispositivo de teclado AlienFX",
   "unsup.kbAw": "A iluminação RGB do teclado não está disponível neste computador: {err}. O controle das ventoinhas e do modo de energia continua funcionando.",
   "fan.introAw": "No Alienware, quem executa a curva é o app (o controlador não tem curva própria): a cada segundo ele lê a temperatura e ajusta as ventoinhas. Ao fechar o app, as ventoinhas voltam ao perfil do controlador. A linha tracejada é uma referência, não uma tabela de fábrica. Proteção térmica: se a CPU passar de 93 °C ou a GPU de 87 °C por 5 segundos, ou a temperatura não puder ser lida, as ventoinhas voltam ao controlador.",
-  "fan.legend.reference": "Referência"
+  "fan.legend.reference": "Referência",
+  "nav.msi": "MSI",
+  "nav.msi.sub": "Modo, Cooler Boost, bateria",
+  "msi.title": "Definições MSI",
+  "msi.intro": "As definições são escritas no controlador embutido através da ponte ACPI-WMI própria da MSI (MSI_ACPI); não é instalado nenhum controlador adicional. A escrita só é ativada em modelos com firmware reconhecido.",
+  "msi.shift": "Modo de desempenho",
+  "msi.fan": "Modo da ventoinha",
+  "msi.boost": "Cooler Boost (ventoinhas na velocidade máxima)",
+  "msi.charge": "Limite de carga da bateria",
+  "msi.chargeHint": "A bateria carrega até esta percentagem e volta a carregar 10 pontos abaixo. Prolonga a vida da bateria num portátil sempre ligado à corrente.",
+  "msi.chargeOff": "Sem limite (100%)",
+  "msi.info": "Controlador",
+  "msi.fw": "Firmware do EC",
+  "msi.access": "Acesso",
+  "msi.kb": "Luz do teclado",
+  "msi.rw": "leitura e escrita",
+  "msi.ro": "só leitura",
+  "msi.none": "nenhum",
+  "msi.roNote": "Por segurança nada é escrito no controlador neste computador; só são lidas temperaturas e ventoinhas.",
+  "msi.fail": "Não foi possível aplicar a definição MSI: {err}",
+  "msi.unsupFan": "Não foi possível estabelecer acesso seguro ao controlador embutido neste computador MSI. A aplicação não envia comandos às ventoinhas nem ao controlador; o MSI Center ou o próprio computador continuam a geri-las.",
+  "msi.unsupKb": "Não foi encontrado nenhum dispositivo de iluminação de teclado suportado neste computador MSI (RGB por tecla SteelSeries ou teclado MSI de 3 zonas). Não são enviados comandos ao teclado.",
+  "msi.shift.eco": "Eco",
+  "msi.shift.comfort": "Equilibrado",
+  "msi.shift.sport": "Sport",
+  "msi.shift.turbo": "Turbo",
+  "msi.fan.auto": "Automático",
+  "msi.fan.silent": "Silencioso",
+  "msi.fan.basic": "Básico",
+  "msi.fan.advanced": "Avançado",
+  "msi.noWmi": "Classe WMI MSI_ACPI não encontrada",
+  "msi.readFail": "não foi possível ler o controlador embutido ({err})",
+  "msi.badFw": "o texto do firmware não tem o formato esperado ({fw}); por segurança o controlador não é usado",
+  "msi.mirror": "Get_Data leu a área do firmware de forma diferente ({a} / {b}); o acesso funciona de outra forma neste modelo, por segurança o controlador não é usado",
+  "msi.unknownFw": "O firmware EC {fw} não está na lista de modelos reconhecidos: só leitura",
+  "msi.readOnly": "só leitura neste computador",
+  "msi.verifyFail": "não foi possível verificar a escrita ({addr}: escrito {want}, lido {got}); todas as escritas foram desativadas nesta sessão",
+  "msi.noFeature": "não disponível neste modelo",
+  "msi.noMode": "este modelo não tem o modo {mode}",
+  "msi.noCharge": "o limite de carga está desligado neste modelo",
+  "msi.badCharge": "limite de carga inválido",
+  "msi.noCurve": "o controlador MSI não tem curva de ventoinha personalizada",
+  "msi.curveAs": "Modo de ventoinha MSI: {mode}"
 }

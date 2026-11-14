@@ -2,14 +2,12 @@
   "locale": "ko-KR",
   "fmt.dec": ".",
   "fmt.pct": "{v}%",
-
   "chip.guard": "과열 보호",
   "chip.profile.title": "현재 프로필",
   "chip.noProfile": "프로필 없음",
   "chip.admin.title": "서비스 권한",
   "chip.standard": "표준",
   "chip.admin": "관리자",
-
   "nav.aria": "섹션",
   "nav.genel": "개요",
   "nav.genel.sub": "실시간 모니터링",
@@ -23,7 +21,6 @@
   "nav.klavye.sub": "RGB 모드",
   "nav.ayarlar": "설정",
   "nav.ayarlar.sub": "언어, 관리자, 시작",
-
   "ov.quick.aria": "빠른 프로필 선택",
   "ov.cpu": "CPU",
   "ov.power": "전력",
@@ -56,7 +53,6 @@
   "ac.battery": "배터리",
   "core.p.title": "P코어 {n}, 스레드 {t}",
   "core.e.title": "E코어 {n}",
-
   "perf.title": "성능 프로필",
   "perf.intro": "각 프로필은 EC 전원 모드, 팬 커브, CPU Turbo 및 클럭 상한, 그래픽카드 클럭, 화면 주사율을 한 번에 설정합니다. 효과는 아래 실시간 모니터링에서 확인할 수 있습니다.",
   "perf.cpuPower": "CPU 전력",
@@ -79,7 +75,6 @@
   "perf.factoryDone": "공장 설정으로 복원했습니다.",
   "perf.factoryFail": "복원하지 못했습니다: {err}",
   "common.sure": "계속하시겠습니까?",
-
   "fan.intro": "팬 커브는 임베디드 컨트롤러(EC)가 실행하므로 앱을 종료해도 유지됩니다. 첫 번째 지점(45 °C)과 마지막 지점(100 °C에서 100%)은 EC에 고정되어 있어, 어떤 커브로도 냉각을 완전히 멈출 수 없습니다. 과열 보호: CPU가 93 °C 또는 그래픽카드가 87 °C를 5초 이상 넘으면 팬이 공장 테이블로 돌아가고, 온도가 내려가면 커브로 복귀합니다.",
   "fan.curve": "CPU 팬 커브",
   "fan.legend.factory": "공장 설정",
@@ -96,7 +91,6 @@
   "fanmode.0": "공장 테이블",
   "fanmode.1": "최대",
   "fanmode.6": "사용자 지정 커브",
-
   "audio.speaker": "스피커",
   "audio.mute": "음소거",
   "audio.mic": "마이크",
@@ -105,7 +99,6 @@
   "audio.refreshHint": "60 Hz는 그래픽카드와 패널의 부담을 줄입니다. 초저소음 프로필은 자동으로 60 Hz를 사용합니다.",
   "audio.fail": "볼륨을 설정하지 못했습니다: {err}",
   "display.fail": "주사율을 변경하지 못했습니다: {err}",
-
   "kb.modes.aria": "모드",
   "kb.stage.aria": "실시간 키보드",
   "kb.drawing.aria": "키보드의 현재 색상을 보여주는 그림",
@@ -136,14 +129,12 @@
   "pal.steps": "왼쪽부터 순서대로",
   "pal.loop": "왼쪽에서 오른쪽, 이후 처음부터 반복",
   "pal.range": "왼쪽이 낮음, 오른쪽이 높음",
-
   "picker.aria": "색상 선택기",
   "picker.sv": "채도 및 밝기, 방향키로 조절",
   "picker.svText": "채도 {s}, 밝기 {v}",
   "picker.hue": "색조",
   "picker.hex": "색상 코드",
   "picker.done": "완료",
-
   "set.lang": "언어",
   "set.langAuto": "자동: {name}",
   "set.langHint": "자동으로 설정하면 Windows의 국가 또는 지역 설정에 따라 언어가 결정됩니다. 변경하면 창이 새 언어로 다시 로드됩니다.",
@@ -171,10 +162,8 @@
   "set.version": "버전",
   "set.dll": "하드웨어 라이브러리",
   "set.verNote": "버전 {v}",
-
   "err.noLink": "서비스에 연결할 수 없습니다. 앱을 다시 시작하세요.",
   "err.saveCfg": "설정을 저장하지 못했습니다: 서비스에 연결할 수 없습니다.",
-
   "mode.speed": "속도",
   "mode.react": "반응 속도",
   "mode.sabit": "고정 색상",
@@ -202,7 +191,6 @@
   "info.battery": "배터리: {v}",
   "info.gpuTemp": "그래픽카드: {t} °C",
   "info.cpuTemp": "CPU: {t} °C",
-
   "power.0": "저소음",
   "power.1": "절전",
   "power.2": "성능",
@@ -226,7 +214,6 @@
   "lenovo.bat.normal": "일반",
   "lenovo.bat.conservation": "배터리 보호(약 60%)",
   "lenovo.bat.rapid": "고속 충전",
-
   "prof.tam_sessiz": "초저소음",
   "prof.tam_sessiz.tag": "팬 최저 회전, 거의 무소음",
   "prof.tam_sessiz.desc": "Turbo 끔, EC는 저소음 모드(CPU 약 15 W 고정). 70 °C까지 팬 최저 회전. 그래픽카드 600 MHz 고정, 화면 60 Hz. 측정(12스레드 풀로드): 15 W, 59 °C, 팬 29%. 그래픽카드 풀로드: 600 MHz, 19 W(제한 해제 시 65 W). 독서, 글쓰기, 영화 감상, 야간용.",
@@ -242,7 +229,6 @@
   "prof.ultra": "울트라 퍼포먼스",
   "prof.ultra.tag": "소음 무시, 최고 FPS",
   "prof.ultra.desc": "퍼포먼스에 더해: 팬이 50 °C에서 돌기 시작해 62 °C에서 90%에 도달하므로, 게임 중 그래픽카드 열이 쌓이기 전에 배출됩니다. EPP 0, 코어 파킹 끔, PCIe 절전 끔: 지연 시간은 최소지만 유휴 시에도 전력 소모가 높습니다. 솔직한 측정 결과: CPU와 그래픽카드 동시 풀로드에서는 퍼포먼스와 동일(그래픽카드 약 70 W / 1960 MHz, CPU 약 32 W)하며, 이것이 이 섀시의 한계입니다. 차이는 지연 시간 설정과 일찍 도는 팬뿐입니다. 전원 연결 시에만 사용, 배터리로 전환하면 퍼포먼스로 내려갑니다.",
-
   "row.powerMode": "전원 모드",
   "row.cpuCap": "CPU 상한",
   "row.turboEpp": "Turbo / EPP",
@@ -271,7 +257,6 @@
   "sched.3": "E코어만",
   "sched.4": "E코어 우선",
   "sched.5": "자동",
-
   "step.ec": "EC 전원 모드",
   "step.fan": "팬",
   "step.cpu": "CPU",
@@ -294,7 +279,6 @@
   "msg.factory": "공장 설정",
   "msg.unchanged": "변경 없음",
   "guard.hot": "온도 높음: 팬 제어를 일시적으로 EC에 넘겼습니다.",
-
   "err.hz": "{hz} Hz로 설정하지 못했습니다",
   "err.gpuAdmin": "클럭 고정에는 관리자 모드가 필요합니다(설정)",
   "err.schemeActivate": "전원 관리 옵션을 활성화하지 못했습니다",
@@ -322,7 +306,6 @@
   "throttle.128": "전력 브레이크",
   "throttle.256": "디스플레이 클럭",
   "err.ui": "ui/index.html을 찾을 수 없습니다: {path}",
-
   "tray.engineDown": "서비스 응답 없음",
   "tray.engineStarting": "서비스 시작 중…",
   "tray.profile": "프로필: {name}",
@@ -346,7 +329,6 @@
   "tray.applied": "프로필이 적용되었습니다.",
   "tray.applyFail": "프로필을 적용하지 못했습니다",
   "tray.fanFail": "팬을 설정하지 못했습니다",
-
   "osd.kb": "키보드",
   "osd.kbLight": "키보드 백라이트",
   "osd.on": "켜짐",
@@ -370,5 +352,47 @@
   "err.awKbOpen": "AlienFX 키보드 장치를 열 수 없습니다",
   "unsup.kbAw": "이 컴퓨터에서는 키보드 RGB 조명을 사용할 수 없습니다: {err}. 팬과 전원 모드 제어는 계속 작동합니다.",
   "fan.introAw": "Alienware에서는 앱이 곡선을 실행합니다 (컨트롤러 자체 곡선이 없음): 매초 온도를 확인해 팬 속도를 설정합니다. 앱을 닫으면 팬은 컨트롤러 프로필로 돌아갑니다. 점선은 참고용이며 공장 테이블이 아닙니다. 과열 보호: CPU가 93 °C, GPU가 87 °C를 5초 넘거나 온도를 읽을 수 없으면 팬이 컨트롤러로 돌아갑니다.",
-  "fan.legend.reference": "참고"
+  "fan.legend.reference": "참고",
+  "nav.msi": "MSI",
+  "nav.msi.sub": "모드, Cooler Boost, 배터리",
+  "msi.title": "MSI 설정",
+  "msi.intro": "설정은 MSI 자체 ACPI-WMI 브리지(MSI_ACPI)를 통해 임베디드 컨트롤러에 기록됩니다. 추가 드라이버는 설치하지 않습니다. 쓰기는 펌웨어가 인식된 모델에서만 활성화됩니다.",
+  "msi.shift": "성능 모드",
+  "msi.fan": "팬 모드",
+  "msi.boost": "Cooler Boost (팬 최대 속도)",
+  "msi.charge": "배터리 충전 한도",
+  "msi.chargeHint": "배터리는 이 비율까지 충전되고 10포인트 아래로 내려가면 다시 충전을 시작합니다. 항상 전원에 연결된 노트북의 배터리 수명을 늘립니다.",
+  "msi.chargeOff": "제한 없음 (100%)",
+  "msi.info": "컨트롤러",
+  "msi.fw": "EC 펌웨어",
+  "msi.access": "접근",
+  "msi.kb": "키보드 조명",
+  "msi.rw": "읽기 및 쓰기",
+  "msi.ro": "읽기 전용",
+  "msi.none": "없음",
+  "msi.roNote": "안전을 위해 이 컴퓨터에서는 컨트롤러에 아무것도 쓰지 않으며 온도와 팬만 읽습니다.",
+  "msi.fail": "MSI 설정을 적용하지 못했습니다: {err}",
+  "msi.unsupFan": "이 MSI 컴퓨터에서 임베디드 컨트롤러에 안전하게 접근할 수 없었습니다. 앱은 팬이나 컨트롤러에 명령을 보내지 않으며, 팬은 MSI Center나 컴퓨터 자체가 계속 관리합니다.",
+  "msi.unsupKb": "이 MSI 컴퓨터에서 지원되는 키보드 조명 장치를 찾지 못했습니다 (SteelSeries 키별 RGB 또는 MSI 3구역 키보드). 키보드에 명령을 보내지 않습니다.",
+  "msi.shift.eco": "에코",
+  "msi.shift.comfort": "균형",
+  "msi.shift.sport": "스포츠",
+  "msi.shift.turbo": "터보",
+  "msi.fan.auto": "자동",
+  "msi.fan.silent": "저소음",
+  "msi.fan.basic": "기본",
+  "msi.fan.advanced": "고급",
+  "msi.noWmi": "WMI 클래스 MSI_ACPI를 찾을 수 없음",
+  "msi.readFail": "임베디드 컨트롤러를 읽을 수 없음 ({err})",
+  "msi.badFw": "펌웨어 문자열 형식이 예상과 다름 ({fw}); 안전을 위해 컨트롤러를 사용하지 않음",
+  "msi.mirror": "Get_Data가 펌웨어 영역을 다르게 읽음 ({a} / {b}); 이 모델은 접근 방식이 달라 안전을 위해 컨트롤러를 사용하지 않음",
+  "msi.unknownFw": "EC 펌웨어 {fw}가 인식된 모델 목록에 없음: 읽기 전용",
+  "msi.readOnly": "이 컴퓨터에서는 읽기 전용",
+  "msi.verifyFail": "쓰기를 확인할 수 없음 ({addr}: {want} 기록, {got} 읽음); 이 세션의 모든 쓰기를 비활성화함",
+  "msi.noFeature": "이 모델에서 사용할 수 없음",
+  "msi.noMode": "이 모델에는 {mode} 모드가 없음",
+  "msi.noCharge": "이 모델은 충전 한도가 꺼져 있음",
+  "msi.badCharge": "잘못된 충전 한도",
+  "msi.noCurve": "MSI 컨트롤러에는 사용자 지정 팬 곡선이 없음",
+  "msi.curveAs": "MSI 팬 모드: {mode}"
 }

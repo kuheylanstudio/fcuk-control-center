@@ -2,14 +2,12 @@
   "locale": "it-IT",
   "fmt.dec": ",",
   "fmt.pct": "{v}%",
-
   "chip.guard": "Protezione termica",
   "chip.profile.title": "Profilo attivo",
   "chip.noProfile": "Nessun profilo",
   "chip.admin.title": "Privilegi del servizio",
   "chip.standard": "Standard",
   "chip.admin": "Amministratore",
-
   "nav.aria": "Sezioni",
   "nav.genel": "Panoramica",
   "nav.genel.sub": "Dati in tempo reale",
@@ -23,7 +21,6 @@
   "nav.klavye.sub": "Effetti RGB",
   "nav.ayarlar": "Impostazioni",
   "nav.ayarlar.sub": "Lingua, admin, avvio",
-
   "ov.quick.aria": "Selezione rapida del profilo",
   "ov.cpu": "CPU",
   "ov.power": "Consumo",
@@ -56,7 +53,6 @@
   "ac.battery": "Batteria",
   "core.p.title": "Core performance {n}, thread {t}",
   "core.e.title": "Core efficiency {n}",
-
   "perf.title": "Profili prestazionali",
   "perf.intro": "Ogni profilo imposta in un colpo solo la modalità energetica del controller, la curva delle ventole, il Turbo e i limiti di frequenza della CPU, il clock della GPU e la frequenza di aggiornamento dello schermo. Ne vedi l'effetto nelle misurazioni in tempo reale qui sotto.",
   "perf.cpuPower": "Consumo CPU",
@@ -79,7 +75,6 @@
   "perf.factoryDone": "Impostazioni di fabbrica ripristinate.",
   "perf.factoryFail": "Impossibile ripristinare: {err}",
   "common.sure": "Sei sicuro?",
-
   "fan.intro": "La curva viene eseguita dal controller integrato e resta attiva anche con l'app chiusa. Il primo punto (45 °C) e l'ultimo (100% a 100 °C) sono fissi nel controller; nessuna curva può spegnere del tutto il raffreddamento. Protezione termica: se la CPU supera 93 °C o la GPU 87 °C per 5 secondi, le ventole tornano alla tabella di fabbrica e la curva si riattiva quando la temperatura scende.",
   "fan.curve": "Curva ventola CPU",
   "fan.legend.factory": "Fabbrica",
@@ -96,7 +91,6 @@
   "fanmode.0": "Tabella di fabbrica",
   "fanmode.1": "Massimo",
   "fanmode.6": "Curva personalizzata",
-
   "audio.speaker": "Altoparlanti",
   "audio.mute": "Muto",
   "audio.mic": "Microfono",
@@ -105,7 +99,6 @@
   "audio.refreshHint": "A 60 Hz GPU e pannello lavorano meno. Silenzio Totale lo imposta da solo.",
   "audio.fail": "Impossibile regolare l'audio: {err}",
   "display.fail": "Impossibile cambiare la frequenza di aggiornamento: {err}",
-
   "kb.modes.aria": "Effetti",
   "kb.stage.aria": "Tastiera in tempo reale",
   "kb.drawing.aria": "Disegno che mostra il colore attuale della tastiera",
@@ -136,14 +129,12 @@
   "pal.steps": "In sequenza, da sinistra a destra",
   "pal.loop": "Da sinistra a destra, poi ricomincia",
   "pal.range": "Sinistra basso, destra alto",
-
   "picker.aria": "Selettore colore",
   "picker.sv": "Saturazione e luminosità, regola con le frecce",
   "picker.svText": "Saturazione {s}, luminosità {v}",
   "picker.hue": "Tonalità",
   "picker.hex": "Codice colore",
   "picker.done": "Fatto",
-
   "set.lang": "Lingua",
   "set.langAuto": "Automatica: {name}",
   "set.langHint": "In automatico, la lingua segue l'impostazione di paese o area geografica di Windows. Quando la cambi, la finestra si ricarica nella nuova lingua.",
@@ -171,10 +162,8 @@
   "set.version": "Versione",
   "set.dll": "Libreria hardware",
   "set.verNote": "Versione {v}",
-
   "err.noLink": "Nessuna connessione al servizio. Riavvia l'app.",
   "err.saveCfg": "Impossibile salvare l'impostazione: nessuna connessione al servizio.",
-
   "mode.speed": "Velocità",
   "mode.react": "Reattività",
   "mode.sabit": "Colore fisso",
@@ -202,7 +191,6 @@
   "info.battery": "Batteria: {v}",
   "info.gpuTemp": "GPU: {t} °C",
   "info.cpuTemp": "CPU: {t} °C",
-
   "power.0": "Silenzioso",
   "power.1": "Risparmio energetico",
   "power.2": "Prestazioni",
@@ -226,7 +214,6 @@
   "lenovo.bat.normal": "Normale",
   "lenovo.bat.conservation": "Conservazione (circa 60%)",
   "lenovo.bat.rapid": "Ricarica rapida",
-
   "prof.tam_sessiz": "Silenzio Totale",
   "prof.tam_sessiz.tag": "Ventola al minimo, impercettibile",
   "prof.tam_sessiz.desc": "Turbo disattivato, controller in modalità silenziosa (CPU bloccata a ~15 W). Ventole al minimo fino a 70 °C. GPU bloccata a 600 MHz, schermo a 60 Hz. Misurazione con 12 thread a pieno carico: 15 W, 59 °C, ventola al 29%. GPU a pieno carico: 600 MHz, 19 W (65 W senza limiti). Lettura, scrittura, film, notte.",
@@ -242,7 +229,6 @@
   "prof.ultra": "Ultra Prestazioni",
   "prof.ultra.tag": "Il rumore non conta, FPS al massimo",
   "prof.ultra.desc": "Prestazioni e qualcosa in più: le ventole partono a 50 °C e arrivano al 90% a 62 °C, così in gioco il calore della GPU viene smaltito prima che si accumuli. EPP 0, core parking disattivato, risparmio energetico PCIe disattivato: latenza minima, ma consumi alti anche a riposo. Misurazione onesta: con CPU e GPU insieme a pieno carico rende come Prestazioni (GPU ~70 W / 1960 MHz, CPU ~32 W); è il limite di questo chassis. La differenza sta solo nelle impostazioni di latenza e nelle ventole che partono prima. Solo con alimentatore; a batteria scende a Prestazioni.",
-
   "row.powerMode": "Modalità energetica",
   "row.cpuCap": "Limite CPU",
   "row.turboEpp": "Turbo / EPP",
@@ -271,7 +257,6 @@
   "sched.3": "solo E",
   "sched.4": "priorità E",
   "sched.5": "automatico",
-
   "step.ec": "Modalità energetica del controller",
   "step.fan": "Ventola",
   "step.cpu": "CPU",
@@ -294,7 +279,6 @@
   "msg.factory": "fabbrica",
   "msg.unchanged": "invariato",
   "guard.hot": "Temperatura alta: ventole affidate temporaneamente al controller.",
-
   "err.hz": "Impossibile impostare {hz} Hz",
   "err.gpuAdmin": "il blocco del clock richiede la modalità amministratore (Impostazioni)",
   "err.schemeActivate": "impossibile attivare la combinazione per il risparmio di energia",
@@ -322,7 +306,6 @@
   "throttle.128": "freno di potenza",
   "throttle.256": "clock dello schermo",
   "err.ui": "ui/index.html non trovato: {path}",
-
   "tray.engineDown": "Il servizio non risponde",
   "tray.engineStarting": "Avvio del servizio…",
   "tray.profile": "Profilo: {name}",
@@ -346,7 +329,6 @@
   "tray.applied": "Profilo applicato.",
   "tray.applyFail": "Impossibile applicare il profilo",
   "tray.fanFail": "Impossibile regolare la ventola",
-
   "osd.kb": "Tastiera",
   "osd.kbLight": "Luce tastiera",
   "osd.on": "Attivo",
@@ -370,5 +352,47 @@
   "err.awKbOpen": "impossibile aprire il dispositivo tastiera AlienFX",
   "unsup.kbAw": "L'illuminazione RGB della tastiera non è disponibile su questo computer: {err}. Il controllo di ventole e modalità energetica continua a funzionare.",
   "fan.introAw": "Su Alienware la curva la esegue l'app (il controller non ne ha una propria): ogni secondo legge la temperatura e regola le ventole. Alla chiusura dell'app le ventole tornano al profilo del controller. La linea tratteggiata è un riferimento, non una tabella di fabbrica. Protezione termica: se la CPU supera 93 °C o la GPU 87 °C per 5 secondi, o la temperatura non è leggibile, le ventole tornano al controller.",
-  "fan.legend.reference": "Riferimento"
+  "fan.legend.reference": "Riferimento",
+  "nav.msi": "MSI",
+  "nav.msi.sub": "Modalità, Cooler Boost, batteria",
+  "msi.title": "Impostazioni MSI",
+  "msi.intro": "Le impostazioni vengono scritte nel controller integrato tramite il ponte ACPI-WMI di MSI (MSI_ACPI); non viene installato alcun driver aggiuntivo. La scrittura è attiva solo sui modelli con firmware riconosciuto.",
+  "msi.shift": "Modalità prestazioni",
+  "msi.fan": "Modalità ventola",
+  "msi.boost": "Cooler Boost (ventole al massimo)",
+  "msi.charge": "Limite di carica della batteria",
+  "msi.chargeHint": "La batteria si carica fino a questa percentuale e riprende a caricare 10 punti sotto. Allunga la vita della batteria su un portatile sempre collegato.",
+  "msi.chargeOff": "Nessun limite (100%)",
+  "msi.info": "Controller",
+  "msi.fw": "Firmware EC",
+  "msi.access": "Accesso",
+  "msi.kb": "Luce della tastiera",
+  "msi.rw": "lettura e scrittura",
+  "msi.ro": "sola lettura",
+  "msi.none": "nessuno",
+  "msi.roNote": "Per sicurezza su questo computer non viene scritto nulla nel controller; si leggono solo temperature e ventole.",
+  "msi.fail": "Impossibile applicare l'impostazione MSI: {err}",
+  "msi.unsupFan": "Su questo computer MSI non è stato possibile stabilire un accesso sicuro al controller integrato. L'app non invia comandi alle ventole né al controller; MSI Center o il computer stesso continuano a gestire le ventole.",
+  "msi.unsupKb": "Su questo computer MSI non è stato trovato alcun dispositivo di illuminazione tastiera supportato (RGB per tasto SteelSeries o tastiera MSI a 3 zone). Nessun comando viene inviato alla tastiera.",
+  "msi.shift.eco": "Eco",
+  "msi.shift.comfort": "Bilanciata",
+  "msi.shift.sport": "Sport",
+  "msi.shift.turbo": "Turbo",
+  "msi.fan.auto": "Automatica",
+  "msi.fan.silent": "Silenziosa",
+  "msi.fan.basic": "Base",
+  "msi.fan.advanced": "Avanzata",
+  "msi.noWmi": "Classe WMI MSI_ACPI non trovata",
+  "msi.readFail": "impossibile leggere il controller integrato ({err})",
+  "msi.badFw": "il testo del firmware non ha il formato previsto ({fw}); per sicurezza il controller non viene usato",
+  "msi.mirror": "Get_Data ha letto l'area del firmware in modo diverso ({a} / {b}); su questo modello l'accesso funziona diversamente, per sicurezza il controller non viene usato",
+  "msi.unknownFw": "Il firmware EC {fw} non è nell'elenco dei modelli riconosciuti: sola lettura",
+  "msi.readOnly": "sola lettura su questo computer",
+  "msi.verifyFail": "scrittura non verificata ({addr}: scritto {want}, letto {got}); tutte le scritture sono disattivate per questa sessione",
+  "msi.noFeature": "non disponibile su questo modello",
+  "msi.noMode": "questo modello non ha la modalità {mode}",
+  "msi.noCharge": "il limite di carica è disattivato su questo modello",
+  "msi.badCharge": "limite di carica non valido",
+  "msi.noCurve": "il controller MSI non ha una curva ventola personalizzata",
+  "msi.curveAs": "Modalità ventola MSI: {mode}"
 }

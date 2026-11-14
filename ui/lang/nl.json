@@ -2,14 +2,12 @@
   "locale": "nl-NL",
   "fmt.dec": ",",
   "fmt.pct": "{v}%",
-
   "chip.guard": "Hittebeveiliging",
   "chip.profile.title": "Actief profiel",
   "chip.noProfile": "Geen profiel",
   "chip.admin.title": "Rechten van de service",
   "chip.standard": "Standaard",
   "chip.admin": "Administrator",
-
   "nav.aria": "Onderdelen",
   "nav.genel": "Overzicht",
   "nav.genel.sub": "Live metingen",
@@ -23,7 +21,6 @@
   "nav.klavye.sub": "RGB-effecten",
   "nav.ayarlar": "Instellingen",
   "nav.ayarlar.sub": "Taal, admin, opstarten",
-
   "ov.quick.aria": "Snel profiel kiezen",
   "ov.cpu": "CPU",
   "ov.power": "Vermogen",
@@ -56,7 +53,6 @@
   "ac.battery": "Batterij",
   "core.p.title": "Performance-core {n}, thread {t}",
   "core.e.title": "Efficiency-core {n}",
-
   "perf.title": "Prestatieprofielen",
   "perf.intro": "Elk profiel stelt in één keer de energiemodus van de controller, de ventilatorcurve, de Turbo en frequentielimieten van de CPU, de GPU-kloksnelheid en de verversingssnelheid van het scherm in. Het effect zie je hieronder in de live metingen.",
   "perf.cpuPower": "CPU-vermogen",
@@ -79,7 +75,6 @@
   "perf.factoryDone": "Fabrieksinstellingen hersteld.",
   "perf.factoryFail": "Herstellen mislukt: {err}",
   "common.sure": "Weet je het zeker?",
-
   "fan.intro": "De curve draait op de embedded controller en blijft dus actief, ook als de app gesloten is. Het eerste punt (45 °C) en het laatste punt (100% bij 100 °C) liggen vast in de controller; geen enkele curve kan de koeling volledig uitschakelen. Hittebeveiliging: komt de CPU 5 seconden boven 93 °C of de GPU boven 87 °C, dan schakelen de ventilatoren terug naar de fabriekstabel; na afkoelen komt de curve terug.",
   "fan.curve": "CPU-ventilatorcurve",
   "fan.legend.factory": "Fabriek",
@@ -96,7 +91,6 @@
   "fanmode.0": "Fabriekstabel",
   "fanmode.1": "Maximaal",
   "fanmode.6": "Aangepaste curve",
-
   "audio.speaker": "Luidsprekers",
   "audio.mute": "Dempen",
   "audio.mic": "Microfoon",
@@ -105,7 +99,6 @@
   "audio.refreshHint": "Op 60 Hz hebben GPU en paneel het minder zwaar. Volledig Stil kiest dit zelf.",
   "audio.fail": "Geluid kon niet worden ingesteld: {err}",
   "display.fail": "Verversingssnelheid kon niet worden gewijzigd: {err}",
-
   "kb.modes.aria": "Effecten",
   "kb.stage.aria": "Live toetsenbord",
   "kb.drawing.aria": "Tekening met de huidige kleur van het toetsenbord",
@@ -136,14 +129,12 @@
   "pal.steps": "Op volgorde, van links naar rechts",
   "pal.loop": "Van links naar rechts, dan opnieuw",
   "pal.range": "Links laag, rechts hoog",
-
   "picker.aria": "Kleurkiezer",
   "picker.sv": "Verzadiging en helderheid, instellen met de pijltjestoetsen",
   "picker.svText": "Verzadiging {s}, helderheid {v}",
   "picker.hue": "Tint",
   "picker.hex": "Kleurcode",
   "picker.done": "Klaar",
-
   "set.lang": "Taal",
   "set.langAuto": "Automatisch: {name}",
   "set.langHint": "Bij automatisch volgt de taal de land- of regio-instelling van Windows. Na het wijzigen wordt het venster in de nieuwe taal herladen.",
@@ -171,10 +162,8 @@
   "set.version": "Versie",
   "set.dll": "Hardwarebibliotheek",
   "set.verNote": "Versie {v}",
-
   "err.noLink": "Geen verbinding met de service. Start de app opnieuw.",
   "err.saveCfg": "Instelling kon niet worden opgeslagen: geen verbinding met de service.",
-
   "mode.speed": "Snelheid",
   "mode.react": "Reactiesnelheid",
   "mode.sabit": "Vaste kleur",
@@ -202,7 +191,6 @@
   "info.battery": "Batterij: {v}",
   "info.gpuTemp": "GPU: {t} °C",
   "info.cpuTemp": "CPU: {t} °C",
-
   "power.0": "Stil",
   "power.1": "Energiebesparing",
   "power.2": "Prestaties",
@@ -226,7 +214,6 @@
   "lenovo.bat.normal": "Normaal",
   "lenovo.bat.conservation": "Accubehoud (ca. 60%)",
   "lenovo.bat.rapid": "Snelladen",
-
   "prof.tam_sessiz": "Volledig Stil",
   "prof.tam_sessiz.tag": "Ventilator op laagste stand, onhoorbaar",
   "prof.tam_sessiz.desc": "Turbo uit, controller in stille modus (CPU vast op ~15 W). Ventilatoren op de laagste stand tot 70 °C. GPU vast op 600 MHz, scherm op 60 Hz. Meting met 12 threads op volle belasting: 15 W, 59 °C, ventilator 29%. GPU op volle belasting: 600 MHz, 19 W (zonder limiet 65 W). Lezen, schrijven, films, 's nachts.",
@@ -242,7 +229,6 @@
   "prof.ultra": "Ultra Prestaties",
   "prof.ultra.tag": "Geluid maakt niet uit, maximale FPS",
   "prof.ultra.desc": "Prestaties met extra's: de ventilatoren slaan aan bij 50 °C en gaan naar 90% bij 62 °C, zodat de GPU-warmte tijdens het gamen wordt afgevoerd voordat die zich ophoopt. EPP 0, core parking uit, PCIe-energiebesparing uit: minimale latentie, maar ook in rust een hoog verbruik. Eerlijke meting: met CPU en GPU samen op volle belasting gelijk aan Prestaties (GPU ~70 W / 1960 MHz, CPU ~32 W); dat is het plafond van deze behuizing. Het verschil zit alleen in de latentie-instellingen en de eerder aanslaande ventilatoren. Alleen op netstroom; op batterij terug naar Prestaties.",
-
   "row.powerMode": "Energiemodus",
   "row.cpuCap": "CPU-limiet",
   "row.turboEpp": "Turbo / EPP",
@@ -271,7 +257,6 @@
   "sched.3": "alleen E",
   "sched.4": "E eerst",
   "sched.5": "automatisch",
-
   "step.ec": "Energiemodus controller",
   "step.fan": "Ventilator",
   "step.cpu": "CPU",
@@ -294,7 +279,6 @@
   "msg.factory": "fabriek",
   "msg.unchanged": "ongewijzigd",
   "guard.hot": "Temperatuur hoog: ventilatoren tijdelijk overgedragen aan de controller.",
-
   "err.hz": "{hz} Hz kon niet worden ingesteld",
   "err.gpuAdmin": "klokvergrendeling vereist administratormodus (Instellingen)",
   "err.schemeActivate": "energiebeheerschema kon niet worden geactiveerd",
@@ -322,7 +306,6 @@
   "throttle.128": "vermogensrem",
   "throttle.256": "beeldschermklok",
   "err.ui": "ui/index.html niet gevonden: {path}",
-
   "tray.engineDown": "Service reageert niet",
   "tray.engineStarting": "Service wordt gestart…",
   "tray.profile": "Profiel: {name}",
@@ -346,7 +329,6 @@
   "tray.applied": "Profiel toegepast.",
   "tray.applyFail": "Profiel kon niet worden toegepast",
   "tray.fanFail": "Ventilator kon niet worden ingesteld",
-
   "osd.kb": "Toetsenbord",
   "osd.kbLight": "Toetsenbordverlichting",
   "osd.on": "Aan",
@@ -370,5 +352,47 @@
   "err.awKbOpen": "kan het AlienFX-toetsenbordapparaat niet openen",
   "unsup.kbAw": "RGB-toetsenbordverlichting is niet beschikbaar op deze computer: {err}. Ventilator- en energiemodusbediening blijven werken.",
   "fan.introAw": "Op Alienware voert de app de curve uit (de controller heeft er zelf geen): elke seconde leest hij de temperatuur en stelt de ventilatoren in. Als de app sluit, gaan de ventilatoren terug naar het controllerprofiel. De stippellijn is een referentie, geen fabriekstabel. Hittebeveiliging: blijft de CPU 5 seconden boven 93 °C of de GPU boven 87 °C, of is de temperatuur onleesbaar, dan neemt de controller het weer over.",
-  "fan.legend.reference": "Referentie"
+  "fan.legend.reference": "Referentie",
+  "nav.msi": "MSI",
+  "nav.msi.sub": "Modus, Cooler Boost, accu",
+  "msi.title": "MSI-instellingen",
+  "msi.intro": "Instellingen worden via MSI's eigen ACPI-WMI-brug (MSI_ACPI) naar de embedded controller geschreven; er wordt geen extra stuurprogramma geïnstalleerd. Schrijven is alleen ingeschakeld op modellen met herkende firmware.",
+  "msi.shift": "Prestatiemodus",
+  "msi.fan": "Ventilatormodus",
+  "msi.boost": "Cooler Boost (ventilatoren op volle snelheid)",
+  "msi.charge": "Laadlimiet van de accu",
+  "msi.chargeHint": "De accu laadt tot dit percentage en begint 10 punten lager opnieuw te laden. Verlengt de levensduur van de accu bij een laptop die altijd aan de stroom hangt.",
+  "msi.chargeOff": "Geen limiet (100%)",
+  "msi.info": "Controller",
+  "msi.fw": "EC-firmware",
+  "msi.access": "Toegang",
+  "msi.kb": "Toetsenbordverlichting",
+  "msi.rw": "lezen en schrijven",
+  "msi.ro": "alleen lezen",
+  "msi.none": "geen",
+  "msi.roNote": "Uit veiligheid wordt op deze computer niets naar de controller geschreven; alleen temperaturen en ventilatoren worden gelezen.",
+  "msi.fail": "MSI-instelling kon niet worden toegepast: {err}",
+  "msi.unsupFan": "Op deze MSI-computer kon geen veilige toegang tot de embedded controller worden gemaakt. De app stuurt geen opdrachten naar de ventilatoren of de controller; MSI Center of de computer zelf blijft de ventilatoren regelen.",
+  "msi.unsupKb": "Op deze MSI-computer is geen ondersteunde toetsenbordverlichting gevonden (SteelSeries RGB per toets of MSI-toetsenbord met 3 zones). Er worden geen opdrachten naar het toetsenbord gestuurd.",
+  "msi.shift.eco": "Eco",
+  "msi.shift.comfort": "Gebalanceerd",
+  "msi.shift.sport": "Sport",
+  "msi.shift.turbo": "Turbo",
+  "msi.fan.auto": "Automatisch",
+  "msi.fan.silent": "Stil",
+  "msi.fan.basic": "Basis",
+  "msi.fan.advanced": "Geavanceerd",
+  "msi.noWmi": "WMI-klasse MSI_ACPI niet gevonden",
+  "msi.readFail": "embedded controller kon niet worden gelezen ({err})",
+  "msi.badFw": "firmwaretekst heeft niet de verwachte vorm ({fw}); de controller wordt uit veiligheid niet gebruikt",
+  "msi.mirror": "Get_Data las het firmwaregebied anders ({a} / {b}); de toegang werkt anders op dit model, de controller wordt uit veiligheid niet gebruikt",
+  "msi.unknownFw": "EC-firmware {fw} staat niet in de lijst van herkende modellen: alleen lezen",
+  "msi.readOnly": "alleen lezen op deze computer",
+  "msi.verifyFail": "schrijven kon niet worden gecontroleerd ({addr}: {want} geschreven, {got} gelezen); alle schrijfacties zijn voor deze sessie uitgeschakeld",
+  "msi.noFeature": "niet beschikbaar op dit model",
+  "msi.noMode": "dit model heeft geen modus {mode}",
+  "msi.noCharge": "de laadlimiet staat uit op dit model",
+  "msi.badCharge": "ongeldige laadlimiet",
+  "msi.noCurve": "de MSI-controller heeft geen eigen ventilatorcurve",
+  "msi.curveAs": "MSI-ventilatormodus: {mode}"
 }
