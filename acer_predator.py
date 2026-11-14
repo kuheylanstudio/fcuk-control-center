@@ -112,7 +112,7 @@ class WmiTransport:
 # ----------------------------------------------------------------------------- aygit
 class AcerGaming:
     """Acer Predator/Nitro arka ucu. Her ozellik ayri yoklanir; caps hangilerinin acik oldugunu soyler."""
-    vendor = "acer"
+    vendor = kind = "acer"  # kurulum.ps1 ve /api/state ec_kind ile ayni anahtar
     clevo = False
     reason = ""
     fan_curve_ok = False  # Acer WMI'da sicakliga bagli egri yok: profiller egri yerine guc modunu kullanir

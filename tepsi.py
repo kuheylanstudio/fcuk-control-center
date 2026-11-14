@@ -19,6 +19,7 @@ import urllib.request
 from ctypes import wintypes as wt
 
 import ceviri
+import donanim
 import fntus
 import klavye_rgb as core
 from ceviri import t
@@ -219,7 +220,12 @@ class Tray:
             import traceback
             fntus.log("OSD olusturulamadi: " + traceback.format_exc().replace("\n", " | "))
         self.fn = fntus.Listener(lambda code: u32.PostMessageW(self.hwnd, WM_FNKEY, code, 0))
-        self.fn.start()
+        # Clevo/Monster Fn koprusu (ACPI\CLV) yoksa (Acer ve diger markalar) dinleyici hic baslamaz: Fn tuslari
+        # Windows'a ve ureticinin kendi yazilimina kalir, Clevo aygit aramasi da yapilmaz.
+        if donanim.clevo_present():
+            self.fn.start()
+        else:
+            fntus.log("Clevo/Monster Fn koprusu yok: Fn dinleyicisi baslatilmadi")
 
     # -- Fn tuslari
     def _osd_later(self, label, value="", level=None, state=None):

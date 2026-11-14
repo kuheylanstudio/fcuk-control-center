@@ -410,6 +410,7 @@ class DetectTests(unittest.TestCase):
         d = ap.detect(fac)
         self.assertIsInstance(d, ap.AcerGaming)
         self.assertEqual(d.vendor, "acer")
+        self.assertEqual(d.kind, "acer")  # kurulum.ps1 ve /api/state ec_kind ile ayni anahtar
         self.assertIn("Predator", d.model)
         self.assertNotIn(r"root\wmi", w["closed"])  # aygitin baglantisi acik kalir
 
@@ -524,6 +525,8 @@ class IntegrationTests(unittest.TestCase):
         with self.assertRaises(hw.Unsupported):
             n.set_power_mode(0)
         self.assertEqual(hw.DCHU.vendor, "clevo")
+        self.assertEqual(hw.DCHU.kind, "clevo")
+        self.assertEqual(n.kind, "")
         self.assertTrue(hw.DCHU.fan_curve_ok and hw.DCHU.kb_available and hw.DCHU.available)
 
 

@@ -200,7 +200,7 @@ def peer_in_my_session(client_port, server_port):
 class DCHU:
     """InsydeDCHU.dll sarmalayicisi. Tum cagrilar tek kilitten gecer (motor, sensor ve sunucu ayni anda cagirir)."""
     available = True
-    vendor = "clevo"     # Fn olaylari, Monster Fn engeli gibi Clevo'ya ozgu adimlar yalnizca bunda
+    vendor = kind = "clevo"  # Fn olaylari, Monster Fn engeli gibi Clevo'ya ozgu adimlar yalnizca bunda
     fan_curve_ok = True  # sicakliga bagli fan egrisini denetleyici calistirir
     kb_available = True
 
@@ -357,7 +357,7 @@ class NullDCHU:
     bos, yazmalar Unsupported verir ve donanima HICBIR komut gitmez. Profil adimlari bunu raporda
     'desteklenmiyor' olarak gosterir; geri kalan her sey calisir."""
     available = False
-    vendor = ""
+    vendor = kind = ""
     fan_curve_ok = False
     kb_available = False
     path = ""

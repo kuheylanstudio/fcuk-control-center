@@ -513,6 +513,7 @@ def state():
         "ec_clevo": bool(getattr(App.dchu, "clevo", True)),  # aygit var, yalnizca kitaplik yok
         "ec_reason": getattr(App.dchu, "reason", ""),
         "hw": getattr(App.dchu, "vendor", ""),  # "clevo", "acer" ya da "" (denetleyici yok)
+        "ec_kind": getattr(App.dchu, "kind", ""),  # kurulum.ps1 ile ortak marka anahtari
         "caps": getattr(App.dchu, "caps", None),
         "kb": bool(getattr(App.dchu, "kb_available", App.dchu.available)),
         "zones": [t("zone.%d" % i) for i in range(1, 5)],
@@ -639,7 +640,8 @@ class Handler(BaseHTTPRequestHandler):
                 "profile": mgr.applied, "guard": mgr.guard, "lang": ceviri.lang(),
                 "profiles": [{"id": p["id"], "name": profiller.name(p["id"]), "ac_only": bool(p.get("ac_only"))}
                              for p in profiller.PROFILES],
-                "ec": App.dchu.available, "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
+                # tepsinin fan menusu: denetleyici var VE fan denetlenebiliyor (Acer'da modele bagli)
+                "ec": App.dchu.available and bool(getattr(App.dchu, "fan_ok", True)), "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
                 "gpu_state": s.get("gpu_state"), "cpu_power": s.get("cpu_power"),
                 "ac": (s.get("battery") or {}).get("ac", True), "notices": list(App.notices)})
         if path == "/api/now":  # yalnizca son olcum (gecmissiz): ek sayfalar saniyede bir okur
