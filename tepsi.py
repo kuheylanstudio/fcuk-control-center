@@ -21,6 +21,7 @@ from ctypes import wintypes as wt
 import ceviri
 import donanim as hw
 import fntus
+import gosterge
 import klavye_rgb as core
 from ceviri import t
 
@@ -39,6 +40,10 @@ WM_REFRESH = WM_APP + 2   # yoklayici yeni durum getirdi
 WM_CLOSE_TRAY = WM_APP + 3
 WM_FNKEY = WM_APP + 4     # Fn tusu dinleyicisi bir kod yakaladi (wparam)
 WM_OSD = WM_APP + 5       # arka plan is parcacigindan OSD istegi (self.osd_req)
+WM_HOTKEY = 0x0312
+MOD_ALT, MOD_CONTROL, MOD_NOREPEAT = 0x1, 0x2, 0x4000
+HK_PROFILE, HK_OVERLAY = 1, 2   # Ctrl+Alt+P: sonraki profil, Ctrl+Alt+O: oyun ici gosterge
+HOTKEYS = {HK_PROFILE: 0x50, HK_OVERLAY: 0x4F}  # VK_P, VK_O
 TRAY_CLASS = "KendiControlCenterTray"             # setup.exe bu sinifla tepsi penceresini bulur
 OPEN_MESSAGE = "FCUKControlCenter.PencereyiAc"    # setup.exe'deki ad ile ayni olmali
 NIM_ADD, NIM_MODIFY, NIM_DELETE = 0, 1, 2
@@ -82,6 +87,8 @@ u32.CreateWindowExW.argtypes = [wt.DWORD, wt.LPCWSTR, wt.LPCWSTR, wt.DWORD, ctyp
                                 ctypes.c_int, ctypes.c_int, wt.HWND, wt.HMENU, wt.HINSTANCE, wt.LPVOID]
 u32.CreateWindowExW.restype = wt.HWND
 u32.RegisterWindowMessageW.argtypes = [wt.LPCWSTR]
+u32.RegisterHotKey.argtypes = [wt.HWND, ctypes.c_int, wt.UINT, wt.UINT]
+u32.UnregisterHotKey.argtypes = [wt.HWND, ctypes.c_int]
 u32.RegisterWindowMessageW.restype = wt.UINT
 u32.LoadImageW.argtypes = [wt.HINSTANCE, wt.LPCWSTR, wt.UINT, ctypes.c_int, ctypes.c_int, wt.UINT]
 u32.LoadImageW.restype = wt.HANDLE
@@ -229,6 +236,84 @@ class Tray:
         if clevo:
             self.fn = fntus.Listener(lambda code: u32.PostMessageW(self.hwnd, WM_FNKEY, code, 0))
             self.fn.start()
+        # Oyun ici gosterge ve genel kisayol tuslari (her markada)
+        self.overlay = None
+        try:
+            self.overlay = gosterge.Overlay()
+        except Exception:
+            import traceback
+            fntus.log("gosterge olusturulamadi: " + traceback.format_exc().replace("\n", " | "))
+        self.hotkeys = set()   # kayitli kisayol kimlikleri
+        self.hotkey_warned = False
+        self.cycling = False
+
+    # -- genel kisayol tuslari
+    def _sync_hotkeys(self, want):
+        """Ayara gore kisayollari kaydeder / birakir. Baska bir program ayni tusu aldiysa bir kez bildirilir."""
+        if want and not self.hotkeys:
+            failed = []
+            for hid, vk in HOTKEYS.items():
+                if u32.RegisterHotKey(self.hwnd, hid, MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, vk):
+                    self.hotkeys.add(hid)
+                else:
+                    failed.append("Ctrl+Alt+" + chr(vk))
+            if failed and not self.hotkey_warned:
+                self.hotkey_warned = True
+                self.notify(t("hk.busyTitle"), t("hk.busy", keys=", ".join(failed)))
+        elif not want and self.hotkeys:
+            for hid in self.hotkeys:
+                u32.UnregisterHotKey(self.hwnd, hid)
+            self.hotkeys.clear()
+
+    def _cycle_profile(self):
+        """Sonraki profile gecer (pilde yalnizca fisle calisan profil atlanir) ve ekranda gosterir."""
+        if self.cycling:
+            return
+        s = self.state
+        if not s:
+            self._osd_later(t("hk.profile"), t("tray.engineDown"), state=False)
+            return
+        profs = [p for p in s.get("profiles", []) if s.get("ac", True) or not p.get("ac_only")]
+        if not profs:
+            return
+        ids = [p["id"] for p in profs]
+        cur = s.get("profile")
+        nxt = profs[(ids.index(cur) + 1) % len(profs)] if cur in ids else profs[0]
+        self._osd_later(t("hk.profile"), nxt["name"])
+        self.cycling = True
+
+        def run():
+            try:
+                r = self.api.post("/api/profile", {"id": nxt["id"]})
+                bad = [x for x in r.get("report", []) if not x.get("ok")]
+                self._osd_later(t("hk.profile"), nxt["name"], state=not bad)
+            except (OSError, ValueError):
+                self._osd_later(t("hk.profile"), t("tray.applyFail"), state=False)
+            finally:
+                self.cycling = False
+                self._refresh_now()
+        threading.Thread(target=run, daemon=True).start()
+
+    def _toggle_overlay(self):
+        on = not bool((self.state or {}).get("overlay"))
+
+        def run():
+            try:
+                self.api.post("/api/rules", {"overlay": on})
+            except (OSError, ValueError):
+                pass
+            self._refresh_now()
+        threading.Thread(target=run, daemon=True).start()
+        self._osd_later(t("hk.overlay"), t("osd.on" if on else "osd.off"), state=on)
+
+    def _paint_overlay(self):
+        if not self.overlay:
+            return
+        s = self.state
+        if s and s.get("overlay"):
+            self.overlay.show(gosterge.segments(s, self._name(s.get("profile"))), s.get("overlay_corner", "tl"))
+        elif self.overlay.visible:
+            self.overlay.hide()
 
     # -- Fn tuslari
     def _osd_later(self, label, value="", level=None, state=None):
@@ -287,6 +372,12 @@ class Tray:
         self.nid.hIcon = self._icon(self.level)
         self.nid.szTip = self._tip()
         sh32.Shell_NotifyIconW(NIM_MODIFY, ctypes.byref(self.nid))
+        try:
+            self._sync_hotkeys(bool(s and s.get("hotkeys", True)))
+            self._paint_overlay()
+        except Exception:
+            import traceback
+            fntus.log("kisayol/gosterge: " + traceback.format_exc().replace("\n", " | "))
 
     def notify(self, title, text):
         nid = NOTIFYICONDATAW()
@@ -334,7 +425,7 @@ class Tray:
                     u32.PostMessageW(self.hwnd, WM_CLOSE_TRAY, 0, 0)
                     return
             u32.PostMessageW(self.hwnd, WM_REFRESH, 0, 0)
-            time.sleep(2.0)
+            time.sleep(1.0 if (self.state or {}).get("overlay") else 2.0)  # gosterge aciksa saniyede bir
 
     def _show_notices(self):
         """Motorun kullaniciya iletmek istedigi sorunlar (bozuk ayar, isi bekcisi, okunamayan sensor...)."""
@@ -457,6 +548,16 @@ class Tray:
                     import traceback
                     fntus.log("fn_key hatasi: " + traceback.format_exc().replace("\n", " | "))
                 return 0
+            if msg == WM_HOTKEY:
+                try:
+                    if wparam == HK_PROFILE:
+                        self._cycle_profile()
+                    elif wparam == HK_OVERLAY:
+                        self._toggle_overlay()
+                except Exception:
+                    import traceback
+                    fntus.log("kisayol hatasi: " + traceback.format_exc().replace("\n", " | "))
+                return 0
             if msg == WM_OSD:
                 try:
                     if self.osd_req:
@@ -476,6 +577,7 @@ class Tray:
                 return 0
             if msg == WM_DESTROY:
                 self.running = False
+                self._sync_hotkeys(False)
                 sh32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(self.nid))
                 u32.PostQuitMessage(0)
                 return 0

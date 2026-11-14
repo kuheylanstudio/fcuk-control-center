@@ -650,6 +650,16 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
             <p class="hint" data-i18n="set.startupHint">Açılışta son seçtiğin profil yeniden uygulanır; denetleyici bazı ayarları yeniden başlatmada sıfırlar.</p>
           </div>
           <div class="tile form">
+            <span class="lbl" data-i18n="hk.title">Kısayollar ve oyun içi gösterge</span>
+            <label class="switch"><input type="checkbox" id="hotkeys"><span class="track" aria-hidden="true"></span><span data-i18n="hk.enable">Kısayol tuşları</span></label>
+            <p class="hint" data-i18n="hk.hint">Ctrl+Alt+P: sonraki profil · Ctrl+Alt+O: oyun içi göstergeyi aç/kapat. Her uygulamada çalışır.</p>
+            <label class="switch"><input type="checkbox" id="overlayOn"><span class="track" aria-hidden="true"></span><span data-i18n="ovl.enable">Oyun içi gösterge</span></label>
+            <div class="frow"><label for="overlayCorner" data-i18n="ovl.corner">Konum</label><select id="overlayCorner">
+              <option value="tl" data-i18n="ovl.tl">Sol üst</option><option value="tr" data-i18n="ovl.tr">Sağ üst</option>
+              <option value="bl" data-i18n="ovl.bl">Sol alt</option><option value="br" data-i18n="ovl.br">Sağ alt</option></select></div>
+            <p class="hint" data-i18n="ovl.hint">İşlemci ve ekran kartı sıcaklığı/gücü, fan devri ve profil. Tam ekran (exclusive) oyunlarda görünmez; kenarlıksız pencere kipini kullanın. FPS gösterilmez: uygulama oyuna dokunmaz.</p>
+          </div>
+          <div class="tile form">
             <span class="lbl" data-i18n="upd.title">Güncellemeler</span>
             <label class="lbl" for="updMode" data-i18n="upd.mode">Güncelleme yöntemi</label>
             <select id="updMode">
@@ -999,6 +1009,9 @@ function paintProfile() {
     $('#ruleAc').value = cc.rules.on_ac || '';
     $('#ruleHz').checked = cc.rules.refresh !== false;
     renderApps();
+    $('#hotkeys').checked = cc.rules.hotkeys !== false;
+    $('#overlayOn').checked = !!cc.rules.overlay;
+    $('#overlayCorner').value = cc.rules.overlay_corner || 'tl';
     const mf = meta && meta.msi && meta.msi.fan;  // MSI: denetleyicinin kendi fan modu adi
     setText('fanModeTxt', cc.fan_mode === 7 && cc.fan_fixed != null ? FAN_MODE_TXT[7] + ' ' + pct(cc.fan_fixed)
       : cc.fan_mode !== 1 && mf ? t('msi.fan.' + mf) : (FAN_MODE_TXT[cc.fan_mode] || '–'));
@@ -1075,6 +1088,11 @@ async function suggestApps() {
     const dl = $('#appSuggest'); dl.textContent = '';
     for (const a of r.apps || []) dl.append(new Option(a));
   } catch (e) { /* oneri listesi istege bagli */ }
+}
+function initHotkeys() {
+  $('#hotkeys').addEventListener('change', e => saveApps({ hotkeys: e.target.checked }));
+  $('#overlayOn').addEventListener('change', e => saveApps({ overlay: e.target.checked }));
+  $('#overlayCorner').addEventListener('change', e => saveApps({ overlay_corner: e.target.value }));
 }
 function initApps() {
   $('#appsOn').addEventListener('change', e => saveApps({ apps_on: e.target.checked }));
@@ -2076,6 +2094,7 @@ async function init() {
   initPresets();
   initPerformance();
   initApps();
+  initHotkeys();
   initAudio();
   initMsi();
   initSettings();

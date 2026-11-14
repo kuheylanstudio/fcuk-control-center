@@ -99,7 +99,9 @@ BY_ID = {p["id"]: p for p in PROFILES}
 def name(pid):
     """Profilin etkin dildeki adi (PROFILES'taki ad Turkce kaynaktir)."""
     return t("prof." + pid)
-DEFAULTS = {"profile": "", "on_battery": "", "on_ac": "", "refresh": True, "apps": [], "apps_on": True}
+DEFAULTS = {"profile": "", "on_battery": "", "on_ac": "", "refresh": True, "apps": [], "apps_on": True,
+            "hotkeys": True, "overlay": False, "overlay_corner": "tl"}
+OVERLAY_CORNERS = ("tl", "tr", "bl", "br")
 
 # ----------------------------------------------------------------------------- uygulamaya gore profil
 # Kural: {"exe": "valorant.exe", "profile": "ultra"}. Listede ilk eslesen kazanir (oncelik = sira).

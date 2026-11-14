@@ -254,6 +254,10 @@ def sanitize_cc(raw):
         out["refresh"] = bool(raw["refresh"])
     out["apps"] = profiller.clean_apps(raw.get("apps"))
     out["apps_on"] = bool(raw.get("apps_on", True))
+    out["hotkeys"] = bool(raw.get("hotkeys", True))
+    out["overlay"] = bool(raw.get("overlay", False))
+    if raw.get("overlay_corner") in profiller.OVERLAY_CORNERS:
+        out["overlay_corner"] = raw["overlay_corner"]
     # Profilden once etkin olan guc plani (ureticinin kendi plani olabilir): "Fabrika" ona geri doner
     prev = raw.get("prev_scheme")
     if isinstance(prev, str) and re.fullmatch(r"[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}", prev):
@@ -728,6 +732,10 @@ class Handler(BaseHTTPRequestHandler):
                 # tepsinin fan menusu: fan denetlenebiliyor mu (Acer/HP'de modele bagli)
                 "ec": hw.caps(App.dchu)["fan_max"], "caps": [k for k, v in hw.caps(App.dchu).items() if v is True], "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
                 "gpu_state": s.get("gpu_state"), "cpu_power": s.get("cpu_power"),
+                # oyun ici gosterge ve kisayollar (tepsi sureci cizer / kaydeder)
+                "gpu_power": s.get("gpu_power"), "cpu_rpm": s.get("cpu_rpm"), "gpu_rpm": s.get("gpu_rpm"),
+                "hotkeys": mgr.cfg.get("hotkeys", True), "overlay": mgr.cfg.get("overlay", False),
+                "overlay_corner": mgr.cfg.get("overlay_corner", "tl"), "app": mgr.app,
                 "ac": (s.get("battery") or {}).get("ac", True), "notices": list(App.notices)})
         if path == "/api/now":  # yalnizca son olcum (gecmissiz): ek sayfalar saniyede bir okur
             return self._json(App.sensors.snapshot)
@@ -827,8 +835,11 @@ class Handler(BaseHTTPRequestHandler):
                 mgr.cfg["refresh"] = bool(body["refresh"])
             if "apps" in body:  # uygulamaya gore profil: tum liste birden gelir (sira = oncelik)
                 mgr.cfg["apps"] = profiller.clean_apps(body["apps"])
-            if "apps_on" in body:
-                mgr.cfg["apps_on"] = bool(body["apps_on"])
+            for k in ("apps_on", "hotkeys", "overlay"):  # acik/kapali ayarlar
+                if k in body:
+                    mgr.cfg[k] = bool(body[k])
+            if body.get("overlay_corner") in profiller.OVERLAY_CORNERS:
+                mgr.cfg["overlay_corner"] = body["overlay_corner"]
             save()
             return self._json({"ok": True, "cc": mgr.status()})
         if path == "/api/fan":
