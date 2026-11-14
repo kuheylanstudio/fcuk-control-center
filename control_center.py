@@ -37,7 +37,7 @@ import nvidia
 import profiller
 from ceviri import t
 
-VERSION = "2.0.2"
+VERSION = "2.0.3"
 PORT = 47815
 HOSTS = ("127.0.0.1:%d" % PORT, "localhost:%d" % PORT)
 BASE = "http://127.0.0.1:%d" % PORT
@@ -890,12 +890,23 @@ def wait_ping(seconds, want=True):
 
 
 def open_window():
+    """Pencereyi YALNIZCA motor yanit verirken acar. Tarayici yanit vermeyen adrese yonlenirse "siteye
+    ulasilamiyor / IP adresi bulunamadi" sayfasi kalir (kurulum sonu ve oturum acilisinda motor henuz
+    hazirlanirken olur). Motor yoksa bir kez baslatilir; yine de gelmezse bos sayfa yerine neden soylenir."""
+    if not wait_ping(20):
+        start_engine()
+        if not wait_ping(30):
+            alert("FCUK Control Center motoru yanıt vermiyor, pencere açılamadı.\n\n"
+                  "Bir dakika sonra tepsi simgesinden 'Aç' deneyin. Sürerse ayrıntı: %s" % crash_log_path(), 0x30)
+            return
     url = BASE + "/"
     for exe in BROWSERS:
         if os.path.exists(exe):
+            # --no-proxy-server: sistem/kurumsal proxy ya da PAC/WPAD ayari 127.0.0.1'i proxy'ye gondermesin
             subprocess.Popen([exe, "--app=" + url, "--window-size=1320,860",
                               "--user-data-dir=" + os.path.join(core.CONFIG_DIR, "pencere"),
-                              "--no-first-run", "--no-default-browser-check"], close_fds=True)
+                              "--no-proxy-server", "--no-first-run", "--no-default-browser-check"],
+                             close_fds=True)
             return
     webbrowser.open(url)
 

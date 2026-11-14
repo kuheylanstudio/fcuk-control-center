@@ -38,6 +38,8 @@ WM_REFRESH = WM_APP + 2   # yoklayici yeni durum getirdi
 WM_CLOSE_TRAY = WM_APP + 3
 WM_FNKEY = WM_APP + 4     # Fn tusu dinleyicisi bir kod yakaladi (wparam)
 WM_OSD = WM_APP + 5       # arka plan is parcacigindan OSD istegi (self.osd_req)
+TRAY_CLASS = "KendiControlCenterTray"             # setup.exe bu sinifla tepsi penceresini bulur
+OPEN_MESSAGE = "FCUKControlCenter.PencereyiAc"    # setup.exe'deki ad ile ayni olmali
 NIM_ADD, NIM_MODIFY, NIM_DELETE = 0, 1, 2
 NIF_MESSAGE, NIF_ICON, NIF_TIP, NIF_INFO, NIF_SHOWTIP = 0x01, 0x02, 0x04, 0x10, 0x80
 NIIF_NOSOUND = 0x10
@@ -186,6 +188,9 @@ class Tray:
         self.running = True
         self._proc = WNDPROC(self._wndproc)  # referans canli kalmali
         self.taskbar_created = u32.RegisterWindowMessageW("TaskbarCreated")
+        # setup.exe "Bitince ac": yonetici kurulum pencereyi kendisi acmaz, bu mesajla tepsiden (normal yetki,
+        # sag tik > Ac ile ayni yol) acilmasini ister. Yuksek yetkiden dusuge PostMessage UIPI'ye takilmaz.
+        self.open_request = u32.RegisterWindowMessageW(OPEN_MESSAGE)
 
     # -- pencere ve simge
     def create(self):
@@ -194,7 +199,7 @@ class Tray:
         wc.cbSize = ctypes.sizeof(WNDCLASSEXW)
         wc.lpfnWndProc = self._proc
         wc.hInstance = hinst
-        wc.lpszClassName = "KendiControlCenterTray"
+        wc.lpszClassName = TRAY_CLASS
         u32.RegisterClassExW(ctypes.byref(wc))
         # Gorunmez ust duzey pencere (yalnizca-mesaj penceresi TaskbarCreated yayinini alamaz)
         self.hwnd = u32.CreateWindowExW(0, wc.lpszClassName, "FCUK Control Center", 0, 0, 0, 0, 0,
@@ -444,6 +449,9 @@ class Tray:
                 except Exception:
                     import traceback
                     fntus.log("osd hatasi: " + traceback.format_exc().replace("\n", " | "))
+                return 0
+            if msg == self.open_request and msg:
+                self.command(self.ID_OPEN)
                 return 0
             if msg == self.taskbar_created:  # Gezgin yeniden basladi: simgeyi geri koy
                 self._add()

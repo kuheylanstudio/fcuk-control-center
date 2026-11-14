@@ -58,9 +58,45 @@ def run_script(mode, on_line, launch=True, restore=False):
     return p.wait()
 
 
+TRAY_CLASS = "KendiControlCenterTray"           # tepsi.py TRAY_CLASS ile aynı
+OPEN_MESSAGE = "FCUKControlCenter.PencereyiAc"  # tepsi.py OPEN_MESSAGE ile aynı
+
+
+def _ask_tray_to_open(wait=15.0):
+    """Kurulumun başlattığı (normal yetkili) tepsiden pencereyi açmasını ister: tepsideki 'Aç' ile aynı yol.
+    Tepsi pencereyi motor yanıt verdiğinde açar. Tepsi bulunamazsa False."""
+    import ctypes
+    import time
+    from ctypes import wintypes as wt
+    u32 = ctypes.WinDLL("user32", use_last_error=True)
+    u32.FindWindowW.argtypes = [wt.LPCWSTR, wt.LPCWSTR]
+    u32.FindWindowW.restype = wt.HWND
+    u32.RegisterWindowMessageW.argtypes = [wt.LPCWSTR]
+    u32.RegisterWindowMessageW.restype = wt.UINT
+    u32.PostMessageW.argtypes = [wt.HWND, wt.UINT, wt.WPARAM, wt.LPARAM]
+    u32.PostMessageW.restype = wt.BOOL
+    msg = u32.RegisterWindowMessageW(OPEN_MESSAGE)
+    if not msg:
+        return False
+    end = time.monotonic() + wait
+    while time.monotonic() < end:
+        hwnd = u32.FindWindowW(TRAY_CLASS, None)
+        if hwnd and u32.PostMessageW(hwnd, msg, 0, 0):
+            return True
+        time.sleep(0.25)
+    return False
+
+
 def open_app():
-    """Arayüzü NORMAL kullanıcı yetkisiyle açar: kurulum yönetici olarak çalışıyor; explorer aracılığıyla
-    başlatılan süreç kullanıcının kendi (yükseltilmemiş) yetkisini alır."""
+    """Arayüzü NORMAL kullanıcı yetkisiyle açar. Kurulum yönetici olarak çalışır; pencereyi buradan açmak
+    yönetici tarayıcı, yönetici ortam değişkenleri ya da henüz hazır olmayan motor yüzünden 'siteye
+    ulaşılamıyor / IP adresi bulunamadı' sayfası bırakabiliyordu. Bu yüzden açmayı tepsi yapar; tepsi
+    yoksa uygulama explorer aracılığıyla (yükseltilmemiş) başlatılır ve o da motoru bekleyip açar."""
+    try:
+        if _ask_tray_to_open():
+            return
+    except Exception:
+        pass
     if os.path.exists(EXE):
         subprocess.Popen(["explorer.exe", EXE], creationflags=NO_WINDOW)
 
@@ -194,6 +230,7 @@ def gui():
 
     def finish():
         if st["rc"] != 1 and launch.get():
+            root.withdraw()  # tepsi beklenirken donmuş pencere görünmesin
             open_app()
         root.destroy()
 
