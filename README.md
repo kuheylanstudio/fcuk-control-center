@@ -11,7 +11,9 @@ bilgisayarlarda da donanım tespiti, canlı izleme, NVIDIA ve işlemci ayarları
 <p align="center">
   <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v2.1.0/FCUK-Control-Center-Setup-2.1.0.exe"><img alt="İndir: FCUK-Control-Center-Setup-2.1.0.exe" src="https://img.shields.io/badge/%C4%B0ndir-FCUK--Control--Center--Setup--2.1.0.exe-2ea44f?style=for-the-badge&logo=windows&logoColor=white"></a>
   <br>
-  <sub>Windows 10/11 (64 bit) · <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/latest">tüm sürümler ve SHA-256</a></sub>
+  <a href="https://www.virustotal.com/gui/file/618441dcfe30efc3c18559caaa8caffa1c929b44db658d7c1bee7dbb7763e7ef"><img alt="VirusTotal tarama sonucu" src="https://img.shields.io/badge/VirusTotal-tarama%20sonucu-394EFF?logo=virustotal&logoColor=white"></a>
+  <br>
+  <sub>Windows 10/11 (64 bit) · <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/latest">tüm sürümler ve SHA-256</a> · <a href="#güvenlik-ve-doğrulama">güvenlik ve doğrulama</a></sub>
 </p>
 
 ## Özellikler
@@ -55,9 +57,18 @@ yazmayı gerektirir. Uygulama hiçbir çekirdek sürücüsü kurmaz.
 
 1. **[FCUK-Control-Center-Setup-2.1.0.exe](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v2.1.0/FCUK-Control-Center-Setup-2.1.0.exe)** dosyasını indirin.
 2. Çift tıklayın ve yönetici iznini onaylayın. Kurulum penceresi her adımı gösterir; bitince uygulama açılır.
-3. Windows "Bilgisayarınız korundu" (SmartScreen) derse: **Ek bilgi → Yine de çalıştır**. Kurulum programı
-   kod imzalı değildir; indirdiğiniz dosyanın [sürüm sayfasındaki](https://github.com/kuheylanstudio/fcuk-control-center/releases/latest)
-   SHA-256 değeriyle aynı olduğunu `Get-FileHash FCUK-Control-Center-Setup-2.1.0.exe` ile denetleyebilirsiniz.
+3. Windows "Bilgisayarınız korundu" (SmartScreen) derse: **Ek bilgi → Yine de çalıştır**. Ayrıntı:
+   [Güvenlik ve doğrulama](#güvenlik-ve-doğrulama).
+
+### Güvenlik ve doğrulama
+
+- **VirusTotal:** her sürümün kurulum dosyası yayımlandığı anda GitHub Actions ile VirusTotal'a yüklenir; sonucun
+  bağlantısı sürüm notlarının sonunda ve yukarıdaki rozettedir. PyInstaller ile paketlenen programları birkaç
+  antivirüs motoru bazen yanlışlıkla işaretler (genel "Trojan/Wacatac" vb. adlarla); kaynak kodun tamamı bu depodadır.
+- **SHA-256:** indirdiğiniz dosyanın [sürüm sayfasındaki](https://github.com/kuheylanstudio/fcuk-control-center/releases/latest)
+  özetle aynı olduğunu denetleyin: `Get-FileHash FCUK-Control-Center-Setup-2.1.0.exe`
+- **Kod imzası:** 2.1.0 ve önceki sürümler kod imzalı değildir; SmartScreen bu yüzden uyarır. İmzalı sürümlerde
+  dosyaya sağ tık → Özellikler → **Dijital İmzalar** sekmesinde imzalayan görünür.
 
 İndirilen kurulum programı üreticiye ait DLL'i **içermez**. Clevo / Monster dizüstülerde uygulama `InsydeDCHU.dll`'i
 Windows sürücü deposundaki AcpiBridge sürücüsünden kullanır; ayrıca bir şey yapmanız gerekmez.
@@ -118,6 +129,18 @@ powershell -ExecutionPolicy Bypass -File setup_olustur.ps1   # çıktı: dist\se
 Bu şekilde derlenen setup.exe üreticiye ait DLL'i içerir; kendi bilgisayarınız için kullanın, herkese açık
 dağıtmayın. Dağıtılabilir (DLL'siz) paket için: `setup_olustur.ps1 -Dagitim` (çıktı:
 `dist\FCUK-Control-Center-Setup-2.1.0.exe`). İndirme düğmesindeki dosya budur.
+
+#### Kod imzalama
+
+`-Imzala` uygulama exe'sini ve kurulum dosyasını Authenticode ile imzalar (SHA-256, RFC 3161 zaman damgası):
+
+```powershell
+setup_olustur.ps1 -Dagitim -Imzala -Sertifika <sertifika parmak izi>   # ya da $env:FCUK_IMZA_SERTIFIKA
+```
+
+Sertifika Windows sertifika deposundan seçilir (Certum SimplySign gibi bulut sertifikalarında önce SimplySign
+Desktop'ta oturum açın). `signtool.exe` Windows SDK'nın "Signing Tools" bileşeniyle gelir. Betik her imzayı
+`signtool verify` ile denetler; README'deki VirusTotal bağlantısı imzalı dosyanın SHA-256'sına güncellenir.
 
 ### Kaynaktan
 

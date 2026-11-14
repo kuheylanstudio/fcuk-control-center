@@ -37,7 +37,7 @@ FIRST_DELAY = 90         # acilistan sonra ilk denetim (ag ve motor otursun)
 AUTO_DELAY = 45          # otomatik modda kurulumdan once yeniliklerin gosterildigi sure (sn)
 MAX_NOTES = 10           # en fazla bu kadar surumun notu gosterilir
 # Yayin metnindeki indirme sayfasina ozgu satirlar (uygulama ici guncellemede anlamsiz)
-_NOTE_SKIP = re.compile(r"^\s*(#+\s*FCUK Control Center\b|Windows SmartScreen|\**SHA-256\**)", re.I)
+_NOTE_SKIP = re.compile(r"^\s*(#+\s*FCUK Control Center\b|Windows SmartScreen|\**SHA-256\**|\**VirusTotal\**)", re.I)
 MAX_SIZE = 300 * 1024 * 1024
 NO_WINDOW = 0x08000000
 
