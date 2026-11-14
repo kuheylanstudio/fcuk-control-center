@@ -93,11 +93,13 @@ function Test-Admin {
     $p = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
     return $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
+$script:ApiError = ''
 function Invoke-Api([string]$path, [string]$method = 'GET', [int]$timeout = 2) {
+    $script:ApiError = ''
     try {
         if ($method -eq 'POST') { return Invoke-RestMethod -Method Post -Uri ($Api + $path) -Body '{}' -ContentType 'application/json' -TimeoutSec $timeout }
         return Invoke-RestMethod -Uri ($Api + $path) -TimeoutSec $timeout
-    } catch { return $null }
+    } catch { $script:ApiError = "$($_.Exception.Message)"; return $null }
 }
 function Copy-Tree([string]$src, [string]$dst, [switch]$Mirror, [string[]]$ExcludeDirs = @(), [string[]]$ExcludeFiles = @()) {
     $ra = @($src, $dst, $(if ($Mirror) { '/MIR' } else { '/E' }), '/R:3', '/W:1', '/NFL', '/NDL', '/NJH', '/NJS', '/NP')
@@ -626,12 +628,22 @@ try {
         if (-not $ping) { throw 'Motor 20 saniyede yanıt vermedi' }
         if ($ping.path -notlike "$Dest*") { Warn "Yanıt veren motor başka klasörden: $($ping.path)" }
         if ($ping.admin) { Ok "Motor çalışıyor: sürüm $($ping.version), yönetici modu" } else { Warn 'Motor çalışıyor ama yönetici değil (ekran kartı saat sınırı ve NVIDIA ayarları yazılamaz)' }
-        $st = Invoke-Api '/api/state' 'GET' 10
+        # Motor yeni açıldığında ilk durum okuması (açılış profili uygulanırken) başarısız olabilir: birkaç kez denenir.
+        $st = $null; $stErr = ''
+        for ($i = 0; $i -lt 5 -and -not $st; $i++) {
+            if ($i) { Start-Sleep -Seconds 1 }
+            $st = Invoke-Api '/api/state' 'GET' 10
+            if (-not $st) { $stErr = $script:ApiError }
+        }
         if ($clevo) {
-            if ($st -and $st.ec) { Ok "Gömülü denetleyici bağlı: $($st.device)" } else { Fail 'Gömülü denetleyiciye bağlanılamadı (fan / güç modu / klavye ışığı çalışmaz)' }
             $now = $null
             for ($i = 0; $i -lt 10 -and -not ($now -and $null -ne $now.cpu_rpm); $i++) { Start-Sleep -Milliseconds 700; $now = Invoke-Api '/api/now' }
-            if ($now -and $null -ne $now.cpu_rpm) { Ok "Fan okuması: işlemci $($now.cpu_rpm) RPM, ekran kartı $($now.gpu_rpm) RPM, işlemci $($now.cpu_temp) °C" }
+            $fanOk = [bool]($now -and $null -ne $now.cpu_rpm -and ([int]$now.cpu_rpm -gt 0 -or [int]$now.cpu_temp -gt 0))
+            if ($st -and $st.ec) { Ok "Gömülü denetleyici bağlı: $($st.device)" }
+            elseif ($st) { Fail ("Gömülü denetleyiciye bağlanılamadı (fan / güç modu / klavye ışığı çalışmaz)" + $(if ($st.ec_reason) { ": $($st.ec_reason)" } else { '' })) }
+            elseif ($fanOk) { Warn "Arayüz durumu okunamadı ($stErr); denetleyici fan okumasına yanıt verdiği için bağlı. Ayrıntı: $(Join-Path $Veri 'crash.log')" }
+            else { Fail "Gömülü denetleyiciye bağlanılamadı (fan / güç modu / klavye ışığı çalışmaz); motor durumu okunamadı: $stErr" }
+            if ($fanOk) { Ok "Fan okuması: işlemci $($now.cpu_rpm) RPM, ekran kartı $($now.gpu_rpm) RPM, işlemci $($now.cpu_temp) °C" }
             else { Warn 'Fan okuması henüz gelmedi' }
         } elseif ($cihaz -ne 'diger' -and $st) {
             # Kurulum cihazı tanıdı; uygulamanın bu sürümünde o markanın denetleyici desteği var mı?
