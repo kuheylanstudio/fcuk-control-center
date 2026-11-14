@@ -343,5 +343,13 @@
   "unsup.title": "Auf diesem Computer nicht verfügbar",
   "unsup.fan": "Lüfterkurven und Controller-Energiemodi gibt es nur beim Clevo/Monster-Embedded-Controller, den dieser Computer nicht hat. Die App sendet keine Befehle an Lüfter oder Controller; der Computer selbst oder die App des Herstellers steuert die Lüfter weiter. Profile setzen CPU-, GPU- und Anzeigeeinstellungen trotzdem.",
   "unsup.kb": "Die RGB-Tastaturbeleuchtung gibt es nur beim Clevo/Monster-Embedded-Controller, den dieser Computer nicht hat. Die App sendet keine Befehle an die Tastatur; die App des Herstellers oder die Fn-Tasten steuern die Beleuchtung weiter.",
-  "unsup.dll": "Der Embedded Controller wurde gefunden, seine Bibliothek ließ sich aber nicht laden, daher ist diese Funktion aus: {err}"
+  "unsup.dll": "Der Embedded Controller wurde gefunden, seine Bibliothek ließ sich aber nicht laden, daher ist diese Funktion aus: {err}",
+  "err.awOpen": "auf diesem Computer nicht verfügbar (Alienware-Controller nicht erreichbar: {err}). Starten Sie die App als Administrator.",
+  "err.awNoProfile": "auf diesem Computer nicht verfügbar (der Alienware-Controller meldet kein passendes Energieprofil)",
+  "err.awNoTemp": "der Alienware-Controller meldet keine Temperatur; die Lüfter wurden zur Sicherheit an das Controller-Profil übergeben",
+  "err.awKbNone": "keine RGB-Tastaturbeleuchtung gefunden (Modelle wie das Alienware 16 Aurora haben nur weiße Beleuchtung)",
+  "err.awKbOpen": "AlienFX-Tastaturgerät konnte nicht geöffnet werden",
+  "unsup.kbAw": "RGB-Tastaturbeleuchtung ist auf diesem Computer nicht verfügbar: {err}. Lüfter- und Energiemodussteuerung funktionieren weiter.",
+  "fan.introAw": "Auf Alienware führt die App die Kurve aus (der Controller hat keine eigene): Sie prüft jede Sekunde die Temperatur und stellt die Lüfterdrehzahl ein. Beim Schließen der App kehren die Lüfter zum Controller-Profil zurück. Die gestrichelte Linie ist eine Referenz, keine Werkstabelle. Hitzeschutz: Liegt die CPU 5 Sekunden über 93 °C oder die GPU über 87 °C oder ist die Temperatur nicht lesbar, übernimmt wieder der Controller.",
+  "fan.legend.reference": "Referenz"
 }

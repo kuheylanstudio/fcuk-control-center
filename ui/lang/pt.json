@@ -343,5 +343,13 @@
   "unsup.title": "Indisponível neste computador",
   "unsup.fan": "As curvas de ventoinha e os modos de energia do controlador são exclusivos do controlador embutido Clevo/Monster, que este computador não tem. O app não envia nenhum comando às ventoinhas nem ao controlador; o próprio computador ou o app do fabricante continua a geri-los. Os perfis ainda aplicam as definições de CPU, GPU e ecrã.",
   "unsup.kb": "A iluminação RGB do teclado é exclusiva do controlador embutido Clevo/Monster, que este computador não tem. O app não envia nenhum comando ao teclado; o app do fabricante ou as teclas Fn continuam a gerir a luz.",
-  "unsup.dll": "O controlador embutido foi encontrado, mas a sua biblioteca não carregou, por isso esta função está desligada: {err}"
+  "unsup.dll": "O controlador embutido foi encontrado, mas a sua biblioteca não carregou, por isso esta função está desligada: {err}",
+  "err.awOpen": "não disponível neste computador (não foi possível acessar o controlador Alienware: {err}). Execute o app como administrador.",
+  "err.awNoProfile": "não disponível neste computador (o controlador Alienware não oferece um perfil de energia adequado)",
+  "err.awNoTemp": "o controlador Alienware não informa a temperatura; por segurança, as ventoinhas voltaram ao perfil do controlador",
+  "err.awKbNone": "nenhuma iluminação RGB de teclado encontrada (modelos como o Alienware 16 Aurora têm apenas retroiluminação branca)",
+  "err.awKbOpen": "não foi possível abrir o dispositivo de teclado AlienFX",
+  "unsup.kbAw": "A iluminação RGB do teclado não está disponível neste computador: {err}. O controle das ventoinhas e do modo de energia continua funcionando.",
+  "fan.introAw": "No Alienware, quem executa a curva é o app (o controlador não tem curva própria): a cada segundo ele lê a temperatura e ajusta as ventoinhas. Ao fechar o app, as ventoinhas voltam ao perfil do controlador. A linha tracejada é uma referência, não uma tabela de fábrica. Proteção térmica: se a CPU passar de 93 °C ou a GPU de 87 °C por 5 segundos, ou a temperatura não puder ser lida, as ventoinhas voltam ao controlador.",
+  "fan.legend.reference": "Referência"
 }

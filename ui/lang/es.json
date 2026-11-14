@@ -343,5 +343,13 @@
   "unsup.title": "No disponible en este equipo",
   "unsup.fan": "Las curvas de ventilador y los modos de energía del controlador son exclusivos del controlador integrado Clevo/Monster, que este equipo no tiene. La aplicación no envía ningún comando a los ventiladores ni al controlador; el propio equipo o la aplicación del fabricante siguen gestionándolos. Los perfiles siguen aplicando ajustes de CPU, GPU y pantalla.",
   "unsup.kb": "La iluminación RGB del teclado es exclusiva del controlador integrado Clevo/Monster, que este equipo no tiene. La aplicación no envía ningún comando al teclado; la aplicación del fabricante o las teclas Fn siguen gestionando la luz.",
-  "unsup.dll": "Se encontró el controlador integrado, pero no se pudo cargar su biblioteca, así que esta función está desactivada: {err}"
+  "unsup.dll": "Se encontró el controlador integrado, pero no se pudo cargar su biblioteca, así que esta función está desactivada: {err}",
+  "err.awOpen": "no disponible en este equipo (no se pudo acceder al controlador de Alienware: {err}). Ejecuta la app como administrador.",
+  "err.awNoProfile": "no disponible en este equipo (el controlador de Alienware no ofrece un perfil de energía adecuado)",
+  "err.awNoTemp": "el controlador de Alienware no informa temperatura; por seguridad, los ventiladores vuelven al perfil del controlador",
+  "err.awKbNone": "no se encontró iluminación RGB de teclado (modelos como el Alienware 16 Aurora solo tienen retroiluminación blanca)",
+  "err.awKbOpen": "no se pudo abrir el dispositivo de teclado AlienFX",
+  "unsup.kbAw": "La iluminación RGB del teclado no está disponible en este equipo: {err}. El control de ventiladores y modo de energía sigue funcionando.",
+  "fan.introAw": "En Alienware la curva la ejecuta la app (el controlador no tiene curva propia): cada segundo mira la temperatura y ajusta los ventiladores. Al cerrar la app, los ventiladores vuelven al perfil del controlador. La línea discontinua es una referencia, no una tabla de fábrica. Protección térmica: si la CPU supera 93 °C o la GPU 87 °C durante 5 segundos, o no se puede leer la temperatura, los ventiladores vuelven al controlador.",
+  "fan.legend.reference": "Referencia"
 }

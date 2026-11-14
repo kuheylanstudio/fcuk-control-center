@@ -200,6 +200,7 @@ def peer_in_my_session(client_port, server_port):
 class DCHU:
     """InsydeDCHU.dll sarmalayicisi. Tum cagrilar tek kilitten gecer (motor, sensor ve sunucu ayni anda cagirir)."""
     available = True
+    kind = "clevo"
 
     def __init__(self):
         # Surumler farkli islev kumesi tasir (ornek: surucu deposundaki 1.0.0.1'de SetDCHU_DataEx yok). Yalnizca
@@ -354,14 +355,16 @@ class NullDCHU:
     bos, yazmalar Unsupported verir ve donanima HICBIR komut gitmez. Profil adimlari bunu raporda
     'desteklenmiyor' olarak gosterir; geri kalan her sey calisir."""
     available = False
+    kind = ""
     path = ""
 
-    def __init__(self, reason="", clevo=False):
+    def __init__(self, reason="", clevo=False, message=None):
         self.reason = reason
         self.clevo = clevo  # aygit var ama kitaplik yok (Clevo) / aygit hic yok (baska uretici)
+        self.message = message  # Unsupported metni (Alienware arayuzu acilamadiysa onun nedeni)
 
     def _no(self, *args, **kwargs):
-        raise Unsupported(ceviri.t("err.noEc" if self.clevo else "err.notClevo"))
+        raise Unsupported(self.message or ceviri.t("err.noEc" if self.clevo else "err.notClevo"))
 
     set_wmi = set_data = write_app = set_power_mode = set_fan_mode = set_fan_curve = _no
 
@@ -421,8 +424,21 @@ def clevo_present():
 
 
 def open_dchu():
-    """Gercek denetleyici ya da (Clevo aygiti yoksa / kitaplik yoksa / yuklenemezse) NullDCHU."""
+    """Clevo denetleyicisi, Alienware/Dell AWCC denetleyicisi ya da (hicbiri yoksa / acilamazsa) NullDCHU.
+
+    Alienware yolu yalnizca uretici Alienware/Dell ise ve AWCC WMI sinifi gecerli bir sistem tanimi
+    donduruyorsa secilir; aksi halde denetleyiciye hicbir yazma komutu gitmez."""
     if not clevo_present():
+        try:
+            import alienware
+            ec, err = alienware.open_alienware()
+        except Exception as exc:
+            ec, err = None, str(exc)
+        if ec is not None:
+            return ec
+        if err:  # Alienware/Dell ama arayuz acilamadi (cogu zaman yonetici yetkisi yok)
+            msg = ceviri.t("err.awOpen", err=err)
+            return NullDCHU(msg, clevo=False, message=msg)
         return NullDCHU(ceviri.t("err.notClevo"), clevo=False)
     try:
         return DCHU()

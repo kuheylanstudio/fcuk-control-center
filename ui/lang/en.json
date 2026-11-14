@@ -511,5 +511,13 @@
   "unsup.title": "Not available on this computer",
   "unsup.fan": "Fan curves and controller power modes are specific to the Clevo/Monster embedded controller, which this computer does not have. The app sends no commands to the fans or the controller; the computer itself or the manufacturer's app keeps managing the fans. Profiles still apply CPU, GPU and display settings.",
   "unsup.kb": "Keyboard RGB lighting is specific to the Clevo/Monster embedded controller, which this computer does not have. The app sends no commands to the keyboard; the manufacturer's app or the Fn keys keep managing the keyboard light.",
-  "unsup.dll": "The embedded controller was found but its library could not be loaded, so this feature is off: {err}"
+  "unsup.dll": "The embedded controller was found but its library could not be loaded, so this feature is off: {err}",
+  "err.awOpen": "not available on this computer (could not reach the Alienware controller: {err}). Run the app as administrator.",
+  "err.awNoProfile": "not available on this computer (the Alienware controller reports no suitable power profile)",
+  "err.awNoTemp": "the Alienware controller reports no temperature; the fans were handed back to the controller's profile for safety",
+  "err.awKbNone": "no RGB keyboard light found on this computer (models such as the Alienware 16 Aurora have a white-only backlight)",
+  "err.awKbOpen": "could not open the AlienFX keyboard device",
+  "unsup.kbAw": "Keyboard RGB lighting is not available on this computer: {err}. Fan and power mode control keep working.",
+  "fan.introAw": "On Alienware the app runs the curve (the controller has no curve of its own): it checks the temperature every second and sets the fan speed. When the app closes, the fans return to the controller's profile. The dashed line is a reference, not a factory table. Thermal protection: if the CPU stays above 93 °C or the GPU above 87 °C for 5 seconds, or the temperature can't be read, the fans go back to the controller.",
+  "fan.legend.reference": "Reference"
 }

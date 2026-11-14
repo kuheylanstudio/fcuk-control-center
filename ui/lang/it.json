@@ -343,5 +343,13 @@
   "unsup.title": "Non disponibile su questo computer",
   "unsup.fan": "Le curve delle ventole e le modalità di alimentazione del controller sono specifiche del controller integrato Clevo/Monster, che questo computer non ha. L'app non invia alcun comando alle ventole o al controller; il computer stesso o l'app del produttore continua a gestirle. I profili applicano comunque le impostazioni di CPU, GPU e schermo.",
   "unsup.kb": "L'illuminazione RGB della tastiera è specifica del controller integrato Clevo/Monster, che questo computer non ha. L'app non invia alcun comando alla tastiera; l'app del produttore o i tasti Fn continuano a gestire la luce.",
-  "unsup.dll": "Il controller integrato è stato trovato ma la sua libreria non si è caricata, quindi questa funzione è disattivata: {err}"
+  "unsup.dll": "Il controller integrato è stato trovato ma la sua libreria non si è caricata, quindi questa funzione è disattivata: {err}",
+  "err.awOpen": "non disponibile su questo computer (controller Alienware non raggiungibile: {err}). Esegui l'app come amministratore.",
+  "err.awNoProfile": "non disponibile su questo computer (il controller Alienware non offre un profilo energetico adatto)",
+  "err.awNoTemp": "il controller Alienware non fornisce la temperatura; per sicurezza le ventole tornano al profilo del controller",
+  "err.awKbNone": "nessuna illuminazione RGB della tastiera trovata (modelli come l'Alienware 16 Aurora hanno solo retroilluminazione bianca)",
+  "err.awKbOpen": "impossibile aprire il dispositivo tastiera AlienFX",
+  "unsup.kbAw": "L'illuminazione RGB della tastiera non è disponibile su questo computer: {err}. Il controllo di ventole e modalità energetica continua a funzionare.",
+  "fan.introAw": "Su Alienware la curva la esegue l'app (il controller non ne ha una propria): ogni secondo legge la temperatura e regola le ventole. Alla chiusura dell'app le ventole tornano al profilo del controller. La linea tratteggiata è un riferimento, non una tabella di fabbrica. Protezione termica: se la CPU supera 93 °C o la GPU 87 °C per 5 secondi, o la temperatura non è leggibile, le ventole tornano al controller.",
+  "fan.legend.reference": "Riferimento"
 }

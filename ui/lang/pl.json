@@ -343,5 +343,13 @@
   "unsup.title": "Niedostępne na tym komputerze",
   "unsup.fan": "Krzywe wentylatorów i tryby zasilania kontrolera są właściwe dla kontrolera wbudowanego Clevo/Monster, którego ten komputer nie ma. Aplikacja nie wysyła żadnych poleceń do wentylatorów ani kontrolera; nadal zarządza nimi sam komputer lub aplikacja producenta. Profile nadal stosują ustawienia procesora, karty graficznej i ekranu.",
   "unsup.kb": "Podświetlenie RGB klawiatury jest właściwe dla kontrolera wbudowanego Clevo/Monster, którego ten komputer nie ma. Aplikacja nie wysyła żadnych poleceń do klawiatury; podświetleniem nadal zarządza aplikacja producenta lub klawisze Fn.",
-  "unsup.dll": "Znaleziono kontroler wbudowany, ale nie udało się wczytać jego biblioteki, więc ta funkcja jest wyłączona: {err}"
+  "unsup.dll": "Znaleziono kontroler wbudowany, ale nie udało się wczytać jego biblioteki, więc ta funkcja jest wyłączona: {err}",
+  "err.awOpen": "niedostępne na tym komputerze (brak połączenia z kontrolerem Alienware: {err}). Uruchom aplikację jako administrator.",
+  "err.awNoProfile": "niedostępne na tym komputerze (kontroler Alienware nie udostępnia odpowiedniego profilu zasilania)",
+  "err.awNoTemp": "kontroler Alienware nie podaje temperatury; dla bezpieczeństwa wentylatory wróciły do profilu kontrolera",
+  "err.awKbNone": "nie znaleziono podświetlenia RGB klawiatury (modele takie jak Alienware 16 Aurora mają tylko białe podświetlenie)",
+  "err.awKbOpen": "nie można otworzyć urządzenia klawiatury AlienFX",
+  "unsup.kbAw": "Podświetlenie RGB klawiatury jest niedostępne na tym komputerze: {err}. Sterowanie wentylatorami i trybem zasilania nadal działa.",
+  "fan.introAw": "Na Alienware krzywą wykonuje aplikacja (kontroler nie ma własnej): co sekundę sprawdza temperaturę i ustawia wentylatory. Po zamknięciu aplikacji wentylatory wracają do profilu kontrolera. Linia przerywana to odniesienie, nie tabela fabryczna. Ochrona termiczna: jeśli procesor przez 5 sekund przekracza 93 °C lub karta 87 °C albo temperatury nie da się odczytać, wentylatory wracają do kontrolera.",
+  "fan.legend.reference": "Odniesienie"
 }

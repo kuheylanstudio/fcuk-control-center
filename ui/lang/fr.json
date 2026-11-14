@@ -343,5 +343,13 @@
   "unsup.title": "Indisponible sur cet ordinateur",
   "unsup.fan": "Les courbes de ventilation et les modes d'alimentation du contrôleur sont propres au contrôleur embarqué Clevo/Monster, absent de cet ordinateur. L'application n'envoie aucune commande aux ventilateurs ni au contrôleur ; l'ordinateur lui-même ou l'application du fabricant continue de les gérer. Les profils appliquent toujours les réglages processeur, GPU et écran.",
   "unsup.kb": "L'éclairage RGB du clavier est propre au contrôleur embarqué Clevo/Monster, absent de cet ordinateur. L'application n'envoie aucune commande au clavier ; l'application du fabricant ou les touches Fn continuent de gérer l'éclairage.",
-  "unsup.dll": "Le contrôleur embarqué a été trouvé mais sa bibliothèque n'a pas pu être chargée ; cette fonction est désactivée : {err}"
+  "unsup.dll": "Le contrôleur embarqué a été trouvé mais sa bibliothèque n'a pas pu être chargée ; cette fonction est désactivée : {err}",
+  "err.awOpen": "non disponible sur cet ordinateur (contrôleur Alienware inaccessible : {err}). Lancez l'application en administrateur.",
+  "err.awNoProfile": "non disponible sur cet ordinateur (le contrôleur Alienware ne propose aucun profil d'alimentation adapté)",
+  "err.awNoTemp": "le contrôleur Alienware ne fournit pas de température ; par sécurité, les ventilateurs sont rendus au profil du contrôleur",
+  "err.awKbNone": "aucun éclairage RVB du clavier trouvé (des modèles comme l'Alienware 16 Aurora n'ont qu'un rétroéclairage blanc)",
+  "err.awKbOpen": "impossible d'ouvrir le périphérique clavier AlienFX",
+  "unsup.kbAw": "L'éclairage RVB du clavier n'est pas disponible sur cet ordinateur : {err}. Le contrôle des ventilateurs et du mode d'alimentation fonctionne toujours.",
+  "fan.introAw": "Sur Alienware, c'est l'application qui applique la courbe (le contrôleur n'en a pas) : chaque seconde, elle lit la température et règle les ventilateurs. À la fermeture de l'application, les ventilateurs reviennent au profil du contrôleur. La ligne pointillée est une référence, pas une table d'usine. Protection thermique : si le processeur dépasse 93 °C ou la carte 87 °C pendant 5 secondes, ou si la température est illisible, les ventilateurs reviennent au contrôleur.",
+  "fan.legend.reference": "Référence"
 }

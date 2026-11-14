@@ -510,6 +510,9 @@ def state():
         "autostart": bool(App.cfg.get("autostart")),
         "dll": App.dchu.path,
         "ec": App.dchu.available,
+        "ec_kind": App.dchu.kind,  # "clevo" | "alienware" | "" (denetleyici yok)
+        "kb": bool(getattr(App.dchu, "kb_available", App.dchu.available)),  # klavye isigi ayrica olabilir/olmayabilir
+        "kb_reason": getattr(App.dchu, "kb_reason", ""),
         "ec_clevo": bool(getattr(App.dchu, "clevo", True)),  # aygit var, yalnizca kitaplik yok
         "ec_reason": getattr(App.dchu, "reason", ""),
         "cpu": App.inventory.data.get("cpu"),
@@ -869,6 +872,10 @@ def shutdown():
         App.engine.running = False
         App.sensors.running = False
         App.engine.join(1.5)
+        # Alienware'de fan egrisini bu surec calistirir: kapanirken fanlar denetleyicinin profiline birakilir.
+        # (Clevo'da egri denetleyicide calisir, shutdown yoktur.)
+        if hasattr(App.dchu, "shutdown"):
+            App.dchu.shutdown()
         save()
     finally:  # kayit basarisiz olsa da sunucu kapanmali
         App.server.shutdown()
@@ -954,9 +961,10 @@ def serve():
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
     except (OSError, AttributeError):
         pass
-    # Clevo/Monster koprusu (ACPI\CLV) yoksa ya da InsydeDCHU.dll yuklenemezse NullDCHU: fan/guc modu/klavye
-    # isigi kapanir ve gomulu denetleyiciye HICBIR komut gitmez; izleme, NVIDIA ve islemci ayarlari calisir.
-    # Baska ureticilerin Control Center'larina (Armoury Crate, Vantage, MSI Center, Alienware...) dokunulmaz.
+    # Clevo/Monster koprusu (ACPI\CLV) varsa InsydeDCHU, Alienware/Dell AWCC arayuzu varsa alienware.py;
+    # ikisi de yoksa NullDCHU: fan/guc modu/klavye isigi kapanir ve gomulu denetleyiciye HICBIR komut gitmez;
+    # izleme, NVIDIA ve islemci ayarlari calisir. Baska ureticilerin (Armoury Crate, Vantage, MSI Center...)
+    # denetleyicilerine dokunulmaz.
     App.dchu = hw.open_dchu()
     App.inventory = envanter.Inventory()
     App.inventory.start()
@@ -964,7 +972,7 @@ def serve():
     # Fn tusu olaylarini ac (Clevo "events enabled", komut 0x46). Bunu eskiden FnKey.exe acilista yapiyordu;
     # gonderilmezse denetleyici Fn bildirimlerini AcpiBridge'e iletmez (14.11.2026 olculdu). Yeniden
     # baslatmaya dek kalicidir; her acilista gonderilir.
-    if App.dchu.available:
+    if App.dchu.kind == "clevo":
         try:
             App.dchu.set_wmi(0x46, 0)
         except Exception:
@@ -998,7 +1006,7 @@ def serve():
     App.engine.settings = core.snapshot(App.cfg)
     App.engine.start()
     App.sensors.start()
-    if hw.is_admin() and App.dchu.available:  # yalnizca Clevo/Monster: Monster Fn programlari engellenir
+    if hw.is_admin() and App.dchu.kind == "clevo":  # yalnizca Clevo/Monster: Monster Fn programlari engellenir
         threading.Thread(target=fn_block_loop, daemon=True).start()
     if cc.get("profile") in profiller.BY_ID:  # yeniden baslatmadan sonra denetleyici ayarlari geri gelsin
         threading.Thread(target=App.manager.apply, args=(cc["profile"], "reason.startup"), daemon=True).start()

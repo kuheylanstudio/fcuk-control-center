@@ -343,5 +343,13 @@
   "unsup.title": "Niet beschikbaar op deze computer",
   "unsup.fan": "Ventilatorcurves en energiemodi van de controller horen bij de Clevo/Monster embedded controller, die deze computer niet heeft. De app stuurt geen opdrachten naar de ventilatoren of de controller; de computer zelf of de app van de fabrikant blijft ze regelen. Profielen passen processor-, GPU- en scherminstellingen wel toe.",
   "unsup.kb": "RGB-toetsenbordverlichting hoort bij de Clevo/Monster embedded controller, die deze computer niet heeft. De app stuurt geen opdrachten naar het toetsenbord; de app van de fabrikant of de Fn-toetsen blijven de verlichting regelen.",
-  "unsup.dll": "De embedded controller is gevonden, maar de bibliotheek kon niet worden geladen, dus deze functie staat uit: {err}"
+  "unsup.dll": "De embedded controller is gevonden, maar de bibliotheek kon niet worden geladen, dus deze functie staat uit: {err}",
+  "err.awOpen": "niet beschikbaar op deze computer (Alienware-controller niet bereikbaar: {err}). Start de app als administrator.",
+  "err.awNoProfile": "niet beschikbaar op deze computer (de Alienware-controller meldt geen geschikt energieprofiel)",
+  "err.awNoTemp": "de Alienware-controller meldt geen temperatuur; de ventilatoren zijn voor de veiligheid teruggegeven aan het controllerprofiel",
+  "err.awKbNone": "geen RGB-toetsenbordverlichting gevonden (modellen zoals de Alienware 16 Aurora hebben alleen witte verlichting)",
+  "err.awKbOpen": "kan het AlienFX-toetsenbordapparaat niet openen",
+  "unsup.kbAw": "RGB-toetsenbordverlichting is niet beschikbaar op deze computer: {err}. Ventilator- en energiemodusbediening blijven werken.",
+  "fan.introAw": "Op Alienware voert de app de curve uit (de controller heeft er zelf geen): elke seconde leest hij de temperatuur en stelt de ventilatoren in. Als de app sluit, gaan de ventilatoren terug naar het controllerprofiel. De stippellijn is een referentie, geen fabriekstabel. Hittebeveiliging: blijft de CPU 5 seconden boven 93 °C of de GPU boven 87 °C, of is de temperatuur onleesbaar, dan neemt de controller het weer over.",
+  "fan.legend.reference": "Referentie"
 }

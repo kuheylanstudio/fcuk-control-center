@@ -1371,16 +1371,27 @@ function initPresets() {
 /* ---------- bu bilgisayarda olmayan ozellikler ---------- */
 // Clevo/Monster gomulu denetleyicisi yoksa fan ve klavye isigi sayfalari denetim gostermez, nedenini soyler.
 // Motor da o denetleyiciye hicbir komut gondermez (donanim.NullDCHU).
+// Alienware'de fan denetimi olup RGB klavye olmayabilir (16 Aurora: beyaz isikli): iki sayfa ayri karar verir.
 function applySupport() {
-  if (meta.ec) return;
-  for (const [id, key] of [['fan', 'unsup.fan'], ['klavye', 'unsup.kb']]) {
+  if (meta.ec_kind === 'alienware') {  // egriyi denetleyici degil uygulama calistirir; fabrika egrisi yok, referans var
+    for (const [from, to] of [['fan.intro', 'fan.introAw'], ['fan.legend.factory', 'fan.legend.reference']]) {
+      const e = document.querySelector(`[data-i18n="${from}"]`);
+      if (e) { e.dataset.i18n = to; e.textContent = t(to); }
+    }
+  }
+  const off = [];
+  if (!meta.ec) off.push(['fan', 'unsup.fan'], ['klavye', 'unsup.kb']);
+  else if (meta.kb === false) off.push(['klavye', 'unsup.kbAw']);
+  for (const [id, key] of off) {
     const sec = $('#v-' + id);
     if (!sec || sec.querySelector('.nosup')) continue;
     for (const c of sec.children) c.hidden = true;
     const box = el('div', 'nosup');
     box.setAttribute('role', 'note');
     box.append(el('h2', '', t('unsup.title')),
-      el('p', '', meta.ec_clevo ? t('unsup.dll', { err: meta.ec_reason || '' }) : t(key)));
+      el('p', '', key === 'unsup.kbAw' ? t(key, { err: meta.kb_reason || '' })
+        : meta.ec_clevo ? t('unsup.dll', { err: meta.ec_reason || '' })
+        : meta.ec_reason && meta.ec_reason !== t('err.notClevo') ? meta.ec_reason : t(key)));
     sec.prepend(box);
     const sub = document.querySelector(`.nav[data-view="${id}"] small`);
     if (sub) sub.textContent = t('nav.unsup');
