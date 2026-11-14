@@ -145,7 +145,7 @@
   "set.adminOn": "El servicio se ejecuta como administrador. Se aplican todos los pasos del perfil, incluido el bloqueo de reloj de la GPU.",
   "set.adminTask": "La tarea de administrador está instalada, pero el servicio se ejecuta con permisos estándar. El botón de abajo lo reinicia como administrador.",
   "set.adminNone": "El bloqueo de reloj de la GPU de los perfiles silenciosos necesita permisos de administrador. Lo configuras una vez y, a partir de ahí, el servicio se inicia como administrador sin avisos de UAC.",
-  "set.adminAsk": "Windows te pedirá permisos de administrador. Si aceptas, el servicio se reiniciará como administrador.",
+  "set.adminAsk": "Windows te pedirá permisos de administrador. Si aceptas, el servicio se reiniciará como administrador. Si no aparece la ventana, haz clic en el icono del escudo en la barra de tareas.",
   "set.adminFail": "No se pudo configurar el modo administrador.",
   "set.adminFailErr": "No se pudo configurar el modo administrador: {err}",
   "set.adminRestarting": "Reiniciando el servicio como administrador…",

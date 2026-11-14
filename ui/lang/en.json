@@ -145,7 +145,7 @@
   "set.adminOn": "The service is running as administrator. Every profile step is applied, including the GPU clock lock.",
   "set.adminTask": "The administrator task is installed, but the service is running with standard privileges. The button below restarts the service as administrator.",
   "set.adminNone": "The GPU clock lock in the quiet profiles needs administrator rights. Set it up once, and the service will start as administrator from then on without a UAC prompt.",
-  "set.adminAsk": "Windows will ask for administrator permission. If you approve, the service restarts as administrator.",
+  "set.adminAsk": "Windows will ask for administrator permission. If you approve, the service restarts as administrator. If the prompt doesn't appear, click the shield icon on the taskbar.",
   "set.adminFail": "Couldn't set up Administrator mode.",
   "set.adminFailErr": "Couldn't set up Administrator mode: {err}",
   "set.adminRestarting": "Restarting the service as administrator…",

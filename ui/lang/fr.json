@@ -145,7 +145,7 @@
   "set.adminOn": "Le service s'exécute en tant qu'administrateur. Toutes les étapes des profils sont appliquées, y compris le verrouillage de fréquence de la carte graphique.",
   "set.adminTask": "La tâche administrateur est installée, mais le service s'exécute avec des droits standard. Le bouton ci-dessous redémarre le service en tant qu'administrateur.",
   "set.adminNone": "Le verrouillage de fréquence de la carte graphique des profils silencieux nécessite les droits administrateur. Configurez-le une seule fois : le service démarrera ensuite en tant qu'administrateur, sans invite UAC.",
-  "set.adminAsk": "Windows va demander l'autorisation administrateur. Si vous acceptez, le service redémarre en tant qu'administrateur.",
+  "set.adminAsk": "Windows va demander l'autorisation administrateur. Si vous acceptez, le service redémarre en tant qu'administrateur. Si la fenêtre n'apparaît pas, cliquez sur l'icône de bouclier dans la barre des tâches.",
   "set.adminFail": "Impossible d'activer le mode administrateur.",
   "set.adminFailErr": "Impossible d'activer le mode administrateur : {err}",
   "set.adminRestarting": "Redémarrage du service en tant qu'administrateur…",

@@ -145,7 +145,7 @@
   "set.adminOn": "De service draait als administrator. Alle profielstappen worden toegepast, ook de GPU-klokvergrendeling.",
   "set.adminTask": "De administratortaak is geïnstalleerd, maar de service draait met standaardrechten. Met de knop hieronder start je de service opnieuw als administrator.",
   "set.adminNone": "De GPU-klokvergrendeling in de stille profielen vereist administratorrechten. Je stelt het één keer in; daarna start de service als administrator zonder UAC-melding.",
-  "set.adminAsk": "Windows vraagt om administratorrechten. Als je akkoord gaat, start de service opnieuw als administrator.",
+  "set.adminAsk": "Windows vraagt om administratorrechten. Als je akkoord gaat, start de service opnieuw als administrator. Verschijnt de vraag niet, klik dan op het schildpictogram in de taakbalk.",
   "set.adminFail": "Administratormodus kon niet worden ingesteld.",
   "set.adminFailErr": "Administratormodus kon niet worden ingesteld: {err}",
   "set.adminRestarting": "Service wordt opnieuw gestart als administrator…",

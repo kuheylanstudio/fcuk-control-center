@@ -145,7 +145,7 @@
   "set.adminOn": "Usługa działa jako administrator. Stosowane są wszystkie kroki profili, w tym blokada taktowania karty graficznej.",
   "set.adminTask": "Zadanie administratora jest skonfigurowane, ale usługa działa ze standardowymi uprawnieniami. Przycisk poniżej uruchomi ją ponownie jako administrator.",
   "set.adminNone": "Blokada taktowania karty graficznej w cichych profilach wymaga uprawnień administratora. Konfigurujesz to raz – potem usługa startuje jako administrator bez pytania UAC.",
-  "set.adminAsk": "Windows poprosi o uprawnienia administratora. Po zatwierdzeniu usługa uruchomi się ponownie jako administrator.",
+  "set.adminAsk": "Windows poprosi o uprawnienia administratora. Po zatwierdzeniu usługa uruchomi się ponownie jako administrator. Jeśli okno się nie pojawi, kliknij ikonę tarczy na pasku zadań.",
   "set.adminFail": "Nie udało się włączyć trybu administratora.",
   "set.adminFailErr": "Nie udało się włączyć trybu administratora: {err}",
   "set.adminRestarting": "Ponowne uruchamianie usługi jako administrator…",

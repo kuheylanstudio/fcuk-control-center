@@ -401,6 +401,19 @@ class SHELLEXECUTEINFOW(ctypes.Structure):
                 ("hIconOrMonitor", wt.HANDLE), ("hProcess", wt.HANDLE)]
 
 
+def uac_owner():
+    """UAC onay penceresinin sahibi olacak pencere: kullanicinin az once tikladigi uygulama penceresi (on planda).
+    Istek penceresi olmayan arka plan motorundan gelir; sahip verilmezse Windows onay penceresini one getirmez,
+    gorev cubugunda yanip sonen kalkan olarak bekletir ve dugme 'hicbir sey yapmiyor' gibi gorunur
+    (temiz kurulu Windows'ta 14.11.2026 goruldu). On plan penceresi yoksa None: eski davranis."""
+    try:
+        user32 = ctypes.WinDLL("user32", use_last_error=True)
+        user32.GetForegroundWindow.restype = wt.HWND
+        return user32.GetForegroundWindow() or None
+    except (OSError, AttributeError):
+        return None
+
+
 def request_admin():
     """UAC penceresini acar; kullanici onaylarsa gorev kurulur. (ok, mesaj)
     Sonuc, kullanicinin yazabildigi bir dosyadan degil yonetici surecin cikis kodundan okunur."""
@@ -410,6 +423,7 @@ def request_admin():
     sei = SHELLEXECUTEINFOW()
     sei.cbSize = ctypes.sizeof(sei)
     sei.fMask = 0x00000040  # SEE_MASK_NOCLOSEPROCESS
+    sei.hwnd = uac_owner()
     sei.lpVerb, sei.lpFile, sei.lpDirectory, sei.nShow = "runas", cmd[0], APP_DIR, 0
     sei.lpParameters = " ".join('"%s"' % a if not a.startswith("--") else a for a in cmd[1:])
     k32 = ctypes.WinDLL("kernel32", use_last_error=True)

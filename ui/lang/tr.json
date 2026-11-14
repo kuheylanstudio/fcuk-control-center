@@ -145,7 +145,7 @@
   "set.adminOn": "Motor yönetici olarak çalışıyor. Ekran kartı saat kilidi dahil tüm profil adımları uygulanır.",
   "set.adminTask": "Yönetici görevi kurulu ama motor standart yetkiyle çalışıyor. Aşağıdaki düğme motoru yönetici olarak yeniden başlatır.",
   "set.adminNone": "Sessiz profillerdeki ekran kartı saat kilidi yönetici izni ister. Bir kez kurarsın; sonra motor UAC sormadan yönetici olarak başlar.",
-  "set.adminAsk": "Windows yönetici izni isteyecek. Onaylarsan motor yönetici olarak yeniden başlar.",
+  "set.adminAsk": "Windows yönetici izni isteyecek. Onaylarsan motor yönetici olarak yeniden başlar. Onay penceresi görünmezse görev çubuğundaki kalkan simgesine tıkla.",
   "set.adminFail": "Yönetici modu kurulamadı.",
   "set.adminFailErr": "Yönetici modu kurulamadı: {err}",
   "set.adminRestarting": "Motor yönetici olarak yeniden başlatılıyor…",

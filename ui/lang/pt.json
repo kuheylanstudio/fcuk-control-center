@@ -145,7 +145,7 @@
   "set.adminOn": "O serviço está rodando como administrador. Todas as etapas dos perfis são aplicadas, incluindo o travamento de clock da GPU.",
   "set.adminTask": "A tarefa de administrador está instalada, mas o serviço está rodando com permissões padrão. O botão abaixo reinicia o serviço como administrador.",
   "set.adminNone": "O travamento de clock da GPU nos perfis silenciosos exige permissão de administrador. Você configura uma vez; depois o serviço inicia como administrador sem pedir UAC.",
-  "set.adminAsk": "O Windows vai pedir permissão de administrador. Se você aprovar, o serviço reinicia como administrador.",
+  "set.adminAsk": "O Windows vai pedir permissão de administrador. Se você aprovar, o serviço reinicia como administrador. Se a janela não aparecer, clique no ícone de escudo na barra de tarefas.",
   "set.adminFail": "Não foi possível configurar o modo administrador.",
   "set.adminFailErr": "Não foi possível configurar o modo administrador: {err}",
   "set.adminRestarting": "Reiniciando o serviço como administrador…",

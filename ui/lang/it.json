@@ -145,7 +145,7 @@
   "set.adminOn": "Il servizio è in esecuzione come amministratore. Vengono applicati tutti i passaggi dei profili, compreso il blocco del clock GPU.",
   "set.adminTask": "L'attività amministratore è installata, ma il servizio è in esecuzione con privilegi standard. Il pulsante qui sotto lo riavvia come amministratore.",
   "set.adminNone": "Il blocco del clock GPU nei profili silenziosi richiede i privilegi di amministratore. Lo configuri una volta; poi il servizio si avvia come amministratore senza richieste UAC.",
-  "set.adminAsk": "Windows chiederà i privilegi di amministratore. Se confermi, il servizio si riavvia come amministratore.",
+  "set.adminAsk": "Windows chiederà i privilegi di amministratore. Se confermi, il servizio si riavvia come amministratore. Se la finestra non compare, fai clic sull'icona dello scudo nella barra delle applicazioni.",
   "set.adminFail": "Impossibile configurare la modalità amministratore.",
   "set.adminFailErr": "Impossibile configurare la modalità amministratore: {err}",
   "set.adminRestarting": "Riavvio del servizio come amministratore…",

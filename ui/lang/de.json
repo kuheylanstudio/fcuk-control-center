@@ -145,7 +145,7 @@
   "set.adminOn": "Der Dienst läuft als Administrator. Alle Profilschritte werden angewendet, auch die GPU-Taktsperre.",
   "set.adminTask": "Die Administrator-Aufgabe ist eingerichtet, aber der Dienst läuft mit Standardrechten. Die Schaltfläche unten startet den Dienst als Administrator neu.",
   "set.adminNone": "Die GPU-Taktsperre in den leisen Profilen braucht Administratorrechte. Du richtest das einmal ein, danach startet der Dienst ohne UAC-Abfrage als Administrator.",
-  "set.adminAsk": "Windows fragt nach Administratorrechten. Wenn du zustimmst, startet der Dienst als Administrator neu.",
+  "set.adminAsk": "Windows fragt nach Administratorrechten. Wenn du zustimmst, startet der Dienst als Administrator neu. Erscheint die Abfrage nicht, klicke auf das Schild-Symbol in der Taskleiste.",
   "set.adminFail": "Administratormodus konnte nicht eingerichtet werden.",
   "set.adminFailErr": "Administratormodus konnte nicht eingerichtet werden: {err}",
   "set.adminRestarting": "Dienst wird als Administrator neu gestartet …",
