@@ -56,48 +56,35 @@ SCHED_TXT = {0: "tüm çekirdekler", 1: "yalnız P", 2: "P öncelikli", 3: "yaln
 PROFILES = [
     {
         "id": "tam_sessiz", "name": "Tam Sessiz", "tag": "Fan en alt devirde, duyulmaz",
-        "desc": "Turbo kapalı, denetleyici sessiz modda (işlemci ~15 W'ta kilitli). Fanlar 70 °C'ye kadar en alt "
-                "devirde. Ekran kartı 600 MHz'e kilitli, ekran 60 Hz. Ölçüm, 12 iş parçacığı tam yükte: 15 W, "
-                "59 °C, fan %29. Ekran kartı tam yükte: 600 MHz, 19 W (serbestken 65 W). Okuma, yazı, film, gece.",
+        "desc": "Turbo kapalı, denetleyici sessiz modda, fanlar en alt devirde, ekran kartı düşük saatte kilitli, ekran 60 Hz. Okuma, yazı, film, gece.",
         "ec": 0, "fan": ("curve", (70, 30, 84, 50), (70, 30, 84, 50)),
         "cpu": {"boost": 0, "epp": 100, "fmax_p": 0, "fmax_e": 0, "sched": 4, "sched_short": 4, "park": None},
         "gpu": (210, 600), "refresh": "min", "aspm": 2, "overlay": "eff",
     },
     {
         "id": "sessiz_kullanim", "name": "Sessiz Kullanım", "tag": "Hızlı tepki, düşük ses",
-        "desc": "Turbo açık ama P çekirdekler 2,4 GHz, E çekirdekler 1,6 GHz tavanında: hızın en pahalı dilimi "
-                "kesik. Tam Sessiz'e göre iki kat hızlı, hâlâ sakin. Ölçüm, tam yükte: 24 W, 69 °C, fan %39. "
-                "Ekran kartı 1100 MHz tavanında: tam yükte 24 W. Tarayıcı, kod, ofis, toplantı, hafif oyun.",
+        "desc": "Turbo açık ama işlemci ve ekran kartı tavanlı: hızın en pahalı dilimi kesik. Hızlı tepki, düşük ses. Tarayıcı, kod, ofis, toplantı, hafif oyun.",
         "ec": 3, "fan": ("curve", (64, 32, 80, 55), (64, 32, 80, 55)),
         "cpu": {"boost": 3, "epp": 60, "fmax_p": 2400, "fmax_e": 1600, "sched": 5, "sched_short": 4, "park": None},
         "gpu": (210, 1100), "refresh": "max", "aspm": 2, "overlay": "bal",
     },
     {
         "id": "sessiz_oyun", "name": "Sessiz Oyun", "tag": "Oynanabilir FPS, kontrollü ses",
-        "desc": "Ekran kartı 1500 MHz'e kilitli: Ampere'nin verimli bölgesi, gücün büyük kısmı kesilir, FPS az "
-                "düşer. İşlemci P 2,8 / E 2,0 GHz tavanında, oyun iş parçacıkları P çekirdeklere. Ölçüm, işlemci "
-                "tam yükte: 32 W, 73 °C, fan %50 (tavansız hali 45 W ve fan %78 idi). Ekran kartı tam yükte: "
-                "34 W, serbest halin (65 W) yarısı; saat %78'de kalır.",
+        "desc": "Ekran kartı verimli saat bölgesinde kilitli, işlemci tavanlı, oyun iş parçacıkları P çekirdeklere. Güç ve ısı belirgin düşer, FPS az etkilenir.",
         "ec": 3, "fan": ("curve", (62, 38, 80, 60), (62, 38, 80, 60)),
         "cpu": {"boost": 4, "epp": 40, "fmax_p": 2800, "fmax_e": 2000, "sched": 2, "sched_short": 5, "park": None},
         "gpu": (210, 1500), "refresh": "max", "aspm": 1, "overlay": "bal",
     },
     {
         "id": "performans", "name": "Performans", "tag": "Tam güç, fabrika soğutması",
-        "desc": "Denetleyici performans modunda (en yüksek güç sınırı), tavan yok, turbo agresif, ekran kartı "
-                "serbest. Fanları denetleyicinin kendi performans tablosu yönetir. Ölçüm, tam yükte: 61 W "
-                "(ilk saniyelerde 74 W), 98 °C, fan %100.",
+        "desc": "Denetleyici performans modunda, tavan yok, turbo agresif, ekran kartı serbest. Fanları denetleyicinin kendi performans tablosu yönetir.",
         "ec": 2, "fan": ("auto",),
         "cpu": {"boost": 2, "epp": 15, "fmax_p": 0, "fmax_e": 0, "sched": 5, "sched_short": 5, "park": None},
         "gpu": None, "refresh": "max", "aspm": 1, "overlay": "perf",
     },
     {
         "id": "ultra", "name": "Ultra Performans", "tag": "Ses umurunda değil, en yüksek FPS",
-        "desc": "Performans'ın üstüne: fanlar 50 °C'de devreye girip 62 °C'de %90'a çıkar, böylece oyunda "
-                "ekran kartı ısısı birikmeden atılır. EPP 0, çekirdek park kapalı, PCIe tasarrufu kapalı: en düşük "
-                "gecikme, boştayken bile yüksek güç. Dürüst ölçüm: işlemci ve kart birlikte tam yükteyken "
-                "Performans'la aynı (kart ~70 W / 1960 MHz, işlemci ~32 W); bu kasanın tavanı. Fark yalnızca "
-                "gecikme ayarları ve erken devreye giren fan. Yalnızca fişte; pile geçince Performans'a iner.",
+        "desc": "Performans'ın üstüne: fanlar daha erken ve güçlü devreye girer, EPP 0, çekirdek park ve PCIe tasarrufu kapalı. En düşük gecikme, boştayken bile yüksek güç. Yalnızca fişte; pile geçince Performans'a iner.",
         "ec": 2, "fan": ("curve", (50, 60, 62, 90), (50, 60, 62, 90)),
         "cpu": {"boost": 2, "epp": 0, "fmax_p": 0, "fmax_e": 0, "sched": 2, "sched_short": 2, "park": 100},
         "gpu": None, "refresh": "max", "aspm": 0, "overlay": "perf", "ac_only": True,
