@@ -580,5 +580,16 @@
   "msi.noCharge": "battery charge limit is off on this model",
   "msi.badCharge": "invalid charge limit",
   "msi.noCurve": "the MSI controller has no custom fan curve",
-  "msi.curveAs": "MSI fan mode: {mode}"
+  "msi.curveAs": "MSI fan mode: {mode}",
+  "err.hpUnsupported": "not available on this HP model",
+  "err.hpRc": "HP BIOS rejected the command (code {rc})",
+  "err.hpNoCurve": "the HP BIOS does not support custom fan curves; fans stay on the BIOS table",
+  "msg.hpCurveAuto": "HP: no custom curve, fans on the BIOS table (automatic)",
+  "val.hpFanTable": "BIOS table (no custom curve on HP)",
+  "hp.power.quiet": "Quiet (HP Cool)",
+  "hp.power.balanced": "Balanced (HP)",
+  "hp.power.perf": "Performance (HP)",
+  "unsup.hpFan": "This HP model's BIOS did not accept the fan reading and maximum fan commands. The app sends no commands to the fans; the BIOS and HP's own app keep managing them.",
+  "unsup.hpKb": "This HP model's keyboard does not support zoned RGB through the BIOS (single-colour or per-key RGB keyboard). The app sends no commands to the keyboard.",
+  "fan.hpIntro": "HP Omen / Victus: the BIOS manages the fans and there is no custom fan curve. Profiles choose the BIOS thermal mode (Quiet, Balanced, Performance); \"Maximum\" runs the fans at full speed, \"Factory\" returns to the BIOS table. Temperature and fan speed are read from the BIOS."
 }

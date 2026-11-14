@@ -19,6 +19,7 @@ import urllib.request
 from ctypes import wintypes as wt
 
 import ceviri
+import donanim as hw
 import fntus
 import klavye_rgb as core
 from ceviri import t
@@ -218,11 +219,11 @@ class Tray:
         except Exception:
             import traceback
             fntus.log("OSD olusturulamadi: " + traceback.format_exc().replace("\n", " | "))
-        # Fn dinleyicisi yalnizca Clevo/Monster koprusu (ACPI\CLV) varsa: Lenovo vb. bilgisayarda Clevo kodu calismaz
+        # Fn dinleyicisi yalnizca Clevo/Monster koprusu (ACPI\CLV) varsa: HP'de kopru aranmaz bile, diger
+        # markalarda (Lenovo, MSI...) Clevo kodu calismaz
         self.fn = None
         try:
-            import donanim
-            clevo = donanim.clevo_present()
+            clevo = hw.vendor_kind() is None and hw.clevo_present()
         except Exception:
             clevo = False
         if clevo:

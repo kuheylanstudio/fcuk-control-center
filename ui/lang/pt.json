@@ -394,5 +394,16 @@
   "msi.noCharge": "o limite de carga está desligado neste modelo",
   "msi.badCharge": "limite de carga inválido",
   "msi.noCurve": "o controlador MSI não tem curva de ventoinha personalizada",
-  "msi.curveAs": "Modo de ventoinha MSI: {mode}"
+  "msi.curveAs": "Modo de ventoinha MSI: {mode}",
+  "err.hpUnsupported": "não disponível neste modelo HP",
+  "err.hpRc": "o BIOS da HP recusou o comando (código {rc})",
+  "err.hpNoCurve": "o BIOS da HP não suporta curvas de ventoinha personalizadas; as ventoinhas seguem a tabela do BIOS",
+  "msg.hpCurveAuto": "HP: sem curva personalizada, ventoinhas na tabela do BIOS (automático)",
+  "val.hpFanTable": "tabela do BIOS (sem curva personalizada na HP)",
+  "hp.power.quiet": "Silencioso (HP Frio)",
+  "hp.power.balanced": "Equilibrado (HP)",
+  "hp.power.perf": "Desempenho (HP)",
+  "unsup.hpFan": "O BIOS deste modelo HP não aceitou os comandos de leitura das ventoinhas e de ventoinha no máximo. O aplicativo não envia comandos às ventoinhas; o BIOS e o aplicativo da HP continuam a controlá-las.",
+  "unsup.hpKb": "O teclado deste modelo HP não suporta RGB por zonas pelo BIOS (teclado de uma cor ou RGB por tecla). O aplicativo não envia comandos ao teclado.",
+  "fan.hpIntro": "HP Omen / Victus: o BIOS controla as ventoinhas e não há curva personalizada. Os perfis escolhem o modo térmico do BIOS (Silencioso, Equilibrado, Desempenho); \"Máximo\" põe as ventoinhas na velocidade total e \"Fábrica\" volta à tabela do BIOS. Temperatura e rotação são lidas do BIOS."
 }

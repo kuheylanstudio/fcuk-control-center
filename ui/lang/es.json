@@ -394,5 +394,16 @@
   "msi.noCharge": "el límite de carga está desactivado en este modelo",
   "msi.badCharge": "límite de carga no válido",
   "msi.noCurve": "el controlador de MSI no tiene curva de ventilador personalizada",
-  "msi.curveAs": "Modo de ventilador MSI: {mode}"
+  "msi.curveAs": "Modo de ventilador MSI: {mode}",
+  "err.hpUnsupported": "no disponible en este modelo HP",
+  "err.hpRc": "la BIOS de HP rechazó el comando (código {rc})",
+  "err.hpNoCurve": "la BIOS de HP no admite curvas de ventilador personalizadas; los ventiladores siguen la tabla de la BIOS",
+  "msg.hpCurveAuto": "HP: sin curva personalizada, ventiladores en la tabla de la BIOS (automático)",
+  "val.hpFanTable": "tabla de la BIOS (sin curva personalizada en HP)",
+  "hp.power.quiet": "Silencioso (HP Frío)",
+  "hp.power.balanced": "Equilibrado (HP)",
+  "hp.power.perf": "Rendimiento (HP)",
+  "unsup.hpFan": "La BIOS de este modelo HP no aceptó los comandos de lectura de ventiladores ni de ventilador al máximo. La aplicación no envía comandos a los ventiladores; la BIOS y la aplicación de HP siguen gestionándolos.",
+  "unsup.hpKb": "El teclado de este modelo HP no admite RGB por zonas a través de la BIOS (teclado de un color o RGB por tecla). La aplicación no envía comandos al teclado.",
+  "fan.hpIntro": "HP Omen / Victus: la BIOS gestiona los ventiladores y no hay curva personalizada. Los perfiles eligen el modo térmico de la BIOS (Silencioso, Equilibrado, Rendimiento); «Máximo» pone los ventiladores a toda velocidad y «Fábrica» vuelve a la tabla de la BIOS. La temperatura y las rpm se leen de la BIOS."
 }

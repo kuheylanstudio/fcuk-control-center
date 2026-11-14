@@ -189,9 +189,12 @@ class Manager:
             caps = t("val.capTurboOff")
         elif c["fmax_p"] or c["fmax_e"]:
             caps = t("val.capPE", p=ceviri.num(c["fmax_p"] / 1000.0, 1), e=ceviri.num(c["fmax_e"] / 1000.0, 1))
-        ec = getattr(self.dchu, "available", True)
+        cap = hw.caps(self.dchu)
+        ec = cap["power"]
         msi = getattr(self.dchu, "kind", "") == "msi"
-        if not ec:
+        if fan[0] == "curve" and not cap["fan_curve"] and cap["fan_max"] and getattr(self.dchu, "vendor", "") == "hp":
+            fan_txt = t("val.hpFanTable")  # ozel egri yok (HP): fanlar BIOS tablosunda
+        elif not (cap["fan_curve"] or cap["fan_max"]):
             fan_txt = t("val.unsupported")
         elif msi and fan[0] == "curve":  # MSI'da ozel egri yok: sessiz egri Silent, digerleri Auto fan modu
             quiet = fan[1][3] <= 60 and fan[2][3] <= 60
@@ -200,7 +203,7 @@ class Manager:
         if not self.sensors.gpu_name:
             gpu_txt = t("val.unsupported")
         return [
-            (t("row.powerMode"), (self._msi_power(p["ec"]) if msi else t("power.%d" % p["ec"])) if ec
+            (t("row.powerMode"), (self._msi_power(p["ec"]) if msi else hw.power_text(self.dchu, p["ec"])) if ec
              else t("val.unsupported")),
             (t("row.cpuCap"), caps),
             (t("row.turboEpp"), "%s / %d" % (t("boost.%d" % c["boost"]), c["epp"])),
@@ -268,12 +271,16 @@ class Manager:
             return rep
 
     def _ec(self, p):
-        self.dchu.set_power_mode(p["ec"])
-        return t("power.%d" % p["ec"])
+        msg = self.dchu.set_power_mode(p["ec"])
+        return msg if isinstance(msg, str) and msg else t("power.%d" % p["ec"])
 
     def _fan(self, p):
         kind = p["fan"][0]
         if kind == "curve":
+            if not hw.caps(self.dchu)["fan_curve"] and getattr(self.dchu, "vendor", "") == "hp":
+                # Ozel egri yok (HP BIOS'u): fanlar uretici tablosunda kalir; NullDCHU'da bu da Unsupported verir
+                self.dchu.set_fan_mode(hw.FAN_AUTO)
+                return t("msg.hpCurveAuto")
             msg = self.dchu.set_fan_curve(p["fan"][1], p["fan"][2])
             return msg if isinstance(msg, str) else t("msg.customCurve")  # MSI: en yakin fan moduna cevrilir
         self.dchu.set_fan_mode(hw.FAN_MAX if kind == "max" else hw.FAN_AUTO)
@@ -350,7 +357,7 @@ class Manager:
                 threading.Thread(target=self.apply, args=(target, why), daemon=True).start()
         self._last_ac = ac
         p = BY_ID.get(self.applied)
-        if not p or p["fan"][0] != "curve" or not getattr(self.dchu, "available", True):
+        if not p or p["fan"][0] != "curve" or not hw.caps(self.dchu)["fan_curve"]:
             return
         # Profil uygulanirken (kilit dolu) bekci dokunmaz: apply() sonunda bekci durumunu zaten sifirlar.
         if not self.lock.acquire(blocking=False):

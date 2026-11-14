@@ -394,5 +394,16 @@
   "msi.noCharge": "このモデルでは充電上限が無効です",
   "msi.badCharge": "無効な充電上限",
   "msi.noCurve": "MSI コントローラーにはカスタムファンカーブがありません",
-  "msi.curveAs": "MSI ファンモード: {mode}"
+  "msi.curveAs": "MSI ファンモード: {mode}",
+  "err.hpUnsupported": "この HP モデルでは使用できません",
+  "err.hpRc": "HP BIOS がコマンドを拒否しました (コード {rc})",
+  "err.hpNoCurve": "HP BIOS はカスタムファンカーブに対応していません。ファンは BIOS のテーブルのままです",
+  "msg.hpCurveAuto": "HP: カスタムカーブなし、ファンは BIOS テーブル (自動)",
+  "val.hpFanTable": "BIOS テーブル (HP にはカスタムカーブなし)",
+  "hp.power.quiet": "静音 (HP クール)",
+  "hp.power.balanced": "バランス (HP)",
+  "hp.power.perf": "パフォーマンス (HP)",
+  "unsup.hpFan": "この HP モデルの BIOS はファンの読み取りと最大ファンのコマンドを受け付けませんでした。アプリはファンにコマンドを送りません。ファンは引き続き BIOS と HP のアプリが管理します。",
+  "unsup.hpKb": "この HP モデルのキーボードは BIOS 経由のゾーン RGB に対応していません (単色またはキーごとの RGB キーボード)。アプリはキーボードにコマンドを送りません。",
+  "fan.hpIntro": "HP Omen / Victus: ファンは BIOS が管理し、カスタムファンカーブはありません。プロファイルは BIOS のサーマルモード (静音、バランス、パフォーマンス) を選びます。「最大」はファンを全速で回し、「工場出荷」は BIOS テーブルに戻します。温度と回転数は BIOS から読み取ります。"
 }

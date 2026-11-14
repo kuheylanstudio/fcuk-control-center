@@ -516,8 +516,10 @@ def state():
         "lenovo": lenovo_state(),
         "ec_clevo": bool(getattr(App.dchu, "clevo", True)),  # aygit var, yalnizca kitaplik yok
         "ec_reason": getattr(App.dchu, "reason", ""),
+        "vendor": getattr(App.dchu, "vendor", App.dchu.kind),  # clevo | hp | ... | "" (denetleyici yok)
         "caps": caps(),
         "msi": msi_state(),
+        "hp": App.dchu.describe() if getattr(App.dchu, "vendor", "") == "hp" else None,
         "cpu": App.inventory.data.get("cpu"),
         "nvidia": bool(App.sensors.gpu_name),
         "igpu_name": App.sensors.igpu_name,
@@ -538,12 +540,7 @@ def lenovo_state():
 
 def caps():
     """Bu bilgisayarda hangi donanim denetimleri var: arayuz olmayani gizler, motor komut gondermez."""
-    fn = getattr(App.dchu, "caps", None)
-    if fn:
-        return fn()
-    ok = bool(App.dchu.available)
-    kb = bool(getattr(App.dchu, "kb_available", ok))  # Alienware/Lenovo: klavye isigi ayri olabilir
-    return {"power": ok, "fan": ok, "fan_curve": ok, "kb": kb, "temps": ok}
+    return hw.caps(App.dchu)
 
 
 def msi_state():
@@ -666,7 +663,7 @@ class Handler(BaseHTTPRequestHandler):
                 "profile": mgr.applied, "guard": mgr.guard, "lang": ceviri.lang(),
                 "profiles": [{"id": p["id"], "name": profiller.name(p["id"]), "ac_only": bool(p.get("ac_only"))}
                              for p in profiller.PROFILES],
-                "ec": App.dchu.available, "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
+                "ec": hw.caps(App.dchu)["fan_max"], "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
                 "gpu_state": s.get("gpu_state"), "cpu_power": s.get("cpu_power"),
                 "ac": (s.get("battery") or {}).get("ac", True), "notices": list(App.notices)})
         if path == "/api/now":  # yalnizca son olcum (gecmissiz): ek sayfalar saniyede bir okur
@@ -1105,10 +1102,10 @@ def enable_crash_log():
 def fans_to_factory():
     """Motor tamamen durdugunda fanlari denetleyicinin kendi tablosuna birak (isi bekcisi artik yok)."""
     try:
-        dchu = hw.open_dchu()  # Clevo degilse NullDCHU: denetleyiciye komut gitmez
-        if not dchu.available:
-            return True
+        dchu = hw.open_dchu()  # taninan bir denetleyici yoksa NullDCHU: denetleyiciye komut gitmez
         try:
+            if not hw.caps(dchu)["fan_max"]:  # maksimum fan komutu yoksa (HP'de olabilir) gonderilecek bir sey yok
+                return True
             dchu.set_fan_mode(hw.FAN_AUTO)
         finally:
             close = getattr(dchu, "close", None)  # MSI: WMI isci sureci

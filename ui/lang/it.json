@@ -394,5 +394,16 @@
   "msi.noCharge": "il limite di carica è disattivato su questo modello",
   "msi.badCharge": "limite di carica non valido",
   "msi.noCurve": "il controller MSI non ha una curva ventola personalizzata",
-  "msi.curveAs": "Modalità ventola MSI: {mode}"
+  "msi.curveAs": "Modalità ventola MSI: {mode}",
+  "err.hpUnsupported": "non disponibile su questo modello HP",
+  "err.hpRc": "il BIOS HP ha rifiutato il comando (codice {rc})",
+  "err.hpNoCurve": "il BIOS HP non supporta curve personalizzate delle ventole; le ventole restano sulla tabella del BIOS",
+  "msg.hpCurveAuto": "HP: nessuna curva personalizzata, ventole sulla tabella del BIOS (automatico)",
+  "val.hpFanTable": "tabella del BIOS (nessuna curva personalizzata su HP)",
+  "hp.power.quiet": "Silenzioso (HP Fresco)",
+  "hp.power.balanced": "Bilanciato (HP)",
+  "hp.power.perf": "Prestazioni (HP)",
+  "unsup.hpFan": "Il BIOS di questo modello HP non ha accettato i comandi di lettura delle ventole e di ventola al massimo. L'app non invia comandi alle ventole; il BIOS e l'app di HP continuano a gestirle.",
+  "unsup.hpKb": "La tastiera di questo modello HP non supporta l'RGB a zone tramite BIOS (tastiera monocolore o RGB per tasto). L'app non invia comandi alla tastiera.",
+  "fan.hpIntro": "HP Omen / Victus: il BIOS gestisce le ventole e non esiste una curva personalizzata. I profili scelgono la modalità termica del BIOS (Silenzioso, Bilanciato, Prestazioni); \"Massimo\" porta le ventole alla massima velocità, \"Fabbrica\" torna alla tabella del BIOS. Temperatura e giri vengono letti dal BIOS."
 }

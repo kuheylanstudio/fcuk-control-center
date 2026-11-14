@@ -394,5 +394,16 @@
   "msi.noCharge": "limit ładowania jest wyłączony w tym modelu",
   "msi.badCharge": "nieprawidłowy limit ładowania",
   "msi.noCurve": "kontroler MSI nie ma własnej krzywej wentylatora",
-  "msi.curveAs": "Tryb wentylatora MSI: {mode}"
+  "msi.curveAs": "Tryb wentylatora MSI: {mode}",
+  "err.hpUnsupported": "niedostępne w tym modelu HP",
+  "err.hpRc": "BIOS HP odrzucił polecenie (kod {rc})",
+  "err.hpNoCurve": "BIOS HP nie obsługuje własnych krzywych wentylatorów; wentylatory pozostają przy tabeli BIOS",
+  "msg.hpCurveAuto": "HP: brak własnej krzywej, wentylatory według tabeli BIOS (automatycznie)",
+  "val.hpFanTable": "tabela BIOS (HP nie ma własnej krzywej)",
+  "hp.power.quiet": "Cichy (HP Chłodny)",
+  "hp.power.balanced": "Zrównoważony (HP)",
+  "hp.power.perf": "Wydajność (HP)",
+  "unsup.hpFan": "BIOS tego modelu HP nie przyjął poleceń odczytu wentylatorów i maksymalnych obrotów. Aplikacja nie wysyła żadnych poleceń do wentylatorów; nadal sterują nimi BIOS i aplikacja HP.",
+  "unsup.hpKb": "Klawiatura tego modelu HP nie obsługuje strefowego RGB przez BIOS (klawiatura jednokolorowa lub RGB na klawisz). Aplikacja nie wysyła żadnych poleceń do klawiatury.",
+  "fan.hpIntro": "HP Omen / Victus: wentylatorami steruje BIOS, nie ma własnej krzywej. Profile wybierają tryb termiczny BIOS (Cichy, Zrównoważony, Wydajność); „Maksimum” uruchamia wentylatory na pełnych obrotach, „Fabryczne” wraca do tabeli BIOS. Temperatura i obroty są odczytywane z BIOS."
 }

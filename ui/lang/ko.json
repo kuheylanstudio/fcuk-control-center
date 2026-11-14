@@ -394,5 +394,16 @@
   "msi.noCharge": "이 모델은 충전 한도가 꺼져 있음",
   "msi.badCharge": "잘못된 충전 한도",
   "msi.noCurve": "MSI 컨트롤러에는 사용자 지정 팬 곡선이 없음",
-  "msi.curveAs": "MSI 팬 모드: {mode}"
+  "msi.curveAs": "MSI 팬 모드: {mode}",
+  "err.hpUnsupported": "이 HP 모델에서는 사용할 수 없음",
+  "err.hpRc": "HP BIOS가 명령을 거부했습니다(코드 {rc})",
+  "err.hpNoCurve": "HP BIOS는 사용자 지정 팬 곡선을 지원하지 않습니다. 팬은 BIOS 테이블을 따릅니다",
+  "msg.hpCurveAuto": "HP: 사용자 지정 곡선 없음, 팬은 BIOS 테이블(자동)",
+  "val.hpFanTable": "BIOS 테이블(HP에는 사용자 지정 곡선 없음)",
+  "hp.power.quiet": "조용함(HP 쿨)",
+  "hp.power.balanced": "균형(HP)",
+  "hp.power.perf": "성능(HP)",
+  "unsup.hpFan": "이 HP 모델의 BIOS가 팬 읽기 및 최대 팬 명령을 받아들이지 않았습니다. 앱은 팬에 어떤 명령도 보내지 않으며, 팬은 계속 BIOS와 HP 자체 앱이 관리합니다.",
+  "unsup.hpKb": "이 HP 모델의 키보드는 BIOS를 통한 구역 RGB를 지원하지 않습니다(단색 또는 키별 RGB 키보드). 앱은 키보드에 어떤 명령도 보내지 않습니다.",
+  "fan.hpIntro": "HP Omen / Victus: 팬은 BIOS가 관리하며 사용자 지정 팬 곡선은 없습니다. 프로필은 BIOS 열 모드(조용함, 균형, 성능)를 선택합니다. '최대'는 팬을 최고 속도로 돌리고 '공장 설정'은 BIOS 테이블로 돌아갑니다. 온도와 회전수는 BIOS에서 읽습니다."
 }

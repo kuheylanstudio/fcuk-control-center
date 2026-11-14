@@ -394,5 +394,16 @@
   "msi.noCharge": "de laadlimiet staat uit op dit model",
   "msi.badCharge": "ongeldige laadlimiet",
   "msi.noCurve": "de MSI-controller heeft geen eigen ventilatorcurve",
-  "msi.curveAs": "MSI-ventilatormodus: {mode}"
+  "msi.curveAs": "MSI-ventilatormodus: {mode}",
+  "err.hpUnsupported": "niet beschikbaar op dit HP-model",
+  "err.hpRc": "HP-BIOS heeft de opdracht geweigerd (code {rc})",
+  "err.hpNoCurve": "het HP-BIOS ondersteunt geen eigen ventilatorcurves; de ventilatoren blijven op de BIOS-tabel",
+  "msg.hpCurveAuto": "HP: geen eigen curve, ventilatoren op de BIOS-tabel (automatisch)",
+  "val.hpFanTable": "BIOS-tabel (geen eigen curve bij HP)",
+  "hp.power.quiet": "Stil (HP Koel)",
+  "hp.power.balanced": "Gebalanceerd (HP)",
+  "hp.power.perf": "Prestaties (HP)",
+  "unsup.hpFan": "Het BIOS van dit HP-model accepteerde de opdrachten voor het uitlezen van de ventilatoren en maximale ventilatorsnelheid niet. De app stuurt geen opdrachten naar de ventilatoren; het BIOS en de eigen app van HP blijven ze regelen.",
+  "unsup.hpKb": "Het toetsenbord van dit HP-model ondersteunt geen zone-RGB via het BIOS (eenkleurig of per-toets-RGB-toetsenbord). De app stuurt geen opdrachten naar het toetsenbord.",
+  "fan.hpIntro": "HP Omen / Victus: het BIOS regelt de ventilatoren en er is geen eigen ventilatorcurve. Profielen kiezen de thermische BIOS-modus (Stil, Gebalanceerd, Prestaties); \"Maximum\" laat de ventilatoren op volle snelheid draaien, \"Fabriek\" keert terug naar de BIOS-tabel. Temperatuur en toerental worden uit het BIOS gelezen."
 }

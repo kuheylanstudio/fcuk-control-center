@@ -200,6 +200,7 @@ def peer_in_my_session(client_port, server_port):
 class DCHU:
     """InsydeDCHU.dll sarmalayicisi. Tum cagrilar tek kilitten gecer (motor, sensor ve sunucu ayni anda cagirir)."""
     available = True
+    vendor = "clevo"
     kind = "clevo"        # Clevo'ya ozel adimlar (Fn olaylari, IFEO) yalnizca bu turde
     kb_available = True   # klavye isigi bu denetleyicide
 
@@ -360,6 +361,7 @@ class NullDCHU:
     bos, yazmalar Unsupported verir ve donanima HICBIR komut gitmez. Profil adimlari bunu raporda
     'desteklenmiyor' olarak gosterir; geri kalan her sey calisir."""
     available = False
+    vendor = ""
     kind = ""
     path = ""
     kb_available = False
@@ -433,12 +435,81 @@ def clevo_present():
         return False
 
 
+# Ozellik bayraklari: arayuz, profiller ve sensorler bunlara bakar. Clevo denetleyicisinde hepsi var (grafik
+# anahtari haric); baska arka uclar (HP) kendi 'caps' sozlugunu yoklamayla doldurur.
+CAPS_ALL = {"power": True, "fan_max": True, "fan_curve": True, "fan_read": True, "temp": True, "kb": True,
+            "gpu_mux": False}
+
+
+def caps(dev):
+    """Arka ucun ozellik bayraklari, tek bicimde. Arka uc 'caps'i sozluk (HP) ya da yontem (MSI, Clevo, NullDCHU)
+    olarak verebilir; vermiyorsa (Alienware, Lenovo) available'a gore hepsi ya da hicbiri, klavye ayrica.
+    Anahtarlar: CAPS_ALL + arayuzun eski adlari 'temps' (= temp) ve 'fan' (= fan_max ya da fan_curve)."""
+    c = getattr(dev, "caps", None)
+    if callable(c):
+        try:
+            c = c()
+        except Exception:
+            c = None
+    if isinstance(c, dict):
+        out = {k: False for k in CAPS_ALL}
+        out.update(c)
+        if "temp" not in c and "temps" in c:
+            out["temp"] = bool(c["temps"])
+        if "fan_read" not in c:
+            out["fan_read"] = bool(c.get("fan_read", out["temp"]))
+        if "fan_max" not in c and "fan" in c:
+            out["fan_max"] = bool(c["fan"])
+        # Lenovo adlari: curve (ozel egri), fullspeed (tam devir), sensor (okuma yolu), klavye ayri nesnede
+        if "curve" in c and "fan_curve" not in c:
+            out["fan_curve"] = bool(c["curve"])
+        if "fullspeed" in c and "fan_max" not in c:
+            out["fan_max"] = bool(c["fullspeed"])
+        if "sensor" in c and "temp" not in c and "temps" not in c:
+            out["temp"] = out["fan_read"] = bool(c["sensor"])
+        if "kb" not in c:
+            out["kb"] = bool(getattr(dev, "kb_available", False))
+    else:
+        ok = bool(getattr(dev, "available", False))
+        out = {k: ok and v for k, v in CAPS_ALL.items()}
+        out["kb"] = bool(getattr(dev, "kb_available", ok))
+    out.setdefault("temps", out["temp"])
+    out.setdefault("fan", bool(out["fan_max"] or out["fan_curve"]))
+    return out
+
+
+def power_text(dev, mode):
+    """Profil guc modunun arayuz metni: Clevo kipi ya da arka ucun kendi karsiligi (HP termal modu)."""
+    key = getattr(dev, "power_key", None)
+    key = key(mode) if key else None
+    return ceviri.t(key) if key else ceviri.t("power.%d" % mode)
+
+
+def vendor_kind():
+    """Clevo disi uretici ('hp') ya da None. Surec acmaz (kayit defterindeki SMBIOS bilgisi); Clevo
+    algilamasindan ONCE bakilir: HP yolunda Clevo kodu (aygit aramasi, DLL, Fn koprusu) hic calismaz."""
+    try:
+        import hp_omen
+        return "hp" if hp_omen.detected() else None
+    except Exception:
+        return None
+
+
 def open_dchu():
     """Clevo denetleyicisi, bir marka arka ucu ya da (hicbiri yoksa / acilamazsa) NullDCHU.
 
     Clevo koprusu (ACPI CLV aygiti) takiliysa her zaman Clevo yolu secilir. Degilse markalar sirayla denenir; her
     marka kendi tespitini yapar (uretici + model + WMI sinifi) ve kendisi degilse None doner. Tespit hatasi
     da None sayilir: suphede donanima dokunulmaz. Kurulumdaki tespit (kurulum.ps1 Get-Cihaz) ayni kurallari kullanir."""
+    if vendor_kind() == "hp":
+        try:
+            import hp_omen
+            dev, why = hp_omen.open_backend()
+        except Exception as exc:
+            dev, why = None, "%s: %s" % (type(exc).__name__, exc)
+        if dev is not None:
+            return dev
+        return NullDCHU(ceviri.t("err.notClevo") + (" (%s)" % why if why else ""), clevo=False)
     if not clevo_present():
         # Alienware/Dell: arayuz var ama acilamadiysa (cogu zaman yonetici yetkisi yok) nedeni gosterilir
         try:
@@ -846,8 +917,8 @@ class Sensors(threading.Thread):
             "energy": r"\Energy Meter(*)\Power",
             "gpu": r"\GPU Engine(*)\Utilization Percentage",
         }
-        # denetleyici yoksa (ya da Lenovo okuyamazsa) islemci sicakligi icin ACPI isi bolgesi (Kelvin)
-        if not self.dchu.available or getattr(self.dchu, "kind", "") == "lenovo":
+        # denetleyici sicaklik vermiyorsa (ya da Lenovo okuyamazsa) islemci icin ACPI isi bolgesi (Kelvin)
+        if not caps(self.dchu)["temp"] or getattr(self.dchu, "kind", "") == "lenovo":
             counters["tz"] = r"\Thermal Zone Information(*)\Temperature"
         pdh = Pdh(counters)
         last_net = last_disk = None

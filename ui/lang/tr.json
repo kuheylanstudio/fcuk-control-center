@@ -580,5 +580,16 @@
   "msi.noCharge": "bu modelde pil şarj sınırı kapalı",
   "msi.badCharge": "geçersiz şarj sınırı",
   "msi.noCurve": "MSI denetleyicisinde özel fan eğrisi yok",
-  "msi.curveAs": "MSI fan modu: {mode}"
+  "msi.curveAs": "MSI fan modu: {mode}",
+  "err.hpUnsupported": "bu HP modelinde yok",
+  "err.hpRc": "HP BIOS komutu reddetti (kod {rc})",
+  "err.hpNoCurve": "HP BIOS'u özel fan eğrisini desteklemiyor; fanlar BIOS'un kendi tablosunda",
+  "msg.hpCurveAuto": "HP: özel eğri yok, fanlar BIOS tablosunda (otomatik)",
+  "val.hpFanTable": "BIOS tablosu (HP'de özel eğri yok)",
+  "hp.power.quiet": "Sessiz (HP Serin)",
+  "hp.power.balanced": "Dengeli (HP)",
+  "hp.power.perf": "Performans (HP)",
+  "unsup.hpFan": "Bu HP modelinin BIOS'u fan okuma ve maksimum fan komutlarını kabul etmedi. Uygulama fanlara hiçbir komut göndermez; fanları BIOS ve HP'nin kendi uygulaması yönetmeye devam eder.",
+  "unsup.hpKb": "Bu HP modelinin klavyesi BIOS üzerinden bölgeli RGB desteklemiyor (tek renkli ya da tuş başına RGB klavye). Uygulama klavyeye hiçbir komut göndermez.",
+  "fan.hpIntro": "HP Omen / Victus: fanları BIOS yönetir, özel fan eğrisi yoktur. Profiller BIOS termal modunu (Sessiz, Dengeli, Performans) seçer; \"Maksimum\" fanları tam devire alır, \"Fabrika\" BIOS tablosuna döner. Sıcaklık ve devir BIOS'tan okunur."
 }
