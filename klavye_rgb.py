@@ -58,7 +58,7 @@ SOURCES = [
 ]
 # Oyun modu tus duzenleri ve renk yuvalari (palet sirasi sabittir)
 GAME_LAYOUTS = ["lol", "cs"]
-GAME_SLOTS_USED = {"lol": [0, 1, 2, 3, 4, 5, 6], "cs": [0, 1]}  # duzende kullanilan yuvalar
+GAME_SLOTS_USED = {"lol": [0, 2, 3, 4, 5, 6], "cs": [0, 1]}  # duzende kullanilan yuvalar
 GAME_SLOTS = ["bg", "fire", "q", "w", "e", "r", "spell"]
 DEFAULTS = {
     "mode": "gecis",

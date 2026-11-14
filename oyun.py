@@ -32,7 +32,7 @@ GAME_EXE = {"lol": LOL_EXE, "cs": CS_EXE}
 VK_LBUTTON, VK_RETURN, VK_ESCAPE = 0x01, 0x0D, 0x1B
 # Tus duzenleri: (sanal tus kodu, efekt kimligi). Efekt kimligi Engine'deki renk yuvasini secer.
 LAYOUTS = {
-    "lol": [(VK_LBUTTON, "fire"), (ord("Q"), "q"), (ord("W"), "w"), (ord("E"), "e"), (ord("R"), "r"),
+    "lol": [(ord("Q"), "q"), (ord("W"), "w"), (ord("E"), "e"), (ord("R"), "r"),
             (ord("D"), "spell"), (ord("F"), "spell")],
     "cs": [(VK_LBUTTON, "fire")],
 }
