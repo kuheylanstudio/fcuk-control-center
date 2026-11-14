@@ -522,6 +522,7 @@ def state():
         "hp": App.dchu.describe() if getattr(App.dchu, "vendor", "") == "hp" else None,
         "hw": getattr(App.dchu, "vendor", ""),  # Acer arayuzu: "clevo", "acer" ya da "" (denetleyici yok)
         "zones": [t("zone.%d" % i) for i in range(1, 5)],
+        "charge": charge_state(),
         "cpu": App.inventory.data.get("cpu"),
         "nvidia": bool(App.sensors.gpu_name),
         "igpu_name": App.sensors.igpu_name,
@@ -548,6 +549,17 @@ def caps():
 def msi_state():
     fn = getattr(App.dchu, "msi_state", None)
     return fn() if fn else None
+
+
+def charge_state():
+    """Pil sarj siniri (yalnizca destekleyen arka uclarda; Clevo'da None)."""
+    fn = getattr(App.dchu, "charge_limit", None)
+    if fn is None or not hw.has(App.dchu, "charge"):
+        return None
+    try:
+        return fn()
+    except Exception:
+        return None
 
 
 def nvidia_state():
@@ -666,7 +678,7 @@ class Handler(BaseHTTPRequestHandler):
                 "profiles": [{"id": p["id"], "name": profiller.name(p["id"]), "ac_only": bool(p.get("ac_only"))}
                              for p in profiller.PROFILES],
                 # tepsinin fan menusu: fan denetlenebiliyor mu (Acer/HP'de modele bagli)
-                "ec": hw.caps(App.dchu)["fan_max"], "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
+                "ec": hw.caps(App.dchu)["fan_max"], "caps": [k for k, v in hw.caps(App.dchu).items() if v is True], "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
                 "gpu_state": s.get("gpu_state"), "cpu_power": s.get("cpu_power"),
                 "ac": (s.get("battery") or {}).get("ac", True), "notices": list(App.notices)})
         if path == "/api/now":  # yalnizca son olcum (gecmissiz): ek sayfalar saniyede bir okur
@@ -773,6 +785,8 @@ class Handler(BaseHTTPRequestHandler):
             elif mode == "custom" and hasattr(App.dchu, "set_fan_speed"):  # Acer: elle fan hizi (%)
                 App.dchu.set_fan_speed(_int(body.get("cpu"), 0, 100, 50), _int(body.get("gpu"), 0, 100, 50))
                 mgr.guard = ""
+            elif mode == "fixed" and hw.has(App.dchu, "fan_fixed"):  # Gigabyte: sabit fan hizi (%)
+                App.dchu.set_fan_fixed(_int(body.get("percent"), 0, 100, 60))
             else:
                 return self._json({"error": t("err.fanMode")}, 400)
             return self._json({"ok": True, "cc": mgr.status()})
@@ -811,6 +825,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"error": t("err.unknownPower")}, 400)
             App.dchu.set_power_mode(name)
             return self._json({"ok": True, "cc": mgr.status()})
+        if path == "/api/charge":  # pil sarj siniri: {"stop": 60-100} ya da {"stop": null} (sinirsiz)
+            if not hw.has(App.dchu, "charge"):
+                return self._json({"error": t("err.gbNoFeature")}, 400)
+            stop = body.get("stop")
+            App.dchu.set_charge_limit(None if stop is None else _int(stop, 0, 100, 100))
+            return self._json({"ok": True, "charge": charge_state()})
         if path == "/api/audio":
             which = body.get("which")
             if which not in ("speaker", "mic"):

@@ -24,6 +24,7 @@ bilgisayarlarda da donanım tespiti, canlı izleme, NVIDIA ve işlemci ayarları
 | **Performans profilleri** | Beş profil: Tam Sessiz → Ultra Performans; her biri gömülü denetleyici güç modu, fan eğrisi, işlemci, ekran kartı ve ekran yenileme hızını birlikte ayarlar | Clevo / Monster |
 | **Fanlar, klavye RGB, Fn tuşları** | Özel fan eğrisi, 8 klavye ışık modu, Fn tuşu ekran bildirimleri | Clevo / Monster |
 | **Lenovo Legion (deneysel)** | Güç modu (Sessiz/Dengeli/Performans) profillerle, fan hızı ve sıcaklık, tam devir fan, Özel modda fan eğrisi, ekran kartı modu (hibrit / tümleşik / yalnızca harici kart), pil koruma ve hızlı şarj, 4 bölgeli klavyede tüm ışık modları. Gerçek Legion donanımında henüz denenmedi; desteklenmeyen özellik hiçbir komut göndermez | Lenovo Legion (LENOVO_GAMEZONE_DATA) |
+| **Gigabyte / AORUS / AERO (deneysel)** | Sessiz / normal / oyun fan kipi (profillerin güç modu adımı), 15 noktalı özel fan eğrisi, sabit fan hızı, işlemci/kart sıcaklığı ve fan devri, pil şarj sınırı (%60-100), ITE 829x klavyelerde tek renk RGB. Yalnızca `GB_WMIACPI` WMI arayüzünde bulunan yöntemler kullanılır; olmayan özellik gizlenir. Gerçek donanımda henüz denenmedi | Gigabyte dizüstü (Clevo tabanlı modellerde Clevo yolu) |
 | **Ses ve ekran** | Hoparlör / mikrofon seviyesi, yenileme hızı | Her bilgisayar |
 | **Dil** | 14 dil, Windows bölge ayarına göre otomatik | |
 
@@ -155,6 +156,9 @@ klavye_rgb.py      klavye ışık motoru
 msi.py             MSI: EC firmware tablosu ve güvenlik kuralları (shift/fan modu, Cooler Boost, pil sınırı)
 msi_wmi.py         MSI_ACPI (root\WMI) taşıma katmanı, sürücüsüz
 msi_klavye.py      MSI USB klavye ışığı (SteelSeries 1038, eski 3 bölgeli 1770)
+gigabyte_aorus.py  Gigabyte/AORUS/AERO arka ucu (GB_WMIACPI fan, kip, sıcaklık, şarj sınırı; ITE klavye)
+wmi_yontem.py      ek paketsiz WMI yöntem çağrıları (COM, tek iş parçacığı)
+hid_rapor.py       ek paketsiz HID özellik raporu (hid.dll)
 engelle.py         eski Monster Fn programlarını tam yollarıyla engeller (IFEO yol filtresi)
 fntus.py, tepsi.py Fn tuşları, ekran bildirimi ve tepsi simgesi (ayrı, normal yetkili süreç)
 ceviri.py, ui/lang dil dosyaları

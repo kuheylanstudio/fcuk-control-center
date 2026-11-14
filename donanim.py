@@ -45,6 +45,7 @@ NO_WINDOW = 0x08000000
 
 POWER_MODES = {0: "Sessiz", 1: "Güç tasarrufu", 2: "Performans", 3: "Eğlence"}
 FAN_AUTO, FAN_MAX, FAN_CUSTOM = 0, 1, 6
+FAN_FIXED = 7  # sabit yuzde (Clevo'da yok; Gigabyte arka ucu)
 
 
 def is_admin():
@@ -453,6 +454,8 @@ def caps(dev):
             c = c()
         except Exception:
             c = None
+    if isinstance(c, (set, frozenset, list, tuple)):  # Gigabyte: desteklenen ozelliklerin adlari
+        c = dict.fromkeys(c, True)
     if isinstance(c, dict):
         out = {k: False for k in CAPS_ALL}
         out.update(c)
@@ -485,6 +488,11 @@ def caps(dev):
     return out
 
 
+def has(dev, name):
+    """Arka uc bu ozelligi destekliyor mu (caps(dev) uzerinden; arka ucun caps bicimi ne olursa olsun)."""
+    return bool(caps(dev).get(name))
+
+
 def power_text(dev, mode):
     """Profil guc modunun arayuz metni: Clevo kipi ya da arka ucun kendi karsiligi (HP termal modu)."""
     key = getattr(dev, "power_key", None)
@@ -505,9 +513,11 @@ def vendor_kind():
 def open_dchu():
     """Clevo denetleyicisi, bir marka arka ucu ya da (hicbiri yoksa / acilamazsa) NullDCHU.
 
-    Clevo koprusu (ACPI CLV aygiti) takiliysa her zaman Clevo yolu secilir. Degilse markalar sirayla denenir; her
-    marka kendi tespitini yapar (uretici + model + WMI sinifi) ve kendisi degilse None doner. Tespit hatasi
-    da None sayilir: suphede donanima dokunulmaz. Kurulumdaki tespit (kurulum.ps1 Get-Cihaz) ayni kurallari kullanir."""
+    HP Omen/Victus kayit defterindeki SMBIOS bilgisiyle en once ayrilir (HP'de Clevo aygit aramasi bile yapilmaz).
+    Sonra Clevo koprusu (ACPI CLV aygiti): takiliysa her zaman Clevo yolu secilir (Clevo tabanli Gigabyte/Aorus
+    modelleri dahil). Degilse markalar sirayla denenir; her marka kendi tespitini yapar (uretici + model + WMI
+    sinifi) ve kendisi degilse None doner. Tespit hatasi da None sayilir: suphede donanima dokunulmaz.
+    Kurulumdaki tespit (kurulum.ps1 Get-Cihaz) ayni kurallari kullanir."""
     if vendor_kind() == "hp":
         try:
             import hp_omen
@@ -517,47 +527,55 @@ def open_dchu():
         if dev is not None:
             return dev
         return NullDCHU(ceviri.t("err.notClevo") + (" (%s)" % why if why else ""), clevo=False)
-    if not clevo_present():
-        # Alienware/Dell: arayuz var ama acilamadiysa (cogu zaman yonetici yetkisi yok) nedeni gosterilir
+    if clevo_present():
         try:
-            import alienware
-            ec, err = alienware.open_alienware()
+            return DCHU()
         except Exception as exc:
-            ec, err = None, str(exc)
-        if ec is not None:
-            return ec
-        if err:
-            msg = ceviri.t("err.awOpen", err=err)
-            return NullDCHU(msg, clevo=False, message=msg)
-        # Lenovo Legion (BIOS'ta LENOVO + Legion ve LENOVO_GAMEZONE_DATA)
-        try:
-            import lenovo_legion
-            dev = lenovo_legion.open_legion()
-            if dev is not None:
-                return dev
-        except Exception:
-            pass
-        # MSI (Micro-Star + MSI_ACPI; EC firmware'i tabloda yoksa yalnizca okuma)
-        try:
-            import msi
-            m = msi.open_msi(unsupported=Unsupported)
-        except Exception:
-            m = None
-        if m is not None:
-            return m
-        # Acer Predator/Nitro (uretici Acer + model Predator/Nitro + AcerGamingFunction; yoklama yalnizca okuma)
-        try:
-            import acer_predator
-            dev = acer_predator.detect()
-        except Exception:
-            dev = None
+            return NullDCHU(str(exc), clevo=True)
+    # Alienware/Dell: arayuz var ama acilamadiysa (cogu zaman yonetici yetkisi yok) nedeni gosterilir
+    try:
+        import alienware
+        ec, err = alienware.open_alienware()
+    except Exception as exc:
+        ec, err = None, str(exc)
+    if ec is not None:
+        return ec
+    if err:
+        msg = ceviri.t("err.awOpen", err=err)
+        return NullDCHU(msg, clevo=False, message=msg)
+    # Lenovo Legion (BIOS'ta LENOVO + Legion ve LENOVO_GAMEZONE_DATA)
+    try:
+        import lenovo_legion
+        dev = lenovo_legion.open_legion()
         if dev is not None:
             return dev
-        return NullDCHU(ceviri.t("err.notClevo"), clevo=False)
+    except Exception:
+        pass
+    # MSI (Micro-Star + MSI_ACPI; EC firmware'i tabloda yoksa yalnizca okuma)
     try:
-        return DCHU()
-    except Exception as exc:
-        return NullDCHU(str(exc), clevo=True)
+        import msi
+        m = msi.open_msi(unsupported=Unsupported)
+    except Exception:
+        m = None
+    if m is not None:
+        return m
+    # Acer Predator/Nitro (uretici Acer + model Predator/Nitro + AcerGamingFunction; yoklama yalnizca okuma)
+    try:
+        import acer_predator
+        dev = acer_predator.detect()
+    except Exception:
+        dev = None
+    if dev is not None:
+        return dev
+    # Gigabyte/AORUS/AERO (uretici GIGABYTE/AORUS VE GB_WMIACPI siniflari)
+    try:
+        import gigabyte_aorus
+        gb = gigabyte_aorus.open_backend()
+        if gb is not None:
+            return gb
+    except Exception:
+        pass
+    return NullDCHU(ceviri.t("err.notClevo"), clevo=False)
 
 
 def validate_curve(pts, t1, d1):

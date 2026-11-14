@@ -237,6 +237,7 @@ class Manager:
         return {"profile": self.applied, "report": self.report, "guard": self.guard,
                 "power_mode": self.dchu.power_mode(), "fan_mode": self.dchu.fan_mode(),
                 "power_name": getattr(self.dchu, "power_name", lambda: None)(),  # Acer profil adi
+                "fan_fixed": getattr(self.dchu, "fan_fixed", lambda: None)(),
                 "scheme_active": active_scheme() == SCHEME, "admin": hw.is_admin(), "rules": self.cfg}
 
     # ------------------------------------------------------------------ uygula
@@ -277,11 +278,16 @@ class Manager:
             self.save()
             return rep
 
+    def _power_key(self, mode):
+        """Guc modu metni: Clevo'da power.N, Gigabyte'ta fan kipi (gbmode.*)."""
+        fn = getattr(self.dchu, "power_key", None)
+        return fn(mode) if fn else "power.%d" % mode
+
     def _ec(self, p):
         if hasattr(self.dchu, "apply_profile_power"):  # Acer: profil kendi guc moduna eslenir
             return self.dchu.apply_profile_power(p, hw.power_status()["ac"])
         msg = self.dchu.set_power_mode(p["ec"])
-        return msg if isinstance(msg, str) and msg else t("power.%d" % p["ec"])
+        return msg if isinstance(msg, str) and msg else hw.power_text(self.dchu, p["ec"])
 
     def _fan(self, p):
         kind = p["fan"][0]
@@ -369,6 +375,9 @@ class Manager:
                 why = "reason.ac" if ac else "reason.battery"
                 threading.Thread(target=self.apply, args=(target, why), daemon=True).start()
         self._last_ac = ac
+        if hw.has(self.dchu, "fan_fixed") and self.dchu.fan_mode() == hw.FAN_FIXED:
+            self._fixed_guard(s)  # sabit hiz (Gigabyte): egriyi EC degil uygulama secti, koruma da uygulamada
+            return
         guard = getattr(self.dchu, "custom_guard", None)
         if guard:  # Acer elle fan hizi: kendi isi korumasi
             msg = guard(s)
@@ -393,6 +402,17 @@ class Manager:
         if s.get("dchu_error") or s.get("sensor_error") or not isinstance(v, (int, float)) or v <= 0:
             return None
         return v
+
+    def _fixed_guard(self, s):
+        """Sabit fan hizinda: islemci 93 / kart 87 C'yi 5 sn asarsa ya da sicaklik okunamazsa fanlar kipe doner."""
+        cpu, gpu = self._temp(s, "cpu_temp"), self._temp(s, "gpu_temp") or 0
+        bad = cpu is None or cpu >= 93 or gpu >= 87
+        self._hot = self._hot + 1 if bad else 0
+        if self._hot >= 5:
+            self._hot = 0
+            self.dchu.set_fan_mode(hw.FAN_AUTO)
+            self.guard = t("guard.fixed")
+            self.notify(self.guard)
 
     def _guard_step(self, s, p):
         # GPU uykudayken denetleyici GPU sicakligini 0 verebilir; bu yuzden "bilinmiyor" karari islemciye gore.

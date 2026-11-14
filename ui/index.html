@@ -460,8 +460,19 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
                 <label><input type="radio" name="fanm" value="auto"><span data-i18n="fan.factoryOpt">Fabrika</span></label>
                 <label><input type="radio" name="fanm" value="max"><span data-i18n="fan.max">Maksimum</span></label>
                 <label id="fanCustomOpt" hidden><input type="radio" name="fanm" value="custom"><span data-i18n="fan.custom">Özel hız</span></label>
+                <label id="fanFixedOpt" hidden><input type="radio" name="fanm" value="fixed"><span data-i18n="fan.fixed">Sabit</span></label>
               </div>
             </fieldset>
+            <div class="field" id="fanFixedBox" hidden>
+              <div class="field-top"><label class="lbl" for="fanFixed" data-i18n="fan.fixedSpeed">Sabit fan hızı</label><output id="fanFixedOut"></output></div>
+              <input type="range" id="fanFixed" min="30" max="100" step="5" value="60">
+            </div>
+            <div class="field" id="chargeBox" hidden>
+              <div class="field-top"><label class="lbl" for="chargeStop" data-i18n="charge.title">Pil şarj sınırı</label><output id="chargeOut"></output></div>
+              <label class="switch"><input type="checkbox" id="chargeOn"><span class="track" aria-hidden="true"></span><span data-i18n="charge.on">Şarjı sınırla (pil ömrü)</span></label>
+              <input type="range" id="chargeStop" min="60" max="100" step="5" value="80">
+              <p class="hint" data-i18n="charge.hint">Fişteyken pil bu yüzdede şarj olmayı bırakır. Ayarı bilgisayarın kendi denetleyicisi saklar.</p>
+            </div>
             <p class="hint" id="guardTxt"></p>
             <div id="acerBox" hidden>
               <fieldset class="field" id="acerPowerBox">
@@ -645,7 +656,7 @@ if (window.I18N) applyI18n();
 const PAL_HINT = { one: t('pal.one'), steps: t('pal.steps'), loop: t('pal.loop'), range: t('pal.range'), slots: t('pal.slots'), zones: t('pal.zones') };
 const SPECTRUM = 'var(--spectrum)';
 const LEVEL = { tam_sessiz: 1, sessiz_kullanim: 2, sessiz_oyun: 3, performans: 4, ultra: 5 };
-const FAN_MODE_TXT = { 0: t('fanmode.0'), 1: t('fanmode.1'), 6: t('fanmode.6'), 7: t('fanmode.7') };  // 7: Acer ozel hiz
+const FAN_MODE_TXT = { 0: t('fanmode.0'), 1: t('fanmode.1'), 6: t('fanmode.6'), 7: t('fanmode.7') };  // 7: elle hiz (Acer ozel hiz, Gigabyte sabit hiz)
 const NO_LINK = t('err.noLink');
 
 let meta = null, cfg = null, cc = null, frozen = false, pending = null, quitting = false, saveTimer = 0;
@@ -902,9 +913,12 @@ function paintProfile() {
     $('#ruleAc').value = cc.rules.on_ac || '';
     $('#ruleHz').checked = cc.rules.refresh !== false;
     const mf = meta && meta.msi && meta.msi.fan;  // MSI: denetleyicinin kendi fan modu adi
-    setText('fanModeTxt', cc.fan_mode !== 1 && mf ? t('msi.fan.' + mf) : (FAN_MODE_TXT[cc.fan_mode] || '–'));
+    setText('fanModeTxt', cc.fan_mode === 7 && cc.fan_fixed != null ? FAN_MODE_TXT[7] + ' ' + pct(cc.fan_fixed)
+      : cc.fan_mode !== 1 && mf ? t('msi.fan.' + mf) : (FAN_MODE_TXT[cc.fan_mode] || '–'));
     const pf = id ? (profById(id) || {}).fan : null;
-    const fm = cc.fan_mode === 1 ? 'max' : cc.fan_mode === 7 ? 'custom' : cc.fan_mode === 6 ? 'profile' : pf === 'auto' ? 'profile' : 'auto';
+    const manual = meta && meta.vendor === 'gigabyte' ? 'fixed' : 'custom';  // 7: Gigabyte sabit, Acer ozel hiz
+    const fm = cc.fan_mode === 1 ? 'max' : cc.fan_mode === 7 ? manual : cc.fan_mode === 6 ? 'profile' : pf === 'auto' ? 'profile' : 'auto';
+    if (cc.fan_mode === 7 && cc.fan_fixed != null) setRange($('#fanFixed'), cc.fan_fixed, $('#fanFixedOut'));
     const r = document.querySelector(`input[name=fanm][value=${fm}]`); if (r) r.checked = true;
     document.querySelector('input[name=fanm][value=profile]').disabled = !id;
     const ap = document.querySelector(`input[name=acerp][value="${cc.power_name}"]`); if (ap) ap.checked = true;
@@ -958,12 +972,40 @@ function initPerformance() {
     try { cc = (await api('/api/factory', {})).cc; banner(t('perf.factoryDone'), true); paintProfile(); }
     catch (e) { banner(t('perf.factoryFail', { err: e.message })); }
   });
+  const fanFixed = $('#fanFixed');
+  const fanBody = mode => mode === 'fixed' ? { mode, percent: +fanFixed.value } : { mode };
   document.querySelectorAll('input[name=fanm]').forEach(r => r.addEventListener('change', async () => {
-    const body = r.value === 'custom' ? { mode: 'custom', cpu: +$('#acerCpu').value, gpu: +$('#acerGpu').value } : { mode: r.value };
+    const body = r.value === 'custom' ? { mode: 'custom', cpu: +$('#acerCpu').value, gpu: +$('#acerGpu').value } : fanBody(r.value);
     try { cc = (await api('/api/fan', body)).cc; }
     catch (e) { banner(t('fan.modeFail', { err: e.message })); }
     paintProfile();
   }));
+  // Sabit fan hizi (yalnizca destekleyen bilgisayarlarda gorunur): birakinca uygulanir
+  fanFixed.addEventListener('input', () => setRange(fanFixed, +fanFixed.value, $('#fanFixedOut')));
+  fanFixed.addEventListener('change', async () => {
+    try { cc = (await api('/api/fan', fanBody('fixed'))).cc; }
+    catch (e) { banner(t('fan.modeFail', { err: e.message })); }
+    paintProfile();
+  });
+  // Pil sarj siniri (yalnizca destekleyen bilgisayarlarda gorunur)
+  const cOn = $('#chargeOn'), cStop = $('#chargeStop');
+  const sendCharge = async () => {
+    try { meta.charge = (await api('/api/charge', { stop: cOn.checked ? +cStop.value : null })).charge; }
+    catch (e) { banner(t('charge.fail', { err: e.message })); }
+    paintCharge();
+  };
+  cOn.addEventListener('change', sendCharge);
+  cStop.addEventListener('input', () => setRange(cStop, +cStop.value, $('#chargeOut')));
+  cStop.addEventListener('change', () => { if (cOn.checked) sendCharge(); });
+}
+function paintCharge() {
+  const c = meta && meta.charge;
+  $('#chargeBox').hidden = !c;
+  if (!c) return;
+  $('#chargeOn').checked = !!c.enabled;
+  if (c.stop != null) setRange($('#chargeStop'), c.stop, $('#chargeOut'));
+  else $('#chargeOut').textContent = '–';
+  $('#chargeStop').disabled = !c.enabled;
 }
 
 /* ---------- fan egrisi ---------- */
@@ -1538,6 +1580,16 @@ function applySupport() {
     if (!caps.kb) hideUnsupported('klavye', t('msi.unsupKb'));
     return;
   }
+  const gb = meta.vendor === 'gigabyte';
+  // Bu bilgisayarda olmayan fan denetimleri gizlenir (secilemeyen denetim komut da gondermez)
+  $('#fanFixedOpt').hidden = $('#fanFixedBox').hidden = !caps.fan_fixed;
+  const maxOpt = document.querySelector('input[name=fanm][value=max]');
+  if (maxOpt && meta.caps) maxOpt.closest('label').hidden = !!meta.ec && !caps.fan_max;
+  if (gb) {
+    if (!meta.fan_default) { const c = $('#curve'); if (c) c.closest('.tile').hidden = true; }
+    const intro = document.querySelector('#v-fan .page-head p'); if (intro) intro.textContent = t('fan.intro.gb');
+  }
+  paintCharge();
   if (meta.ec_kind === 'alienware') {  // egriyi denetleyici degil uygulama calistirir; fabrika egrisi yok, referans var
     for (const [from, to] of [['fan.intro', 'fan.introAw'], ['fan.legend.factory', 'fan.legend.reference']]) {
       const e = document.querySelector(`[data-i18n="${from}"]`);
@@ -1549,8 +1601,8 @@ function applySupport() {
   if (hp) {
     if (!meta.ec || (!caps.fan_max && !caps.fan_read)) off.push(['fan', 'unsup.hpFan']);
     if (!meta.ec || !caps.kb) off.push(['klavye', 'unsup.hpKb']);
-  } else if (!meta.ec) off.push(['fan', 'unsup.fan'], ['klavye', 'unsup.kb']);
-  else if (meta.kb === false) off.push(['klavye', meta.ec_kind === 'alienware' ? 'unsup.kbAw' : 'unsup.kbOther']);  // denetleyici var, klavye isigi yok
+  } else if (!meta.ec) off.push(['fan', gb ? 'unsup.fanGb' : 'unsup.fan'], ['klavye', gb ? 'unsup.kbGb' : 'unsup.kb']);
+  else if (meta.kb === false) off.push(['klavye', gb ? 'unsup.kbGb' : meta.ec_kind === 'alienware' ? 'unsup.kbAw' : 'unsup.kbOther']);  // denetleyici var, klavye isigi yok
   for (const [id, key] of off) {
     hideUnsupported(id, hp ? t(key) : key === 'unsup.kbAw' ? t(key, { err: meta.kb_reason || '' })
       : meta.ec_clevo ? t('unsup.dll', { err: meta.ec_reason || '' })
