@@ -19,6 +19,7 @@ import urllib.request
 from ctypes import wintypes as wt
 
 import ceviri
+import donanim as hw
 import fntus
 import klavye_rgb as core
 from ceviri import t
@@ -218,11 +219,11 @@ class Tray:
         except Exception:
             import traceback
             fntus.log("OSD olusturulamadi: " + traceback.format_exc().replace("\n", " | "))
-        # Fn dinleyicisi yalnizca Clevo/Monster koprusu (ACPI\CLV) varsa: Lenovo vb. bilgisayarda Clevo kodu calismaz
+        # Fn dinleyicisi yalnizca Clevo/Monster koprusu (ACPI\CLV) varsa: HP'de kopru aranmaz bile, diger
+        # markalarda (Lenovo, MSI...) Clevo kodu calismaz
         self.fn = None
         try:
-            import donanim
-            clevo = donanim.clevo_present()
+            clevo = hw.vendor_kind() is None and hw.clevo_present()
         except Exception:
             clevo = False
         if clevo:
@@ -362,12 +363,16 @@ class Tray:
                 u32.AppendMenuW(m, MF_SEPARATOR, 0, None)
                 fan = u32.CreatePopupMenu()
                 fm = s.get("fan_mode")
+                caps = s.get("caps")  # eski motor caps gondermez: hepsi gosterilir
                 for cid, label, on in ((self.ID_FAN_PROFILE, t("tray.fanProfile"), fm == 6),
                                        (self.ID_FAN_AUTO, t("tray.fanAuto"), fm == 0),
                                        (self.ID_FAN_MAX, t("tray.fanMax"), fm == 1)):
+                    if cid == self.ID_FAN_MAX and caps is not None and "fan_max" not in caps:
+                        continue  # bu bilgisayarda yok: secenek de gosterilmez
                     u32.AppendMenuW(fan, MF_STRING | MF_RADIOCHECK | (MF_CHECKED if on else 0), cid, label)
                 u32.AppendMenuW(m, MF_POPUP, fan,
-                                t("tray.fan", mode=t("trayfan.%s" % fm) if fm in (0, 1, 6) else "?"))
+                                t("tray.fan", mode=t("trayfan.%s" % fm) if fm in (0, 1, 6) else
+                                                 t("fanmode.7") if fm == 7 else "?"))
         else:
             u32.AppendMenuW(m, MF_STRING, self.ID_START, t("tray.start"))
         u32.AppendMenuW(m, MF_SEPARATOR, 0, None)

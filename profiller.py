@@ -189,14 +189,28 @@ class Manager:
             caps = t("val.capTurboOff")
         elif c["fmax_p"] or c["fmax_e"]:
             caps = t("val.capPE", p=ceviri.num(c["fmax_p"] / 1000.0, 1), e=ceviri.num(c["fmax_e"] / 1000.0, 1))
-        ec = getattr(self.dchu, "available", True)
-        if not ec:
+        cap = hw.caps(self.dchu)
+        ec = cap["power"]
+        msi = getattr(self.dchu, "kind", "") == "msi"
+        if fan[0] == "curve" and not cap["fan_curve"] and cap["fan_max"] and getattr(self.dchu, "vendor", "") == "hp":
+            fan_txt = t("val.hpFanTable")  # ozel egri yok (HP): fanlar BIOS tablosunda
+        elif not (cap["fan_curve"] or cap["fan_max"]):
             fan_txt = t("val.unsupported")
+        elif msi and fan[0] == "curve":  # MSI'da ozel egri yok: sessiz egri Silent, digerleri Auto fan modu
+            quiet = fan[1][3] <= 60 and fan[2][3] <= 60
+            fan_txt = t("msi.fan." + ("silent" if quiet and "silent" in self.dchu.conf["fan"] else "auto"))
+        elif fan[0] == "curve" and not getattr(self.dchu, "fan_curve_ok", True):
+            # egri yok (Acer): fanlari secilen guc modunun kendi tablosu yonetir
+            fan_txt = t("val.fanByMode") if getattr(self.dchu, "fan_ok", True) else t("val.unsupported")
+        power_txt = ((self._msi_power(p["ec"]) if msi else hw.power_text(self.dchu, p["ec"])) if ec
+                     else t("val.unsupported"))
+        if ec and hasattr(self.dchu, "profile_power_label"):
+            power_txt = self.dchu.profile_power_label(p)
         gpu_txt = t("val.gpuCap", mhz=p["gpu"][1]) if p["gpu"] else t("val.gpuFree")
         if not self.sensors.gpu_name:
             gpu_txt = t("val.unsupported")
         return [
-            (t("row.powerMode"), t("power.%d" % p["ec"]) if ec else t("val.unsupported")),
+            (t("row.powerMode"), power_txt),
             (t("row.cpuCap"), caps),
             (t("row.turboEpp"), "%s / %d" % (t("boost.%d" % c["boost"]), c["epp"])),
             (t("row.sched"), t("sched.%d" % c["sched"])),
@@ -204,6 +218,13 @@ class Manager:
             (t("row.fan"), fan_txt),
             (t("row.display"), t("val.disp60") if p["refresh"] == "min" else t("val.dispMax")),
         ]
+
+    def _msi_power(self, code):
+        """Clevo guc modu kodunun MSI'da karsiligi olan shift modu adi."""
+        import msi
+        modes = (self.dchu.conf or {}).get("shift") or {}
+        name = next((n for n in msi.POWER_TO_SHIFT.get(code, ()) if n in modes), None)
+        return t("msi.shift." + name) if name else t("val.unsupported")
 
     def public(self):
         return [{"id": p["id"], "name": name(p["id"]), "tag": t("prof.%s.tag" % p["id"]),
@@ -215,6 +236,8 @@ class Manager:
     def status(self):
         return {"profile": self.applied, "report": self.report, "guard": self.guard,
                 "power_mode": self.dchu.power_mode(), "fan_mode": self.dchu.fan_mode(),
+                "power_name": getattr(self.dchu, "power_name", lambda: None)(),  # Acer profil adi
+                "fan_fixed": getattr(self.dchu, "fan_fixed", lambda: None)(),
                 "scheme_active": active_scheme() == SCHEME, "admin": hw.is_admin(), "rules": self.cfg}
 
     # ------------------------------------------------------------------ uygula
@@ -255,15 +278,30 @@ class Manager:
             self.save()
             return rep
 
+    def _power_key(self, mode):
+        """Guc modu metni: Clevo'da power.N, Gigabyte'ta fan kipi (gbmode.*)."""
+        fn = getattr(self.dchu, "power_key", None)
+        return fn(mode) if fn else "power.%d" % mode
+
     def _ec(self, p):
-        self.dchu.set_power_mode(p["ec"])
-        return t("power.%d" % p["ec"])
+        if hasattr(self.dchu, "apply_profile_power"):  # Acer: profil kendi guc moduna eslenir
+            return self.dchu.apply_profile_power(p, hw.power_status()["ac"])
+        msg = self.dchu.set_power_mode(p["ec"])
+        return msg if isinstance(msg, str) and msg else hw.power_text(self.dchu, p["ec"])
 
     def _fan(self, p):
         kind = p["fan"][0]
+        if kind == "curve" and not getattr(self.dchu, "fan_curve_ok", True):
+            # Egri desteklenmiyor (Acer): fanlar guc modunun fabrika tablosunda; elle hiz da kalkar
+            self.dchu.set_fan_mode(hw.FAN_AUTO)
+            return t("msg.fanByMode")
         if kind == "curve":
-            self.dchu.set_fan_curve(p["fan"][1], p["fan"][2])
-            return t("msg.customCurve")
+            if not hw.caps(self.dchu)["fan_curve"] and getattr(self.dchu, "vendor", "") == "hp":
+                # Ozel egri yok (HP BIOS'u): fanlar uretici tablosunda kalir; NullDCHU'da bu da Unsupported verir
+                self.dchu.set_fan_mode(hw.FAN_AUTO)
+                return t("msg.hpCurveAuto")
+            msg = self.dchu.set_fan_curve(p["fan"][1], p["fan"][2])
+            return msg if isinstance(msg, str) else t("msg.customCurve")  # MSI: en yakin fan moduna cevrilir
         self.dchu.set_fan_mode(hw.FAN_MAX if kind == "max" else hw.FAN_AUTO)
         return t("msg.auto") if kind == "auto" else t("msg.max")
 
@@ -337,10 +375,19 @@ class Manager:
                 why = "reason.ac" if ac else "reason.battery"
                 threading.Thread(target=self.apply, args=(target, why), daemon=True).start()
         self._last_ac = ac
+        if hw.has(self.dchu, "fan_fixed") and self.dchu.fan_mode() == hw.FAN_FIXED:
+            self._fixed_guard(s)  # sabit hiz (Gigabyte): egriyi EC degil uygulama secti, koruma da uygulamada
+            return
+        guard = getattr(self.dchu, "custom_guard", None)
+        if guard:  # Acer elle fan hizi: kendi isi korumasi
+            msg = guard(s)
+            if msg:
+                self.guard = msg
+                self.notify(msg)
         p = BY_ID.get(self.applied)
-        # Ozel egri yoksa (IdeaPad, egrisiz Asus) fanlar zaten bellenimde: bekcinin geri alacagi bir sey yok
-        if not p or p["fan"][0] != "curve" or not getattr(self.dchu, "available", True) \
-                or not getattr(self.dchu, "fan_control", True):
+        # Ozel egri yoksa (IdeaPad, egrisiz Asus, Acer) fanlar zaten bellenimde: bekcinin geri alacagi bir sey yok
+        # (caps: Asus/IdeaPad'de fan_control, digerlerinde arka ucun kendi bayraklari)
+        if not p or p["fan"][0] != "curve" or not hw.caps(self.dchu)["fan_curve"]:
             return
         # Profil uygulanirken (kilit dolu) bekci dokunmaz: apply() sonunda bekci durumunu zaten sifirlar.
         if not self.lock.acquire(blocking=False):
@@ -357,6 +404,17 @@ class Manager:
         if s.get("dchu_error") or s.get("sensor_error") or not isinstance(v, (int, float)) or v <= 0:
             return None
         return v
+
+    def _fixed_guard(self, s):
+        """Sabit fan hizinda: islemci 93 / kart 87 C'yi 5 sn asarsa ya da sicaklik okunamazsa fanlar kipe doner."""
+        cpu, gpu = self._temp(s, "cpu_temp"), self._temp(s, "gpu_temp") or 0
+        bad = cpu is None or cpu >= 93 or gpu >= 87
+        self._hot = self._hot + 1 if bad else 0
+        if self._hot >= 5:
+            self._hot = 0
+            self.dchu.set_fan_mode(hw.FAN_AUTO)
+            self.guard = t("guard.fixed")
+            self.notify(self.guard)
 
     def _guard_step(self, s, p):
         # GPU uykudayken denetleyici GPU sicakligini 0 verebilir; bu yuzden "bilinmiyor" karari islemciye gore.

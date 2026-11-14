@@ -485,8 +485,8 @@ class TestOpenDchu(unittest.TestCase):
         import re
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "control_center.py"), encoding="utf-8") as f:
             src = f.read()
-        self.assertRegex(src, r'if App\.dchu\.kind == "clevo":\s*\n\s*try:\s*\n\s*App\.dchu\.set_wmi\(0x46')
-        self.assertRegex(src, r'App\.dchu\.kind == "clevo".*\n\s*threading\.Thread\(target=fn_block_loop')
+        self.assertRegex(src, r'if (?:App\.dchu\.available and )?(?:App\.dchu\.kind|getattr\(App\.dchu, "kind", "clevo"\)) == "clevo":\s*\n\s*try:\s*\n\s*App\.dchu\.set_wmi\(0x46')
+        self.assertRegex(src, r'(?:App\.dchu\.kind|getattr\(App\.dchu, "kind", "clevo"\)) == "clevo".*\n\s*threading\.Thread\(target=fn_block_loop')
         self.assertEqual(len(re.findall(r"set_wmi\(0x46", src)), 1)
 
     def test_asus_open_failure_is_null(self):

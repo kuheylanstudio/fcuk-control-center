@@ -45,6 +45,7 @@ NO_WINDOW = 0x08000000
 
 POWER_MODES = {0: "Sessiz", 1: "Güç tasarrufu", 2: "Performans", 3: "Eğlence"}
 FAN_AUTO, FAN_MAX, FAN_CUSTOM = 0, 1, 6
+FAN_FIXED = 7  # sabit yuzde (Clevo'da yok; Gigabyte arka ucu)
 
 
 def is_admin():
@@ -200,8 +201,14 @@ def peer_in_my_session(client_port, server_port):
 class DCHU:
     """InsydeDCHU.dll sarmalayicisi. Tum cagrilar tek kilitten gecer (motor, sensor ve sunucu ayni anda cagirir)."""
     available = True
-    kind = "clevo"
-    kb_available = True  # Clevo'da klavye isigi denetleyicinin parcasi
+    vendor = "clevo"
+    kind = "clevo"        # Clevo'ya ozel adimlar (Fn olaylari, IFEO) yalnizca bu turde
+    fan_curve_ok = True   # sicakliga bagli fan egrisini denetleyici calistirir
+    kb_available = True   # klavye isigi bu denetleyicide
+
+    @staticmethod
+    def caps():
+        return {"power": True, "fan": True, "fan_curve": True, "kb": True, "temps": True}
 
     def __init__(self):
         # Surumler farkli islev kumesi tasir (ornek: surucu deposundaki 1.0.0.1'de SetDCHU_DataEx yok). Yalnizca
@@ -356,10 +363,15 @@ class NullDCHU:
     bos, yazmalar Unsupported verir ve donanima HICBIR komut gitmez. Profil adimlari bunu raporda
     'desteklenmiyor' olarak gosterir; geri kalan her sey calisir."""
     available = False
+    vendor = ""
     kind = ""
+    fan_curve_ok = False
     path = ""
-    kind = ""
     kb_available = False
+
+    @staticmethod
+    def caps():
+        return {"power": False, "fan": False, "fan_curve": False, "kb": False, "temps": False}
 
     def __init__(self, reason="", clevo=False, message=None):
         self.reason = reason
@@ -426,57 +438,163 @@ def clevo_present():
         return False
 
 
-def open_dchu():
-    """Clevo denetleyicisi, Alienware/Dell AWCC, Asus ATK, Lenovo Legion ya da Lenovo IdeaPad denetleyicisi;
-    hicbiri yoksa / acilamazsa NullDCHU.
+# Ozellik bayraklari: arayuz, profiller ve sensorler bunlara bakar. Clevo denetleyicisinde hepsi var (grafik
+# anahtari haric); baska arka uclar (HP) kendi 'caps' sozlugunu yoklamayla doldurur.
+CAPS_ALL = {"power": True, "fan_max": True, "fan_curve": True, "fan_read": True, "temp": True, "kb": True,
+            "gpu_mux": False}
 
-    Alienware yolu yalnizca uretici Alienware/Dell ise ve AWCC WMI sinifi gecerli bir sistem tanimi
-    donduruyorsa secilir; aksi halde denetleyiciye hicbir yazma komutu gitmez."""
-    if not clevo_present():
+
+def caps(dev):
+    """Arka ucun ozellik bayraklari, tek bicimde. Arka uc 'caps'i sozluk (HP) ya da yontem (MSI, Clevo, NullDCHU)
+    olarak verebilir; vermiyorsa (Alienware, Asus, IdeaPad) available'a gore hepsi ya da hicbiri; klavye
+    (kb_available), ozel egri ve tam devir (fan_control) ve denetleyici sicakligi (ec_temps) ayrica.
+    Anahtarlar: CAPS_ALL + arayuzun eski adlari 'temps' (= temp) ve 'fan' (= fan_max ya da fan_curve)."""
+    c = getattr(dev, "caps", None)
+    if callable(c):
         try:
-            import alienware
-            ec, err = alienware.open_alienware()
-        except Exception as exc:
-            ec, err = None, str(exc)
-        if ec is not None:
-            return ec
-        # Asus ROG/TUF: yalnizca uretici ASUSTeK ve AsusAtkWmi_WMNB varsa (asus_rog.py). Ozellikler tek tek
-        # DSTS ile sinanir; olmayan ozellige hicbir komut gitmez.
-        try:
-            import asus_rog
-            if asus_rog.asus_present():
-                try:
-                    return asus_rog.open_asus()
-                except Exception as exc:
-                    msg = ceviri.t("err.asusOpen", err=exc)
-                    return NullDCHU(msg, clevo=False, message=msg)
+            c = c()
         except Exception:
-            pass
-        # Lenovo Legion: BIOS'ta LENOVO + Legion ve LENOVO_GAMEZONE_DATA yontemleri varsa (lenovo_legion.py)
-        try:
-            import lenovo_legion
-            dev = lenovo_legion.open_legion()
-            if dev is not None:
-                return dev
-        except Exception:  # tespit hatasi: suphede donanima dokunulmaz
-            pass
-        # Lenovo IdeaPad: yalnizca uretici LENOVO ve model adinda IdeaPad varsa (ideapad.py). GameZone guc modu ve
-        # EnergyDrv pil modu yalnizca okuyarak sinanir; hicbiri yoksa None doner ve komut gitmez.
-        try:
-            import ideapad
-            dev = ideapad.open_ideapad()
-            if dev is not None:
-                return dev
-        except Exception:
-            pass
-        if err:  # Alienware/Dell ama arayuz acilamadi (cogu zaman yonetici yetkisi yok)
-            msg = ceviri.t("err.awOpen", err=err)
-            return NullDCHU(msg, clevo=False, message=msg)
-        return NullDCHU(ceviri.t("err.notClevo"), clevo=False)
+            c = None
+    if isinstance(c, (set, frozenset, list, tuple)):  # Gigabyte: desteklenen ozelliklerin adlari
+        c = dict.fromkeys(c, True)
+    if isinstance(c, dict):
+        out = {k: False for k in CAPS_ALL}
+        out.update(c)
+        if "temp" not in c and "temps" in c:
+            out["temp"] = bool(c["temps"])
+        if "fan_max" not in c and "fan" in c:
+            out["fan_max"] = bool(c["fan"])
+        # Lenovo adlari: curve (ozel egri), fullspeed (tam devir), sensor (okuma yolu), klavye ayri nesnede
+        if "curve" in c and "fan_curve" not in c:
+            out["fan_curve"] = bool(c["curve"])
+        if "fullspeed" in c and "fan_max" not in c:
+            out["fan_max"] = bool(c["fullspeed"])
+        if "sensor" in c and "temp" not in c and "temps" not in c:
+            out["temp"] = out["fan_read"] = bool(c["sensor"])
+        if "kb" not in c:
+            out["kb"] = bool(getattr(dev, "kb_available", False))
+        # Acer: sicaklik ozelligi ayrica (temps_ok), egri yok (fan_curve_ok), fan devri fan_speed
+        if not any(k in c for k in ("temp", "temps", "sensor")):
+            out["temp"] = bool(getattr(dev, "temps_ok", False))
+        if "fan_read" not in c:
+            out["fan_read"] = bool(c.get("fan_speed", out["temp"]))
+        if getattr(dev, "fan_curve_ok", True) is False:
+            out["fan_curve"] = False
+    else:
+        ok = bool(getattr(dev, "available", False))
+        out = {k: ok and v for k, v in CAPS_ALL.items()}
+        out["kb"] = bool(getattr(dev, "kb_available", ok))
+        # Asus / IdeaPad: ozel egri (ve onunla yapilan tam devir) modele gore yok olabilir
+        if hasattr(dev, "fan_control"):
+            out["fan_curve"] = out["fan_max"] = ok and bool(dev.fan_control)
+        if hasattr(dev, "ec_temps"):  # yoksa sensorler ACPI isi bolgesini kullanir
+            out["temp"] = ok and bool(dev.ec_temps)
+    out.setdefault("temps", out["temp"])
+    out.setdefault("fan", bool(out["fan_max"] or out["fan_curve"]))
+    return out
+
+
+def has(dev, name):
+    """Arka uc bu ozelligi destekliyor mu (caps(dev) uzerinden; arka ucun caps bicimi ne olursa olsun)."""
+    return bool(caps(dev).get(name))
+
+
+def power_text(dev, mode):
+    """Profil guc modunun arayuz metni: Clevo kipi ya da arka ucun kendi karsiligi (HP termal modu)."""
+    key = getattr(dev, "power_key", None)
+    key = key(mode) if key else None
+    return ceviri.t(key) if key else ceviri.t("power.%d" % mode)
+
+
+def vendor_kind():
+    """Clevo disi uretici ('hp') ya da None. Surec acmaz (kayit defterindeki SMBIOS bilgisi); Clevo
+    algilamasindan ONCE bakilir: HP yolunda Clevo kodu (aygit aramasi, DLL, Fn koprusu) hic calismaz."""
     try:
-        return DCHU()
+        import hp_omen
+        return "hp" if hp_omen.detected() else None
+    except Exception:
+        return None
+
+
+def _try_open(fn):
+    """Marka tespiti: arka uc ya da None. Tespit hatasi da None: suphede donanima dokunulmaz."""
+    try:
+        return fn()
+    except Exception:
+        return None
+
+
+def open_dchu():
+    """Clevo denetleyicisi, bir marka arka ucu ya da (hicbiri yoksa / acilamazsa) NullDCHU.
+
+    HP Omen/Victus kayit defterindeki SMBIOS bilgisiyle en once ayrilir (HP'de Clevo aygit aramasi bile yapilmaz).
+    Sonra Clevo koprusu (ACPI CLV aygiti): takiliysa her zaman Clevo yolu secilir (Clevo tabanli Gigabyte/Aorus
+    modelleri dahil). Degilse markalar sirayla denenir: Alienware/Dell, Asus, Lenovo Legion, Lenovo IdeaPad, MSI,
+    Acer, Gigabyte. Her marka kendi tespitini yapar (uretici + model + WMI sinifi) ve kendisi degilse None doner.
+    Kurulumdaki tespit (kurulum.ps1 Get-Cihaz) ayni kurallari kullanir."""
+    if vendor_kind() == "hp":
+        try:
+            import hp_omen
+            dev, why = hp_omen.open_backend()
+        except Exception as exc:
+            dev, why = None, "%s: %s" % (type(exc).__name__, exc)
+        if dev is not None:
+            return dev
+        return NullDCHU(ceviri.t("err.notClevo") + (" (%s)" % why if why else ""), clevo=False)
+    if clevo_present():
+        try:
+            return DCHU()
+        except Exception as exc:
+            return NullDCHU(str(exc), clevo=True)
+    # Alienware/Dell: arayuz var ama acilamadiysa (cogu zaman yonetici yetkisi yok) nedeni en sonda gosterilir
+    try:
+        import alienware
+        ec, err = alienware.open_alienware()
     except Exception as exc:
-        return NullDCHU(str(exc), clevo=True)
+        ec, err = None, str(exc)
+    if ec is not None:
+        return ec
+    # Asus ROG/TUF: yalnizca uretici ASUSTeK ve AsusAtkWmi_WMNB varsa (asus_rog.py). Ozellikler tek tek
+    # DSTS ile sinanir; olmayan ozellige hicbir komut gitmez.
+    try:
+        import asus_rog
+        if asus_rog.asus_present():
+            try:
+                return asus_rog.open_asus()
+            except Exception as exc:
+                msg = ceviri.t("err.asusOpen", err=exc)
+                return NullDCHU(msg, clevo=False, message=msg)
+    except Exception:
+        pass
+
+    def _legion():
+        import lenovo_legion  # BIOS'ta LENOVO + Legion ve LENOVO_GAMEZONE_DATA
+        return lenovo_legion.open_legion()
+
+    def _ideapad():
+        import ideapad  # LENOVO + IdeaPad; GameZone ve EnergyDrv yalnizca okuyarak sinanir
+        return ideapad.open_ideapad()
+
+    def _msi():
+        import msi  # Micro-Star + MSI_ACPI; EC firmware'i tabloda yoksa yalnizca okuma
+        return msi.open_msi(unsupported=Unsupported)
+
+    def _acer():
+        import acer_predator  # Acer + Predator/Nitro + AcerGamingFunction; yoklama yalnizca okuma
+        return acer_predator.detect()
+
+    def _gigabyte():
+        import gigabyte_aorus  # GIGABYTE/AORUS VE GB_WMIACPI siniflari
+        return gigabyte_aorus.open_backend()
+
+    for fn in (_legion, _ideapad, _msi, _acer, _gigabyte):
+        dev = _try_open(fn)
+        if dev is not None:
+            return dev
+    if err:  # Alienware/Dell ama arayuz acilamadi
+        msg = ceviri.t("err.awOpen", err=err)
+        return NullDCHU(msg, clevo=False, message=msg)
+    return NullDCHU(ceviri.t("err.notClevo"), clevo=False)
 
 
 def validate_curve(pts, t1, d1):
@@ -851,9 +969,9 @@ class Sensors(threading.Thread):
             "energy": r"\Energy Meter(*)\Power",
             "gpu": r"\GPU Engine(*)\Utilization Percentage",
         }
-        # Denetleyici (ya da sicakligi) yoksa islemci sicakligi icin ACPI isi bolgesi (Kelvin). Legion'da okuma yolu
-        # modele gore degisir ve okunamayabilir: yedek olarak isi bolgesi her zaman acik.
-        if not getattr(self.dchu, "ec_temps", self.dchu.available) or getattr(self.dchu, "kind", "") == "lenovo":
+        # Denetleyici sicaklik vermiyorsa islemci icin ACPI isi bolgesi (Kelvin). Legion'da okuma yolu modele gore
+        # degisir ve okunamayabilir: yedek olarak isi bolgesi her zaman acik.
+        if not caps(self.dchu)["temp"] or getattr(self.dchu, "kind", "") == "lenovo":
             counters["tz"] = r"\Thermal Zone Information(*)\Temperature"
         pdh = Pdh(counters)
         last_net = last_disk = None

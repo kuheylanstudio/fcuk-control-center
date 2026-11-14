@@ -9,9 +9,9 @@ bilgisayarlarda da donanım tespiti, canlı izleme, NVIDIA ve işlemci ayarları
 > *The source code of this project was written with Anthropic's Claude Opus 5.5 AI model.*
 
 <p align="center">
-  <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v2.3.0/FCUK-Control-Center-Setup-2.3.0.exe"><img alt="İndir: FCUK-Control-Center-Setup-2.3.0.exe" src="https://img.shields.io/badge/%C4%B0ndir-FCUK--Control--Center--Setup--2.3.0.exe-2ea44f?style=for-the-badge&logo=windows&logoColor=white"></a>
+  <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v2.4.0/FCUK-Control-Center-Setup-2.4.0.exe"><img alt="İndir: FCUK-Control-Center-Setup-2.4.0.exe" src="https://img.shields.io/badge/%C4%B0ndir-FCUK--Control--Center--Setup--2.4.0.exe-2ea44f?style=for-the-badge&logo=windows&logoColor=white"></a>
   <br>
-  <a href="https://www.virustotal.com/gui/file/0f8a68f41b873824a8f7313fbf6f731fe78b852ddb3789d710d1e1e883edd2e0"><img alt="VirusTotal tarama sonucu" src="https://img.shields.io/badge/VirusTotal-tarama%20sonucu-394EFF?logo=virustotal&logoColor=white"></a>
+  <a href="https://www.virustotal.com/gui/file/358fc81a39839ab867ba0ab260220febddb4a8e996a9c9e5b11b2cf4863a753a"><img alt="VirusTotal tarama sonucu" src="https://img.shields.io/badge/VirusTotal-tarama%20sonucu-394EFF?logo=virustotal&logoColor=white"></a>
   <br>
   <sub>Windows 10/11 (64 bit) · <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/latest">tüm sürümler ve SHA-256</a> · <a href="#güvenlik-ve-doğrulama">güvenlik ve doğrulama</a></sub>
 </p>
@@ -24,13 +24,15 @@ bilgisayarlarda da donanım tespiti, canlı izleme, NVIDIA ve işlemci ayarları
 | **Canlı izleme** | İşlemci sıcaklığı/gücü/yükü, çekirdek başına MHz, ekran kartı sıcaklığı/gücü/saati/VRAM/PCIe/kısıtlama nedeni, tümleşik grafik yükü, disk başına okuma/yazma hızı, bellek, ağ, pil | Her bilgisayar |
 | **NVIDIA** | Güç yönetimi modu, düşük gecikme, V-Sync, en yüksek kare hızı, doku filtreleme, iş parçacıklı optimizasyon, tercih edilen grafik işlemcisi (Optimus), elle saat sınırı. Ayarlar NVIDIA Denetim Masası'nın kullandığı aynı sürücü profiline yazılır | NVIDIA kart; yazmak için yönetici modu |
 | **İşlemci** | İşlemci modeline göre yalnızca etkili olan ayarlar: turbo modu, EPP (Speed Shift), P ve E çekirdek frekans tavanları (melez Intel), işlemci durumu sınırları, çekirdek zamanlayıcı politikası, çekirdek park etme | Her bilgisayar (Windows güç planı) |
-| **Performans profilleri** | Beş profil: Tam Sessiz → Ultra Performans; her biri gömülü denetleyici güç modu, fan eğrisi, işlemci, ekran kartı ve ekran yenileme hızını birlikte ayarlar. Cihazda olmayan adımlar atlanır ve raporda gösterilir | Clevo / Monster, Alienware, Asus, Lenovo Legion, Lenovo IdeaPad (güç modu) |
-| **Fanlar** | Özel fan eğrisi, fan devri ve sıcaklık okuması | Clevo / Monster, Alienware, Asus, Lenovo Legion (Özel modda) (modele göre) |
-| **Klavye RGB** | 9 ışık modu: sabit, nefes alma, renk geçişi, gökkuşağı, nabız, ses/müzik, sistem durumu, ekran rengi ve **oyun tepkisi** | Clevo / Monster, Alienware (AlienFX), Asus (Aura), Lenovo Legion (4 bölgeli klavye) |
+| **Performans profilleri** | Beş profil: Tam Sessiz → Ultra Performans; her biri gömülü denetleyici güç modu, fan eğrisi, işlemci, ekran kartı ve ekran yenileme hızını birlikte ayarlar. Cihazda olmayan adımlar atlanır ve raporda gösterilir | Clevo / Monster, Alienware, Asus, Lenovo Legion, Lenovo IdeaPad, MSI, HP Omen / Victus, Acer Predator / Nitro, Gigabyte (güç modu) |
+| **Fanlar** | Özel fan eğrisi, fan devri ve sıcaklık okuması | Clevo / Monster, Alienware, Asus, Lenovo Legion (Özel modda), Gigabyte; MSI, HP ve Acer'da fan modu / tam devir (modele göre) |
+| **Klavye RGB** | 9 ışık modu: sabit, nefes alma, renk geçişi, gökkuşağı, nabız, ses/müzik, sistem durumu, ekran rengi ve **oyun tepkisi**; 4 bölgeli klavyelerde ayrıca bölge renkleri | Clevo / Monster, Alienware (AlienFX), Asus (Aura), Lenovo Legion, MSI (USB klavye), HP Omen, Acer Predator / Nitro, Gigabyte (ITE) |
 | **Oyun tepkisi** | Klavye cana göre yeşilden kırmızıya döner, can %35'in altındayken kalp atışı gibi yanıp söner; ateş, yetenek, kill ve ölümde parlar. **League of Legends** (Riot'un resmi canlı oyun verisi) ve **Counter-Strike 2** (resmi Game State Integration). Oyun belleğine dokunulmaz | Klavye RGB olan cihaz |
 | **Asus'a özel** | Şarj sınırı, ekran kartı modu (Eco / Standart / Ultimate) | Asus ROG / TUF (modele göre) |
 | **Fn tuşları** | Fn tuşu ekran bildirimleri | Clevo / Monster |
 | **Lenovo Legion'a özel** | Ekran kartı modu (hibrit / tümleşik / yalnızca harici kart), pil koruma ve hızlı şarj, tam devir fan | Lenovo Legion (modele göre) |
+| **MSI'a özel** | Shift / fan modu, Cooler Boost, pil şarj sınırı | MSI (EC firmware'i tabloda olan modeller) |
+| **Pil şarj sınırı** | Şarjı %60-100 arasında bir değerde durdurur | Gigabyte, MSI (modele göre) |
 | **Ses ve ekran** | Hoparlör / mikrofon seviyesi, yenileme hızı | Her bilgisayar |
 | **Güncellemeler** | GitHub'dan yeni sürümü denetler, indirir, SHA-256 ile doğrular ve kurar. Otomatik ya da elle seçilebilir; kurmadan önce yenilikler gösterilir | Her bilgisayar (setup.exe ile kurulmuş) |
 | **Dil** | 14 dil, Windows bölge ayarına göre otomatik | |
@@ -44,9 +46,13 @@ bilgisayarlarda da donanım tespiti, canlı izleme, NVIDIA ve işlemci ayarları
 | **Asus ROG / TUF** | Güç modu (sessiz, dengeli, turbo), 8 noktalı fan eğrisi, fan devri, klavye arka ışığı ve Aura RGB, şarj sınırı, ekran kartı modu. Her özellik önce sınanır; modelde olmayan özelliğe komut gönderilmez |
 | **Lenovo Legion** | Güç modu (Sessiz, Dengeli, Performans) profillerle, fan hızı ve sıcaklık, tam devir fan, Özel modda fan eğrisi, ekran kartı modu (hibrit / tümleşik / yalnızca harici kart), pil koruma ve hızlı şarj, 4 bölgeli klavyede tüm ışık modları. Her özellik önce sınanır; desteklenmeyen özellik hiçbir komut göndermez |
 | **Lenovo IdeaPad** (Intel ve Ryzen) | Modelin sunduğu Lenovo arayüzüne göre: güç modu (Sessiz, Dengeli, Performans; Fn+Q ile aynı, GameZone WMI), pil modu (normal, koruma modu, hızlı şarj; Energy Management sürücüsü), işlemci/kart sıcaklığı ve fan devri. Fanları her zaman bellenim çalıştırır (özel fan eğrisi yok); klavye ışığı Fn+Boşluk ile kalır. Güç modunu sunmayan modellerde profiller yine Windows güç modunu ayarlar |
+| **MSI** | Güç modu (shift modu) profillerle, fan modu ve Cooler Boost, sıcaklık ve fan devri, pil şarj sınırı, USB klavye ışığı (SteelSeries / 3 bölgeli). EC firmware'i tabloda yoksa yalnızca okuma yapılır (ayrıntı aşağıda) |
+| **HP Omen / Victus** | Termal mod (serin / dengeli / performans) profillerle, tam devir fan, sıcaklık ve fan devri, 4 bölgeli klavye ışığı. Özellikler BIOS'tan yalnızca okuyarak yoklanır; olmayan özellik gizlenir |
+| **Acer Predator / Nitro** | Güç profili, fan modu (otomatik / en yüksek), sıcaklık ve fan devri, 4 bölgeli RGB klavye (bölge renkleri dahil). Özellikler yalnızca okuyarak yoklanır |
+| **Gigabyte / AORUS / AERO** | Sessiz / normal / oyun fan kipi (profillerin güç modu adımı), 15 noktalı özel fan eğrisi, sabit fan hızı, sıcaklık ve fan devri, pil şarj sınırı (%60-100), ITE klavyelerde tek renk RGB. Clevo tabanlı modellerde Clevo yolu kullanılır |
 | **Diğer bilgisayarlar** | Donanım, canlı izleme, NVIDIA, işlemci, ses ve ekran. Fan ve klavye sayfaları "Bu bilgisayarda kullanılamaz" der |
 
-Alienware, Asus, Lenovo Legion ve Lenovo IdeaPad desteği gerçek cihazda henüz denenmedi; sorun görürseniz lütfen bildirin. Clevo dışındaki
+Alienware, Asus, Lenovo, MSI, HP, Acer ve Gigabyte desteği gerçek cihazda henüz denenmedi; sorun görürseniz lütfen bildirin. Clevo dışındaki
 bilgisayarlarda uygulama denetleyiciye, fanlara, klavyeye ve Fn tuşlarına yalnızca desteklenen cihaz gerçekten
 varsa dokunur. Armoury Crate, Alienware Command Center, Vantage, MSI Center ve Omen gibi üretici uygulamaları
 kaldırılmaz; birlikte çalışır. Aynı ayarı ikisi birden değiştirirse son değiştirenin ayarı geçerli olur.
@@ -58,19 +64,19 @@ yazmayı gerektirir. Uygulama hiçbir çekirdek sürücüsü kurmaz.
 
 ### setup.exe (önerilen)
 
-1. **[FCUK-Control-Center-Setup-2.3.0.exe](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v2.3.0/FCUK-Control-Center-Setup-2.3.0.exe)** dosyasını indirin.
+1. **[FCUK-Control-Center-Setup-2.4.0.exe](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v2.4.0/FCUK-Control-Center-Setup-2.4.0.exe)** dosyasını indirin.
 2. Çift tıklayın ve yönetici iznini onaylayın. Kurulum penceresi her adımı gösterir; bitince uygulama açılır.
 3. Windows "Bilgisayarınız korundu" (SmartScreen) derse: **Ek bilgi → Yine de çalıştır**. Ayrıntı:
    [Güvenlik ve doğrulama](#güvenlik-ve-doğrulama).
 
 ### Güvenlik ve doğrulama
 
-- **VirusTotal:** [2.3.0 kurulum dosyasının tarama raporu](https://www.virustotal.com/gui/file/0f8a68f41b873824a8f7313fbf6f731fe78b852ddb3789d710d1e1e883edd2e0)
+- **VirusTotal:** [2.4.0 kurulum dosyasının tarama raporu](https://www.virustotal.com/gui/file/358fc81a39839ab867ba0ab260220febddb4a8e996a9c9e5b11b2cf4863a753a)
   (yukarıdaki rozet de aynı rapora gider). Yeni sürümler yayımlandığında GitHub Actions ile VirusTotal'a
   yüklenir; rapor bağlantısı sürüm notlarının sonuna eklenir. PyInstaller ile paketlenen programları birkaç
   antivirüs motoru bazen yanlışlıkla işaretler (genel "Trojan/Wacatac" vb. adlarla); kaynak kodun tamamı bu depodadır.
 - **SHA-256:** indirdiğiniz dosyanın [sürüm sayfasındaki](https://github.com/kuheylanstudio/fcuk-control-center/releases/latest)
-  özetle aynı olduğunu denetleyin: `Get-FileHash FCUK-Control-Center-Setup-2.3.0.exe`
+  özetle aynı olduğunu denetleyin: `Get-FileHash FCUK-Control-Center-Setup-2.4.0.exe`
 - **Kod imzası:** kurulum programı kod imzalı değildir; SmartScreen uyarısı bu yüzdendir.
 
 İndirilen kurulum programı üreticiye ait DLL'i **içermez**. Clevo / Monster dizüstülerde uygulama `InsydeDCHU.dll`'i
@@ -131,7 +137,7 @@ powershell -ExecutionPolicy Bypass -File setup_olustur.ps1   # çıktı: dist\se
 
 Bu şekilde derlenen setup.exe üreticiye ait DLL'i içerir; kendi bilgisayarınız için kullanın, herkese açık
 dağıtmayın. Dağıtılabilir (DLL'siz) paket için: `setup_olustur.ps1 -Dagitim` (çıktı:
-`dist\FCUK-Control-Center-Setup-2.3.0.exe`). İndirme düğmesindeki dosya budur.
+`dist\FCUK-Control-Center-Setup-2.4.0.exe`). İndirme düğmesindeki dosya budur.
 
 ### Kaynaktan
 
@@ -207,6 +213,14 @@ islemci.py         modele göre işlemci ayarları (Windows güç planı)
 profiller.py       beş performans profili, ısı koruması, fiş/pil kuralları
 klavye_rgb.py      klavye ışık motoru
 oyun.py            oyun tepkisi kaynakları: tuş basımları, LoL canlı oyun verisi, CS2 Game State Integration
+hp_omen.py         HP Omen / Victus arka ucu (HP BIOS WMI: termal mod, fan, sıcaklık, 4 bölgeli klavye)
+acer_predator.py   Acer Predator / Nitro arka ucu (AcerGamingFunction WMI: güç profili, fan, 4 bölgeli klavye)
+msi.py             MSI: EC firmware tablosu ve güvenlik kuralları (shift/fan modu, Cooler Boost, pil sınırı)
+msi_wmi.py         MSI_ACPI (root\WMI) taşıma katmanı, sürücüsüz
+msi_klavye.py      MSI USB klavye ışığı (SteelSeries 1038, eski 3 bölgeli 1770)
+gigabyte_aorus.py  Gigabyte/AORUS/AERO arka ucu (GB_WMIACPI fan, kip, sıcaklık, şarj sınırı; ITE klavye)
+wmi_yontem.py      ek paketsiz WMI yöntem çağrıları (COM, tek iş parçacığı)
+hid_rapor.py       ek paketsiz HID özellik raporu (hid.dll)
 engelle.py         eski Monster Fn programlarını tam yollarıyla engeller (IFEO yol filtresi)
 fntus.py, tepsi.py Fn tuşları, ekran bildirimi ve tepsi simgesi (ayrı, normal yetkili süreç)
 ceviri.py, ui/lang dil dosyaları
@@ -215,7 +229,18 @@ ui/index.html      arayüz (Edge --app penceresi)
 
 Geliştirme sırasında kurulu motoru atlayıp kodu doğrudan çalıştırmak için: `python control_center.py --dev`
 
-Testler (donanım gerekmez, sahte WMI/HID): `python -m unittest discover -s tests`
+## MSI dizüstüler (deneysel, gerçek donanımda doğrulanmadı)
+
+Üretici `Micro-Star International` ise `msi.py` devreye girer. Gömülü denetleyiciye ek sürücü kurmadan MSI'ın
+kendi `MSI_ACPI` WMI sınıfıyla ulaşılır (Get_EC, Get_Data/Set_Data, Get_Fan; Set_EC hiç kullanılmaz). Adres ve
+değerler Linux msi-ec sürücüsünün firmware tablolarından alındı (yalnızca adres/değer bilgisi). Korumalar:
+
+- EC firmware'i tablodaki bir girdiyle birebir eşleşmezse yalnızca okuma (sıcaklık, fan) yapılır, yazma denetimleri gizlenir.
+- Get_Data'nın ham EC adresi okuduğu, firmware alanı (0xA0) Get_EC'nin verdiği metinle karşılaştırılarak doğrulanır; tutmazsa EC hiç kullanılmaz.
+- Yalnızca tablodaki adres/değerler yazılır, her yazma geri okunur; tutmazsa o oturumda tüm yazmalar kapanır.
+- Profillerin fan eğrisi MSI'da özel eğri yerine en yakın fan moduna (Silent / Auto) çevrilir.
+
+Testler (sahte WMI/HID ile): `python -m unittest discover -s tests`
 
 ## Lisans
 

@@ -38,7 +38,7 @@ import nvidia
 import profiller
 from ceviri import t
 
-VERSION = "2.3.0"
+VERSION = "2.4.0"
 PORT = 47815
 HOSTS = ("127.0.0.1:%d" % PORT, "localhost:%d" % PORT)
 BASE = "http://127.0.0.1:%d" % PORT
@@ -53,7 +53,7 @@ OLD_TASKS = ("KendiControlCenter", "KendiControlCenter Tepsi")  # onceki surumle
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 PAL_KIND = {"sabit": "one", "nefes": "steps", "gecis": "loop", "gokkusagi": None,
             "nabiz": "steps", "ses": "range", "sistem": "range", "ekran": None,
-            "oyun": "slots"}
+            "oyun": "slots", "bolgeler": "zones"}
 BROWSERS = (
     r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
     r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
@@ -191,8 +191,8 @@ def _palette(v, kind, default):
         return []
     if not isinstance(v, list):
         return list(default)
-    if kind == "slots":  # sabit sirali yuvalar: gecersiz yuva varsayilaniyla doldurulur
-        slots = core.DEFAULTS["modes"]["oyun"]["palette"]
+    if kind in ("slots", "zones"):  # sabit sirali yuvalar: gecersiz yuva varsayilaniyla doldurulur
+        slots = core.DEFAULTS["modes"]["oyun" if kind == "slots" else "bolgeler"]["palette"]
         base = list(default) + slots[len(default):]
         return [v[i].lower() if i < len(v) and isinstance(v[i], str) and HEX.fullmatch(v[i]) else base[i]
                 for i in range(len(slots))]
@@ -501,7 +501,7 @@ def state():
         "gpu_name": App.sensors.gpu_name,
         "modes": [{"id": m[0], "label": t("mode." + m[0]), "pal": PAL_KIND[m[0]],
                    "speed": SPEED_KEY.get(m[3]) and t(SPEED_KEY[m[3]]), "desc": t("mode.%s.desc" % m[0])}
-                  for m in core.MODES],
+                  for m in core.MODES if m[0] != "bolgeler" or (getattr(App.dchu, "caps", None) or {}).get("kb_zones")],
         "sources": [{"id": s[0], "label": t("src." + s[0])} for s in core.SOURCES],
         "layouts": [{"id": k, "label": t("keys." + k)} for k in core.GAME_LAYOUTS],
         "slots": [t("slot." + k) for k in core.GAME_SLOTS],
@@ -519,7 +519,7 @@ def state():
         "autostart": bool(App.cfg.get("autostart")),
         "dll": App.dchu.path,
         "ec": App.dchu.available,
-        # "clevo" | "alienware" | "asus" | "lenovo" (Legion) | "ideapad" | "" (denetleyici yok)
+        # "clevo" | "alienware" | "asus" | "lenovo" (Legion) | "ideapad" | "msi" | "hp" | "acer" | "gigabyte" | ""
         "ec_kind": App.dchu.kind,
         "kb": bool(getattr(App.dchu, "kb_available", App.dchu.available)),  # klavye isigi ayrica olabilir/olmayabilir
         "kb_reason": getattr(App.dchu, "kb_reason", ""),
@@ -528,6 +528,13 @@ def state():
         "ec_reason": getattr(App.dchu, "reason", ""),
         "asus": App.dchu.features() if App.dchu.kind == "asus" else None,  # yalnizca desteklenen Asus ozellikleri
         "ideapad": App.dchu.features() if App.dchu.kind == "ideapad" else None,  # Lenovo IdeaPad (ideapad.py)
+        "vendor": getattr(App.dchu, "vendor", App.dchu.kind),  # clevo | hp | ... | "" (denetleyici yok)
+        "caps": caps(),
+        "msi": msi_state(),
+        "hp": App.dchu.describe() if getattr(App.dchu, "vendor", "") == "hp" else None,
+        "hw": getattr(App.dchu, "vendor", ""),  # Acer arayuzu: "clevo", "acer" ya da "" (denetleyici yok)
+        "zones": [t("zone.%d" % i) for i in range(1, 5)],
+        "charge": charge_state(),
         "cpu": App.inventory.data.get("cpu"),
         "nvidia": bool(App.sensors.gpu_name),
         "igpu_name": App.sensors.igpu_name,
@@ -546,6 +553,27 @@ def lenovo_state():
         return App.dchu.extras()
     except Exception as exc:
         return {"error": str(exc)}
+
+
+def caps():
+    """Bu bilgisayarda hangi donanim denetimleri var: arayuz olmayani gizler, motor komut gondermez."""
+    return hw.caps(App.dchu)
+
+
+def msi_state():
+    fn = getattr(App.dchu, "msi_state", None)
+    return fn() if fn else None
+
+
+def charge_state():
+    """Pil sarj siniri (yalnizca destekleyen arka uclarda; Clevo'da None)."""
+    fn = getattr(App.dchu, "charge_limit", None)
+    if fn is None or not hw.has(App.dchu, "charge"):
+        return None
+    try:
+        return fn()
+    except Exception:
+        return None
 
 
 def nvidia_state():
@@ -663,8 +691,8 @@ class Handler(BaseHTTPRequestHandler):
                 "profile": mgr.applied, "guard": mgr.guard, "lang": ceviri.lang(),
                 "profiles": [{"id": p["id"], "name": profiller.name(p["id"]), "ac_only": bool(p.get("ac_only"))}
                              for p in profiller.PROFILES],
-                "ec": App.dchu.available and getattr(App.dchu, "fan_control", True),  # tepsi fan menusu
-                "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
+                # tepsinin fan menusu: fan denetlenebiliyor mu (Acer/HP'de modele bagli)
+                "ec": hw.caps(App.dchu)["fan_max"], "caps": [k for k, v in hw.caps(App.dchu).items() if v is True], "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
                 "gpu_state": s.get("gpu_state"), "cpu_power": s.get("cpu_power"),
                 "ac": (s.get("battery") or {}).get("ac", True), "notices": list(App.notices)})
         if path == "/api/now":  # yalnizca son olcum (gecmissiz): ek sayfalar saniyede bir okur
@@ -769,6 +797,12 @@ class Handler(BaseHTTPRequestHandler):
                 mgr.apply(mgr.applied, "reason.fanProfile")
             elif mode in ("auto", "max"):
                 App.dchu.set_fan_mode(hw.FAN_MAX if mode == "max" else hw.FAN_AUTO)
+                mgr.guard = ""
+            elif mode == "custom" and hasattr(App.dchu, "set_fan_speed"):  # Acer: elle fan hizi (%)
+                App.dchu.set_fan_speed(_int(body.get("cpu"), 0, 100, 50), _int(body.get("gpu"), 0, 100, 50))
+                mgr.guard = ""
+            elif mode == "fixed" and hw.has(App.dchu, "fan_fixed"):  # Gigabyte: sabit fan hizi (%)
+                App.dchu.set_fan_fixed(_int(body.get("percent"), 0, 100, 60))
             else:
                 return self._json({"error": t("err.fanMode")}, 400)
             return self._json({"ok": True, "cc": mgr.status()})
@@ -801,6 +835,32 @@ class Handler(BaseHTTPRequestHandler):
             except (hw.Unsupported, ValueError) as exc:
                 return self._json({"error": str(exc) or t("err.lenovoNo")}, 400)
             return self._json({"ok": True, "reboot": bool(reboot), "lenovo": lenovo_state()})
+        if path == "/api/msi":  # MSI'a ozel EC ayarlari: yalnizca tanimli anahtarlar, degerler msi.py'de denetlenir
+            fn = getattr(App.dchu, "msi_set", None)
+            key = body.get("key")
+            if not fn or key not in ("shift", "fan", "boost", "charge"):
+                return self._json({"error": t("err.action")}, 400)
+            try:
+                fn(key, body.get("value"))
+            except hw.Unsupported as exc:
+                return self._json({"error": str(exc), "msi": msi_state()}, 409)
+            except ValueError as exc:
+                return self._json({"error": str(exc), "msi": msi_state()}, 400)
+            return self._json({"ok": True, "msi": msi_state(), "cc": mgr.status()})
+        if path == "/api/power":  # Acer: guc modunu dogrudan sec (profilden bagimsiz)
+            if not hasattr(App.dchu, "apply_profile_power"):
+                return self._json({"error": t("err.acerNoPower")}, 400)
+            name = body.get("mode")
+            if name not in (App.dchu.caps or {}).get("power_modes", []):
+                return self._json({"error": t("err.unknownPower")}, 400)
+            App.dchu.set_power_mode(name)
+            return self._json({"ok": True, "cc": mgr.status()})
+        if path == "/api/charge":  # pil sarj siniri: {"stop": 60-100} ya da {"stop": null} (sinirsiz)
+            if not hw.has(App.dchu, "charge"):
+                return self._json({"error": t("err.gbNoFeature")}, 400)
+            stop = body.get("stop")
+            App.dchu.set_charge_limit(None if stop is None else _int(stop, 0, 100, 100))
+            return self._json({"ok": True, "charge": charge_state()})
         if path == "/api/audio":
             which = body.get("which")
             if which not in ("speaker", "mic"):
@@ -1053,10 +1113,10 @@ def serve():
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
     except (OSError, AttributeError):
         pass
-    # Clevo/Monster koprusu (ACPI\CLV) varsa InsydeDCHU, Alienware/Dell AWCC arayuzu varsa alienware.py;
-    # ikisi de yoksa NullDCHU: fan/guc modu/klavye isigi kapanir ve gomulu denetleyiciye HICBIR komut gitmez;
-    # izleme, NVIDIA ve islemci ayarlari calisir. Baska ureticilerin (Armoury Crate, Vantage, MSI Center...)
-    # denetleyicilerine dokunulmaz.
+    # Clevo/Monster koprusu (ACPI\CLV) varsa InsydeDCHU; yoksa marka arka uclari (HP, Alienware, Lenovo, MSI, Acer,
+    # Gigabyte) kendi tespitleriyle denenir; hicbiri yoksa NullDCHU: fan/guc modu/klavye isigi kapanir ve gomulu
+    # denetleyiciye HICBIR komut gitmez; izleme, NVIDIA ve islemci ayarlari calisir. Ureticilerin kendi
+    # uygulamalarina (Armoury Crate, Vantage, MSI Center, Omen, PredatorSense...) dokunulmaz.
     App.dchu = hw.open_dchu()
     App.inventory = envanter.Inventory()
     App.inventory.start()
@@ -1064,7 +1124,7 @@ def serve():
     # Fn tusu olaylarini ac (Clevo "events enabled", komut 0x46). Bunu eskiden FnKey.exe acilista yapiyordu;
     # gonderilmezse denetleyici Fn bildirimlerini AcpiBridge'e iletmez (14.11.2026 olculdu). Yeniden
     # baslatmaya dek kalicidir; her acilista gonderilir.
-    if App.dchu.kind == "clevo":
+    if App.dchu.available and getattr(App.dchu, "kind", "clevo") == "clevo":
         try:
             App.dchu.set_wmi(0x46, 0)
         except Exception:
@@ -1105,7 +1165,7 @@ def serve():
     App.updater.cleanup()
     threading.Thread(target=App.updater.loop, daemon=True,
                      args=(lambda: App.cfg.get("update_mode", "auto"), lambda: App.engine.running)).start()
-    if hw.is_admin() and App.dchu.kind == "clevo":  # yalnizca Clevo/Monster: Monster Fn programlari engellenir
+    if hw.is_admin() and App.dchu.available and getattr(App.dchu, "kind", "clevo") == "clevo":  # yalnizca Clevo/Monster: Monster Fn programlari engellenir
         threading.Thread(target=fn_block_loop, daemon=True).start()
     if cc.get("profile") in profiller.BY_ID:  # yeniden baslatmadan sonra denetleyici ayarlari geri gelsin
         threading.Thread(target=App.manager.apply, args=(cc["profile"], "reason.startup"), daemon=True).start()
@@ -1149,10 +1209,17 @@ def enable_crash_log():
 def fans_to_factory():
     """Motor tamamen durdugunda fanlari denetleyicinin kendi tablosuna birak (isi bekcisi artik yok)."""
     try:
-        dchu = hw.open_dchu()  # Clevo degilse NullDCHU: denetleyiciye komut gitmez
-        if not dchu.available:
-            return True
-        dchu.set_fan_mode(hw.FAN_AUTO)
+        dchu = hw.open_dchu()  # taninan bir denetleyici yoksa NullDCHU: denetleyiciye komut gitmez
+        try:
+            if not hw.caps(dchu)["fan_max"]:  # maksimum fan komutu yoksa (HP'de olabilir) gonderilecek bir sey yok
+                return True
+            dchu.set_fan_mode(hw.FAN_AUTO)
+        finally:
+            close = getattr(dchu, "close", None)  # MSI: WMI isci sureci
+            if close:
+                close()
+        return True
+    except hw.Unsupported:  # fan denetimi olmayan Acer modeli: fanlar zaten kendi tablosunda
         return True
     except Exception:
         log("fanlar fabrika tablosuna alinamadi: " + traceback.format_exc().replace("\n", " | "))
