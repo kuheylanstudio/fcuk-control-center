@@ -1355,7 +1355,13 @@ function initSettings() {
     $('#quit').disabled = true;
     try { await api('/api/quit', {}); } catch (e) { /* motor zaten kapali */ }
     banner(t('set.quitDone'), true);
-    setTimeout(() => window.close(), 1600);
+    // Kendi penceresinde (pywebview) window.close() calismaz: pencere sureci kendini kapatir.
+    setTimeout(() => (window.pywebview ? window.pywebview.api.kapat() : window.close()), 1600);
+  });
+  // Dis baglantilar pencere icinde degil, varsayilan tarayicida acilir (yalnizca https).
+  document.addEventListener('click', e => {
+    const a = e.target.closest && e.target.closest('a[target="_blank"]');
+    if (a && window.pywebview && /^https:\/\//.test(a.href)) { e.preventDefault(); window.pywebview.api.ac(a.href); }
   });
 }
 

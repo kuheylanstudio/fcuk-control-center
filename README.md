@@ -141,7 +141,7 @@ dağıtmayın. Dağıtılabilir (DLL'siz) paket için: `setup_olustur.ps1 -Dagit
 
 ### Kaynaktan
 
-Gereken: Windows 10/11 (64 bit), Python 3.10+ ve Microsoft Edge (pencere için).
+Gereken: Windows 10/11 (64 bit), Python 3.10+ ve WebView2 çalışma zamanı (pencere için; Windows 11'de hazır gelir, yoksa uygulama Edge/Chrome penceresine düşer).
 
 ```powershell
 git clone https://github.com/kuheylanstudio/fcuk-control-center.git
@@ -224,7 +224,8 @@ hid_rapor.py       ek paketsiz HID özellik raporu (hid.dll)
 engelle.py         eski Monster Fn programlarını tam yollarıyla engeller (IFEO yol filtresi)
 fntus.py, tepsi.py Fn tuşları, ekran bildirimi ve tepsi simgesi (ayrı, normal yetkili süreç)
 ceviri.py, ui/lang dil dosyaları
-ui/index.html      arayüz (Edge --app penceresi)
+ui/index.html      arayüz (pencere.py: pywebview/WebView2 penceresi; yedek: Edge --app)
+pencere.py         kendi başlık çubuğu ve görev çubuğu düğmesi olan, tek örnekli pencere süreci (--window)
 ```
 
 Geliştirme sırasında kurulu motoru atlayıp kodu doğrudan çalıştırmak için: `python control_center.py --dev`

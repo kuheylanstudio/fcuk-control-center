@@ -1107,6 +1107,14 @@ def open_window():
             alert("FCUK Control Center motoru yanıt vermiyor, pencere açılamadı.\n\n"
                   "Bir dakika sonra tepsi simgesinden 'Aç' deneyin. Sürerse ayrıntı: %s" % crash_log_path(), 0x30)
             return
+    try:  # kendi penceresi (pywebview/WebView2): ayri surec, tek ornek (pencere.py)
+        subprocess.Popen(self_cmd("--window"), cwd=APP_DIR, creationflags=DETACHED, close_fds=True)
+    except OSError:
+        edge_window()
+
+
+def edge_window():
+    """Yedek yol: pywebview ya da WebView2 kullanilamazsa Edge/Chrome'un cercevesiz --app penceresi."""
     url = BASE + "/"
     for exe in BROWSERS:
         if os.path.exists(exe):
@@ -1117,6 +1125,19 @@ def open_window():
                              close_fds=True)
             return
     webbrowser.open(url)
+
+
+def window_main():
+    """--window: pencere sureci. pywebview acilamazsa nedeni kayda yazilir ve Edge penceresine dusulur."""
+    import pencere
+    if not pencere.single_instance():
+        return 0
+    try:
+        pencere.run(BASE + "/", os.path.join(core.CONFIG_DIR, "pencere"))
+    except Exception:
+        log("pywebview penceresi acilamadi, Edge'e dusuldu: " + traceback.format_exc().replace("\n", " | "))
+        edge_window()
+    return 0
 
 
 DETACHED = 0x00000008 | 0x00000200  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
@@ -1321,6 +1342,8 @@ def fn_block_loop():
 
 
 def run_mode(admin):
+    if "--window" in sys.argv:
+        return window_main()
     if "--install-task" in sys.argv:
         return install_task()
     if "--block-fn" in sys.argv:  # kur.ps1'den, yonetici
