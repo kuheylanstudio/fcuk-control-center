@@ -20,6 +20,7 @@ c_int = ctypes.c_int
 
 import ceviri
 import donanim
+import oyun
 
 APP_NAME = "FCUKControlCenter"
 _APPDATA = os.environ.get("APPDATA", os.path.expanduser("~"))
@@ -40,6 +41,8 @@ MODES = [
     ("ses", "Ses / müzik", True, "Tepki hızı", "Bilgisayardan çıkan sese göre: sessizken ilk renk, yüksek seste son renk."),
     ("sistem", "Sistem durumu", True, None, "Seçtiğin değere göre: düşükken ilk renk, yüksekken son renk."),
     ("ekran", "Ekran rengi", False, "Tepki hızı", "Ekrandaki baskın rengi klavyeye yansıtır."),
+    ("oyun", "Oyun tepkisi", True, "Tepki hızı",
+     "Ateş etme ve yetenek tuşlarında parlar; LoL'de kill, ölüm, can ve ulti olaylarına tepki verir."),
 ]
 MODE_IDS = [m[0] for m in MODES]
 SOURCES = [
@@ -48,6 +51,9 @@ SOURCES = [
     ("cpu_load", "İşlemci kullanımı (%0-100)"),
     ("battery", "Pil seviyesi (%0-100)"),
 ]
+# Oyun modu tus duzenleri ve renk yuvalari (palet sirasi sabittir)
+GAME_LAYOUTS = ["lol", "fps"]
+GAME_SLOTS = ["bg", "fire", "q", "w", "e", "r", "spell"]
 DEFAULTS = {
     "mode": "gecis",
     "brightness": 100,
@@ -62,6 +68,8 @@ DEFAULTS = {
         "ses": {"palette": ["#1b00ff", "#00e5ff", "#ff00c8", "#ff2a00"], "speed": 60},
         "sistem": {"palette": ["#0060ff", "#00ff60", "#ffd000", "#ff0000"], "speed": 50, "source": "cpu_temp"},
         "ekran": {"palette": [], "speed": 55},
+        "oyun": {"palette": ["#140a33", "#ffffff", "#00b4ff", "#00ff6a", "#ffb000", "#ff0040", "#c000ff"],
+                 "speed": 55, "keys": "lol"},
     },
     "presets": {},
 }
@@ -279,6 +287,116 @@ class SystemInfo:
         return 1.0 if st.percent > 100 else st.percent / 100.0
 
 
+# ----------------------------------------------------------------------------- oyun efektleri
+# LoL olaylarinin renkleri ve sureleri (sn): (renk ya da None=gokkusagi, sure, bicim)
+GAME_EVENTS = {
+    "kill": ((255, 196, 0), 0.9, "pop"),
+    "assist": ((0, 229, 255), 0.5, "pop"),
+    "death": ((255, 0, 0), 1.4, "pop"),
+    "objective": ((160, 64, 255), 1.4, "double"),
+    "multi2": (None, 1.2, "rainbow"),
+    "multi3": (None, 1.8, "rainbow"),
+    "multi4": (None, 2.4, "rainbow"),
+    "multi5": (None, 3.5, "rainbow"),
+    "ace": ((255, 255, 255), 1.6, "double"),
+    "win": (None, 5.0, "rainbow"),
+    "lose": ((255, 0, 0), 3.0, "slow"),
+}
+
+
+def game_envelope(shape, x):
+    """Bir parlamanin 0..1 suresi boyunca siddeti (0..1)."""
+    if shape == "pop":
+        return (1.0 - x) ** 2
+    if shape == "double":  # ulti / hedef: iki guclu vurus
+        return max(math.exp(-((x - 0.05) / 0.08) ** 2), 0.9 * math.exp(-((x - 0.35) / 0.1) ** 2), (1.0 - x) ** 3 * 0.5)
+    if shape == "rainbow":
+        return 1.0 - x ** 3
+    if shape == "slow":
+        return math.sin(math.pi * x) ** 2
+    return 1.0 - x
+
+
+class GameFx:
+    """Oyun modunun durumu: aktif parlamalar ve basili tutulan tuslar -> renk."""
+    SLOT = {name: i for i, name in enumerate(GAME_SLOTS)}
+
+    def __init__(self):
+        self.keys = oyun.KeyWatcher()
+        self.lol = None
+        self.flashes = []  # [renk ya da None, baslangic, sure, bicim]
+
+    def flash(self, col, now, dur, shape):
+        self.flashes.append([col, now, dur, shape])
+        del self.flashes[:-6]
+
+    def frame(self, pal, speed, layout, now):
+        """(renk, bilgi metni, olculen deger ya da None)."""
+        pal = list(pal) + [(255, 255, 255)] * (len(GAME_SLOTS) - len(pal))
+        if self.lol is None:
+            self.lol = oyun.LolClient()
+            self.lol.start()
+        self.lol.wanted = layout == "lol"
+        fade = period(speed, 1.0, 0.12)
+        pressed, held = self.keys.poll(layout, now)
+        for fx in pressed:
+            col = pal[self.SLOT[fx]]
+            if fx == "r":
+                self.flash(col, now, fade * 3.0, "double")
+            elif fx != "fire":
+                self.flash(col, now, fade, "pop")
+            else:
+                self.flash(col, now, fade * 0.7, "pop")
+        lol = self.lol
+        live = layout == "lol" and lol.connected
+        if live:
+            for ev in lol.pop_events():
+                col, dur, shape = GAME_EVENTS.get(ev, ((255, 255, 255), 0.6, "pop"))
+                self.flash(col, now, dur, shape)
+        base = pal[0]
+        value = None
+        if live:
+            value = lol.health
+            if lol.dead:
+                base = (25, 25, 30)
+            elif lol.health is not None and lol.health < 0.35:
+                # can azaldikca hizlanan kirmizi kalp atisi
+                rate = 1.0 + (0.35 - lol.health) / 0.35 * 2.5
+                beat = math.sin(math.pi * ((now * rate) % 1.0)) ** 6
+                base = mix(base, (255, 0, 0), 0.25 + 0.6 * beat)
+        col = base
+        alive = []
+        for f in self.flashes:
+            x = (now - f[1]) / f[2]
+            if x >= 1.0:
+                continue
+            alive.append(f)
+            c = f[0]
+            if c is None:
+                r, g, b = colorsys.hsv_to_rgb((now * 0.9 + f[1]) % 1.0, 1.0, 1.0)
+                c = (r * 255, g * 255, b * 255)
+            col = mix(col, c, clamp(game_envelope(f[3], x)))
+        self.flashes = alive
+        if "fire" in held:  # otomatik silah: basili tutuldukca titresin
+            col = mix(col, pal[1], 0.55 + 0.45 * math.sin(now * 2 * math.pi * 12) ** 2)
+        if layout == "lol":
+            if live:
+                info = ceviri.t("info.lolLive", v=ceviri.pct(round((lol.health or 0) * 100)))
+                if lol.dead:
+                    info = ceviri.t("info.lolDead")
+            elif self.keys.active(layout):
+                info = ceviri.t("info.lolWait")
+            else:
+                info = ceviri.t("info.gameWaitLol")
+        else:
+            info = ceviri.t("info.gameKeys") if self.keys.active(layout) else ceviri.t("info.gameWaitFps")
+        return col, info, value
+
+    def stop(self):
+        if self.lol is not None:
+            self.lol.wanted = False
+
+
 # ----------------------------------------------------------------------------- motor
 class Engine(threading.Thread):
     FPS = 30
@@ -295,7 +413,7 @@ class Engine(threading.Thread):
         self.running = True
 
     def run(self):
-        audio = screen = None
+        audio = screen = game = None
         sysinfo = SystemInfo()
         phase = 0.0
         level = 0.0
@@ -311,8 +429,10 @@ class Engine(threading.Thread):
             mode, pal, speed, source, bright = self.settings
             value = None
             kb_ok = getattr(self.kb, "available", True)
-            if not kb_ok and mode in ("ses", "ekran", "sistem"):
+            if not kb_ok and mode in ("ses", "ekran", "sistem", "oyun"):
                 mode = "sabit"  # klavye isigi yok: ses/ekran ornekleme ve olcum bosuna calismasin
+            if mode != "oyun" and game is not None:
+                game.stop()  # LoL yoklamasi yalnizca Oyun modundayken
             try:
                 if mode == "sabit":
                     col = pal[0] if pal else (255, 255, 255)
@@ -377,6 +497,10 @@ class Engine(threading.Thread):
                     scr = mix(scr, scr_target, k)
                     col = scr
                     self.info = ""
+                elif mode == "oyun":
+                    if game is None:
+                        game = GameFx()
+                    col, self.info, value = game.frame(pal, speed, source, now)
                 else:
                     col = (255, 255, 255)
                 out = tuple(int(clamp(c * bright / 255.0) * 255 + 0.5) for c in col)
@@ -445,7 +569,8 @@ def save_config(cfg):
 def snapshot(cfg):
     m = cfg["modes"][cfg["mode"]]
     pal = tuple(hex_to_rgb(h) for h in m.get("palette", []))
-    return (cfg["mode"], pal, m.get("speed", 50), m.get("source", "cpu_temp"), cfg["brightness"] / 100.0)
+    src = m.get("keys", "lol") if cfg["mode"] == "oyun" else m.get("source", "cpu_temp")  # oyunda: tus duzeni
+    return (cfg["mode"], pal, m.get("speed", 50), src, cfg["brightness"] / 100.0)
 
 
 def set_autostart(enabled, script):

@@ -51,7 +51,8 @@ TASK = "FCUK Control Center"
 OLD_TASKS = ("KendiControlCenter", "KendiControlCenter Tepsi")  # onceki surumlerin gorev adlari
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 PAL_KIND = {"sabit": "one", "nefes": "steps", "gecis": "loop", "gokkusagi": None,
-            "nabiz": "steps", "ses": "range", "sistem": "range", "ekran": None}
+            "nabiz": "steps", "ses": "range", "sistem": "range", "ekran": None,
+            "oyun": "slots"}
 BROWSERS = (
     r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
     r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
@@ -187,6 +188,11 @@ def _palette(v, kind, default):
         return []
     if not isinstance(v, list):
         return list(default)
+    if kind == "slots":  # sabit sirali yuvalar: gecersiz yuva varsayilaniyla doldurulur
+        slots = core.DEFAULTS["modes"]["oyun"]["palette"]
+        base = list(default) + slots[len(default):]
+        return [v[i].lower() if i < len(v) and isinstance(v[i], str) and HEX.fullmatch(v[i]) else base[i]
+                for i in range(len(slots))]
     pal = [h.lower() for h in v if isinstance(h, str) and HEX.fullmatch(h)][:8]
     return pal or list(default)
 
@@ -198,6 +204,9 @@ def _mode_values(mid, vals, base):
     if mid == "sistem":
         src = vals.get("source")
         out["source"] = src if src in [s[0] for s in core.SOURCES] else base.get("source", "cpu_temp")
+    if mid == "oyun":
+        keys = vals.get("keys")
+        out["keys"] = keys if keys in core.GAME_LAYOUTS else base.get("keys", "lol")
     return out
 
 
@@ -486,6 +495,8 @@ def state():
                    "speed": SPEED_KEY.get(m[3]) and t(SPEED_KEY[m[3]]), "desc": t("mode.%s.desc" % m[0])}
                   for m in core.MODES],
         "sources": [{"id": s[0], "label": t("src." + s[0])} for s in core.SOURCES],
+        "layouts": [{"id": k, "label": t("keys." + k)} for k in core.GAME_LAYOUTS],
+        "slots": [t("slot." + k) for k in core.GAME_SLOTS],
         "lang": ceviri.lang(),
         "lang_setting": App.cfg.get("lang", "auto"),
         "lang_detected": ceviri.detect(),

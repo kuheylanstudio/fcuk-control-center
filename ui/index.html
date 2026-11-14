@@ -586,7 +586,7 @@ function applyI18n(root = document) {
   root.querySelectorAll('[data-i18n-ph]').forEach(n => { n.placeholder = t(n.dataset.i18nPh); });
 }
 if (window.I18N) applyI18n();
-const PAL_HINT = { one: t('pal.one'), steps: t('pal.steps'), loop: t('pal.loop'), range: t('pal.range') };
+const PAL_HINT = { one: t('pal.one'), steps: t('pal.steps'), loop: t('pal.loop'), range: t('pal.range'), slots: t('pal.slots') };
 const SPECTRUM = 'var(--spectrum)';
 const LEVEL = { tam_sessiz: 1, sessiz_kullanim: 2, sessiz_oyun: 3, performans: 4, ultra: 5 };
 const FAN_MODE_TXT = { 0: t('fanmode.0'), 1: t('fanmode.1'), 6: t('fanmode.6') };
@@ -1075,7 +1075,7 @@ function stripCss(m, pal) {
   if (m.id === 'ekran') return 'repeating-linear-gradient(90deg,var(--line-strong) 0 6px,transparent 6px 12px)';
   if (!pal.length) return 'var(--line)';
   if (m.pal === 'one' || pal.length === 1) return pal[0];
-  if (m.pal === 'steps') return `linear-gradient(90deg,${pal.map((c, i) => `${c} ${i / pal.length * 100}% ${(i + 1) / pal.length * 100}%`).join(',')})`;
+  if (m.pal === 'steps' || m.pal === 'slots') return `linear-gradient(90deg,${pal.map((c, i) => `${c} ${i / pal.length * 100}% ${(i + 1) / pal.length * 100}%`).join(',')})`;
   if (m.pal === 'loop') return `linear-gradient(90deg,${[...pal, pal[0]].join(',')})`;
   return `linear-gradient(90deg,${pal.join(',')})`;
 }
@@ -1158,7 +1158,20 @@ function renderSettings() {
     fs.append(seg);
     stack.append(fs);
   }
-  if (m.id === 'ses' || m.id === 'sistem') {
+  if (m.id === 'oyun') {
+    const fs = el('fieldset', 'field'), seg = el('div', 'seg');
+    fs.append(el('legend', 'lbl', t('kb.layout')));
+    for (const s of meta.layouts) {
+      const lab = el('label'), inp = el('input');
+      inp.type = 'radio'; inp.name = 'keys'; inp.value = s.id; inp.checked = v.keys === s.id;
+      inp.addEventListener('change', () => { v.keys = s.id; save(); });
+      lab.append(inp, el('span', '', s.label));
+      seg.append(lab);
+    }
+    fs.append(seg);
+    stack.append(fs);
+  }
+  if (m.id === 'ses' || m.id === 'sistem' || m.id === 'oyun') {
     const f = el('div', 'field'), top = el('div', 'field-top');
     const out = el('output'); out.id = 'meterInfo';
     top.append(el('span', 'lbl', t('kb.measured')), out);
@@ -1176,17 +1189,18 @@ function renderSettings() {
 function renderStops() {
   const ul = $('#stops');
   if (!ul) return;
-  const m = modeMeta(cfg.mode), pal = cfg.modes[m.id].palette, solo = m.pal === 'one';
+  const m = modeMeta(cfg.mode), pal = cfg.modes[m.id].palette, solo = m.pal === 'one', fixed = m.pal === 'slots';
   ul.textContent = '';
   (solo ? pal.slice(0, 1) : pal).forEach((hx, i) => {
     const li = el('li'), b = el('button', 'stop' + (solo ? ' solo' : ''));
     b.type = 'button';
-    b.setAttribute('aria-label', t('kb.stopAria', { i: i + 1, hex: hx }));
+    b.setAttribute('aria-label', fixed ? t('kb.slotAria', { name: meta.slots[i], hex: hx }) : t('kb.stopAria', { i: i + 1, hex: hx }));
     const sw = el('span', 'sw'); sw.style.background = hx;
-    b.append(sw, el('span', 'hx', hx));
+    b.append(sw, el('span', 'hx', fixed ? meta.slots[i] || hx : hx));
+    if (fixed) b.title = hx;
     b.addEventListener('click', () => openPicker(b, i));
     li.append(b);
-    if (!solo) {
+    if (!solo && !fixed) {
       const x = el('button', 'stop-x', '×');
       x.type = 'button';
       x.setAttribute('aria-label', t('kb.stopDel', { i: i + 1 }));
@@ -1196,7 +1210,7 @@ function renderStops() {
     }
     ul.append(li);
   });
-  if (!solo) {
+  if (!solo && !fixed) {
     const li = el('li'), add = el('button', 'btn', t('kb.addColor'));
     add.type = 'button';
     add.disabled = pal.length >= 8;
@@ -1249,8 +1263,9 @@ function applyPick(writeHex) {
   pal[pick.i] = hex;
   if (pick.anchor && pick.anchor.isConnected) {
     $('.sw', pick.anchor).style.background = hex;
-    $('.hx', pick.anchor).textContent = hex;
-    pick.anchor.setAttribute('aria-label', t('kb.stopAria', { i: pick.i + 1, hex }));
+    const slot = modeMeta(cfg.mode).pal === 'slots' ? meta.slots[pick.i] : null;
+    if (slot) pick.anchor.title = hex; else $('.hx', pick.anchor).textContent = hex;
+    pick.anchor.setAttribute('aria-label', slot ? t('kb.slotAria', { name: slot, hex }) : t('kb.stopAria', { i: pick.i + 1, hex }));
   }
   save();
 }
@@ -1332,6 +1347,7 @@ function applyPreset(name) {
   target.palette = [...(p.palette || [])];
   target.speed = p.speed;
   if (p.source) target.source = p.source;
+  if (p.keys) target.keys = p.keys;
   cfg.brightness = p.brightness;
   setRange($('#bright'), cfg.brightness, $('#brightOut'));
   selectMode(p.mode, true);
