@@ -141,7 +141,8 @@ def active_scheme():
 
 # ----------------------------------------------------------------------------- yonetici
 class Manager:
-    def __init__(self, dchu, sensors, cfg, save):
+    def __init__(self, dchu, sensors, cfg, save, notify=None):
+        self.notify = notify or (lambda text: None)
         self.dchu = dchu
         self.sensors = sensors
         self.cfg = cfg  # cfg["cc"] sozlugu, kaydetme save() ile
@@ -153,6 +154,7 @@ class Manager:
         self.guard = ""       # bekci devredeyse aciklama
         self._hot = 0
         self._cool = 0
+        self._blind = 0       # ust uste kac olcumde sicaklik okunamadi
         self._last_ac = None
         self._gpu_locked = False
         self.defaults = {k: _read(BALANCED, k) for k in ("park", "park1")}
@@ -222,7 +224,7 @@ class Manager:
             rep.insert(0, {"step": "Neden", "ok": True, "msg": reason})
             self.applied = p["id"]
             self.guard = ""
-            self._hot = self._cool = 0
+            self._hot = self._cool = self._blind = 0
             self.report = rep
             self.cfg["profile"] = pid
             self.save()
@@ -305,7 +307,36 @@ class Manager:
         p = BY_ID.get(self.applied)
         if not p or p["fan"][0] != "curve":
             return
-        hot = s.get("cpu_temp", 0) >= 93 or s.get("gpu_temp", 0) >= 87
+        # Profil uygulanirken (kilit dolu) bekci dokunmaz: apply() sonunda bekci durumunu zaten sifirlar.
+        if not self.lock.acquire(blocking=False):
+            return
+        try:
+            self._guard_step(s, p)
+        finally:
+            self.lock.release()
+
+    @staticmethod
+    def _temp(s, key):
+        """Gecerli sicaklik ya da None. Denetleyici okunamazsa 0 dondurebilir: 0 'soguk' degil 'bilinmiyor'dur."""
+        v = s.get(key)
+        if s.get("dchu_error") or s.get("sensor_error") or not isinstance(v, (int, float)) or v <= 0:
+            return None
+        return v
+
+    def _guard_step(self, s, p):
+        # GPU uykudayken denetleyici GPU sicakligini 0 verebilir; bu yuzden "bilinmiyor" karari islemciye gore.
+        cpu, gpu = self._temp(s, "cpu_temp"), self._temp(s, "gpu_temp") or 0
+        if cpu is None:
+            # Sicaklik bilinmeden sessiz egride kalmak tehlikeli: 5 sn sonra fanlar denetleyicinin tablosuna
+            self._blind += 1
+            self._cool = 0
+            if self._blind == 5 and not self.guard:
+                self.dchu.set_fan_mode(hw.FAN_AUTO)
+                self.guard = "Sıcaklık okunamıyor: fanlar güvenlik için denetleyiciye bırakıldı."
+                self.notify(self.guard)
+            return
+        self._blind = 0
+        hot = cpu >= 93 or gpu >= 87
         if hot:
             self._hot += 1
             self._cool = 0
@@ -314,7 +345,7 @@ class Manager:
                 self.guard = "Sıcaklık yüksek: fanlar geçici olarak denetleyiciye bırakıldı."
         else:
             self._hot = 0
-            if self.guard and s.get("cpu_temp", 0) < 80 and s.get("gpu_temp", 0) < 75:
+            if self.guard and cpu < 80 and gpu < 75:
                 self._cool += 1
                 if self._cool >= 30:
                     self.dchu.set_fan_curve(p["fan"][1], p["fan"][2])

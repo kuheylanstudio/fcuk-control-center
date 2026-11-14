@@ -9,16 +9,20 @@ Motor yerel bir sunucudur (yalnizca 127.0.0.1); arayuz ui/index.html, Edge'in ce
 Yonetici modu: motor, Gorev Zamanlayici'daki "en yuksek ayricalik" goreviyle UAC sormadan yonetici olarak
 baslar; ekran karti saat kilidi bunu ister. Pencere her zaman normal kullanici olarak acilir.
 """
+import base64
 import ctypes
 import json
 import os
 import re
+import socket
 import subprocess
 import sys
 import threading
 import time
+import traceback
 import urllib.request
 import webbrowser
+from ctypes import wintypes as wt
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import donanim as hw
@@ -62,6 +66,30 @@ def self_cmdline(*args):
     return " ".join('"%s"' % a if " " in a or not a.startswith("--") else a for a in self_cmd(*args))
 
 
+def trusted_install():
+    """Exe olarak Program Files altinda mi calisiyoruz? Yalnizca orasi standart kullaniciya salt okunurdur.
+    Yonetici gorevi BASKA bir yerden calisan kodu baslatirsa, o klasore yazabilen her program (kullanici
+    yetkisindeki bir zararli dahil) UAC sormadan yonetici olur."""
+    if not FROZEN:
+        return False
+    try:
+        pf = os.path.normcase(os.path.abspath(hw.program_files()))
+        here = os.path.normcase(os.path.abspath(APP_DIR))
+        return os.path.commonpath([pf, here]) == pf and here != pf
+    except ValueError:  # farkli suruculer
+        return False
+
+
+def data_dir():
+    """Yonetici motorun ayar/gunluk klasoru: kurulum klasorunun altinda (yalnizca yonetici yazabilir)."""
+    return os.path.join(APP_DIR, "veri")
+
+
+NOT_TRUSTED_MSG = ("Yönetici modu yalnızca kur.ps1 ile Program Files'a kurulmuş sürümde açılabilir. "
+                   "Betik klasöründen kurulan bir yönetici görevi, o klasöre yazabilen her programa "
+                   "UAC sormadan yönetici yetkisi verir.")
+
+
 class App:
     cfg = None
     dchu = None
@@ -74,6 +102,29 @@ class App:
     lock = threading.Lock()
     device = ""
     restart_elevated = False
+    notices = []  # kullaniciya gosterilecek uyarilar: [{"id", "text"}]; arayuz ve tepsi gosterir
+    crash_log = None
+
+
+def log(msg):
+    """crash.log'a satir yazar (pythonw altinda baska cikis yok)."""
+    f = App.crash_log
+    if f:
+        try:
+            f.write("%s %s\n" % (time.strftime("%Y-%m-%d %H:%M:%S"), msg))
+            f.flush()
+        except (OSError, ValueError):
+            pass
+
+
+def notice(text):
+    """Kullaniciya bildirilecek bir sorun: arayuzde serit, tepside balon olarak gorunur ve gunluge yazilir."""
+    log("UYARI: " + text)
+    with App.lock:
+        if any(n["text"] == text for n in App.notices):
+            return
+        App.notices.append({"id": len(App.notices) + 1, "text": text})
+        del App.notices[:-10]
 
 
 def device_name():
@@ -91,15 +142,18 @@ def device_name():
 
 
 def save():
-    with App.lock:
-        core.save_config(App.cfg)
+    try:
+        with App.lock:
+            core.save_config(App.cfg)
+    except (OSError, TypeError, ValueError) as exc:
+        notice("Ayarlar diske yazılamadı: %s" % exc)
 
 
 # ----------------------------------------------------------------------------- RGB ayar dogrulama
 def _int(v, lo, hi, default):
     try:
         return max(lo, min(hi, int(v)))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):  # OverflowError: JSON'daki 1e999 (sonsuz)
         return default
 
 
@@ -146,14 +200,51 @@ def sanitize(raw, current):
     return cfg
 
 
+def sanitize_cc(raw):
+    """Profil kurallari: yalnizca bilinen profil kimlikleri."""
+    raw = raw if isinstance(raw, dict) else {}
+    ids = set(profiller.BY_ID) | {""}
+    out = dict(profiller.DEFAULTS)
+    for k in ("profile", "on_battery", "on_ac"):
+        if raw.get(k) in ids:
+            out[k] = raw[k]
+    if "refresh" in raw:
+        out["refresh"] = bool(raw["refresh"])
+    return out
+
+
+def sanitize_loaded(raw):
+    """Diskten okunan ayarlari (elle duzenlenmis, bozuk ya da eski surumden olabilir) guvenli yapiya indirger.
+    Eskiden dogrulanmadan kullaniliyordu: '[]' ya da metin bir parlaklik motoru hic acilmayacak sekilde
+    cokertiyordu."""
+    raw = raw if isinstance(raw, dict) else {}
+    base = json.loads(json.dumps(core.DEFAULTS))
+    base["cc"] = {}
+    modes = raw.get("modes") if isinstance(raw.get("modes"), dict) else {}
+    full = dict(raw)
+    full["modes"] = {mid: dict(base["modes"][mid], **(modes[mid] if isinstance(modes.get(mid), dict) else {}))
+                     for mid in core.MODE_IDS}
+    cfg = sanitize(full, base)
+    cfg["autostart"] = bool(raw.get("autostart"))
+    cfg["cc"] = sanitize_cc(raw.get("cc"))
+    return cfg
+
+
 def rgb_config():
     return {k: v for k, v in App.cfg.items() if k != "cc"}
 
 
 # ----------------------------------------------------------------------------- yonetici gorevi ve acilis
-def task_exists():
-    rc, _ = hw.run(["schtasks", "/query", "/tn", TASK])
-    return rc == 0
+_task_cache = [0.0, False]
+
+
+def task_exists(fresh=False):
+    """Gorev kurulu mu? /api/state her cagrildiginda schtasks baslatmasin diye 5 sn onbellekli."""
+    now = time.monotonic()
+    if fresh or now - _task_cache[0] > 5.0:
+        rc, _ = hw.run(["schtasks", "/query", "/tn", TASK])
+        _task_cache[:] = [now, rc == 0]
+    return _task_cache[1]
 
 
 def logon_trigger_enabled():
@@ -200,52 +291,107 @@ def _task_xml(desc, user, level, args, logon, restart):
            here=_xml(APP_DIR))
 
 
+def current_user():
+    """DOMAIN\\kullanici, isletim sisteminden (USERNAME/USERDOMAIN ortam degiskenleri degistirilebilir)."""
+    try:
+        size = wt.ULONG(512)
+        buf = ctypes.create_unicode_buffer(512)
+        if ctypes.WinDLL("secur32").GetUserNameExW(2, buf, ctypes.byref(size)):  # NameSamCompatible
+            return buf.value
+    except (OSError, AttributeError):
+        pass
+    return "%s\\%s" % (os.environ.get("USERDOMAIN", ""), os.environ.get("USERNAME", ""))
+
+
+def register_task(name, xml):
+    """Gorevi XML'i DISKE YAZMADAN kaydeder. Eskiden XML %APPDATA%'ya yazilip schtasks'a oradan okutuluyordu;
+    arada dosyayi degistiren bir program kendi komutunu en yuksek yetkiyle kaydettirebiliyordu."""
+    b64 = base64.b64encode(xml.encode("utf-8")).decode("ascii")
+    ps = ("$ErrorActionPreference='Stop'; "
+          "$x=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('%s')); "
+          "Register-ScheduledTask -TaskName '%s' -Xml $x -Force | Out-Null" % (b64, name.replace("'", "''")))
+    return hw.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps], timeout=60)
+
+
 def install_task():
-    """Yonetici olarak calisir (UAC ile): iki gorev kurar, sonucu dosyaya yazar.
+    """Yonetici olarak calisir (UAC ile): iki gorev kurar. Donus: cikis kodu (0 basarili). Hata ayrintisi
+    crash.log'a yazilir (yonetici veri klasoru, kullaniciya salt okunur).
     KendiControlCenter        : motor, yonetici, oturum acilisinda hemen (Run kaydi gibi gecikmez), cokunce yeniden.
     KendiControlCenter Tepsi  : tepsi simgesi, NORMAL yetki (UIPI), oturum acilisinda.
     Kurulum acilis tetikleyicilerini HER ZAMAN acar; 'Windows ile baslat' kapatilirsa motor onlari kapatir
-    ve acilista ayari gorevin gercek durumundan okur (config dosyasina guvenilmez: paketli bir uygulamadan
-    baslatilan kurulum AppData'nin sanal/bayat bir kopyasini gorebilir)."""
-    result = os.path.join(core.CONFIG_DIR, "task_result.txt")
-    os.makedirs(core.CONFIG_DIR, exist_ok=True)
-    user = "%s\\%s" % (os.environ.get("USERDOMAIN", ""), os.environ.get("USERNAME", ""))
-    logon = True
+    ve acilista ayari gorevin gercek durumundan okur."""
+    if not trusted_install():
+        log("gorev kurulmadi: " + NOT_TRUSTED_MSG)
+        return 3
+    user = current_user()
     errors = []
     for name, xml in ((TASK, _task_xml("Kendi Control Center motoru (yonetici)", user, "HighestAvailable",
-                                       ["--service"], logon, True)),
+                                       ["--service"], True, True)),
                       (TASK_TRAY, _task_xml("Kendi Control Center tepsi simgesi", user, "LeastPrivilege",
-                                            ["--tray"], logon, False))):
-        path = os.path.join(core.CONFIG_DIR, "gorev_%s.xml" % ("tepsi" if name == TASK_TRAY else "motor"))
-        with open(path, "w", encoding="utf-16") as f:
-            f.write(xml)
-        rc, out = hw.run(["schtasks", "/create", "/tn", name, "/xml", path, "/f"])
+                                            ["--tray"], True, False))):
+        rc, out = register_task(name, xml)
         if rc != 0:
-            errors.append("%s: %s" % (name, out or "schtasks %d" % rc))
-    remove_run_entry()  # acilis artik gorevlerle
-    with open(result, "w", encoding="utf-8") as f:
-        f.write("; ".join(errors) if errors else "0")
+            errors.append("%s: %s" % (name, out or "kod %d" % rc))
+    try:
+        remove_run_entry()  # acilis artik gorevlerle
+    except OSError:
+        pass
+    if errors:
+        log("gorev kurulamadi: " + "; ".join(errors))
+        return 4
+    log("gorevler kuruldu (%s)" % user)
+    return 0
+
+
+class SHELLEXECUTEINFOW(ctypes.Structure):
+    _fields_ = [("cbSize", wt.DWORD), ("fMask", wt.ULONG), ("hwnd", wt.HWND), ("lpVerb", wt.LPCWSTR),
+                ("lpFile", wt.LPCWSTR), ("lpParameters", wt.LPCWSTR), ("lpDirectory", wt.LPCWSTR),
+                ("nShow", ctypes.c_int), ("hInstApp", wt.HINSTANCE), ("lpIDList", ctypes.c_void_p),
+                ("lpClass", wt.LPCWSTR), ("hkeyClass", wt.HKEY), ("dwHotKey", wt.DWORD),
+                ("hIconOrMonitor", wt.HANDLE), ("hProcess", wt.HANDLE)]
 
 
 def request_admin():
-    """UAC penceresini acar; kullanici onaylarsa gorev kurulur. (ok, mesaj)"""
-    result = os.path.join(core.CONFIG_DIR, "task_result.txt")
-    try:
-        os.remove(result)
-    except OSError:
-        pass
+    """UAC penceresini acar; kullanici onaylarsa gorev kurulur. (ok, mesaj)
+    Sonuc, kullanicinin yazabildigi bir dosyadan degil yonetici surecin cikis kodundan okunur."""
+    if not trusted_install():
+        return False, NOT_TRUSTED_MSG
     cmd = self_cmd("--install-task")
-    params = " ".join('"%s"' % a if not a.startswith("--") else a for a in cmd[1:])
-    r = ctypes.windll.shell32.ShellExecuteW(None, "runas", cmd[0], params, APP_DIR, 0)
-    if r <= 32:
+    sei = SHELLEXECUTEINFOW()
+    sei.cbSize = ctypes.sizeof(sei)
+    sei.fMask = 0x00000040  # SEE_MASK_NOCLOSEPROCESS
+    sei.lpVerb, sei.lpFile, sei.lpDirectory, sei.nShow = "runas", cmd[0], APP_DIR, 0
+    sei.lpParameters = " ".join('"%s"' % a if not a.startswith("--") else a for a in cmd[1:])
+    k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    k32.WaitForSingleObject.argtypes = [wt.HANDLE, wt.DWORD]
+    k32.WaitForSingleObject.restype = wt.DWORD
+    k32.GetExitCodeProcess.argtypes = [wt.HANDLE, ctypes.POINTER(wt.DWORD)]
+    k32.CloseHandle.argtypes = [wt.HANDLE]
+    if not ctypes.windll.shell32.ShellExecuteExW(ctypes.byref(sei)) or not sei.hProcess:
         return False, "Yönetici izni verilmedi."
-    for _ in range(300):
-        if os.path.exists(result):
-            with open(result, encoding="utf-8") as f:
-                txt = f.read().strip()
-            return (True, "") if txt == "0" else (False, txt)
-        time.sleep(0.1)
-    return False, "Görev kurulumu yanıt vermedi."
+    try:
+        if k32.WaitForSingleObject(sei.hProcess, 60000) != 0:
+            return False, "Görev kurulumu yanıt vermedi."
+        code = wt.DWORD()
+        k32.GetExitCodeProcess(sei.hProcess, ctypes.byref(code))
+    finally:
+        k32.CloseHandle(sei.hProcess)
+    if code.value == 0:
+        task_exists(fresh=True)
+        return True, ""
+    if code.value == 3:
+        return False, NOT_TRUSTED_MSG
+    return False, "Görev kurulamadı (kod %d). Ayrıntı: %s" % (code.value, os.path.join(data_dir(), "crash.log"))
+
+
+def remove_legacy_tasks():
+    """Betik klasoründen kurulmus (guvensiz) yonetici gorevlerini kaldirir. Yonetici surec cagirir."""
+    removed = []
+    for name in (TASK, TASK_TRAY):
+        rc, _ = hw.run(["schtasks", "/delete", "/tn", name, "/f"])
+        if rc == 0:
+            removed.append(name)
+    return removed
 
 
 def remove_run_entry():
@@ -314,23 +460,55 @@ def state():
         "task": task_exists(),
         "autostart": bool(App.cfg.get("autostart")),
         "dll": App.dchu.path,
+        "trusted_install": trusted_install(),
+        "notices": list(App.notices),
     }
 
 
 # ----------------------------------------------------------------------------- sunucu
+SSE_SLOTS = threading.BoundedSemaphore(6)  # ayni anda en fazla 6 canli akis (her biri bir is parcacigi)
+_peer_warned = []
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     server_version = "KendiControlCenter"
+    timeout = 15  # veri gondermeden bekleyen baglanti is parcacigini sonsuza dek tutmasin
+    _peer_ok = None  # baglanti basina bir kez denetlenir
 
     def log_message(self, *args):  # pythonw altinda stderr yok
         pass
 
+    def _peer_allowed(self):
+        """Baglanan surec bu Windows oturumunda mi? Ayni bilgisayardaki baska kullanicilar ve hizmet hesaplari
+        yonetici motoru yonetemesin. Sahibi bulunamayan baglanti reddedilir; denetim API'si hic calismiyorsa
+        (beklenmeyen bir Windows hatasi) uygulama kilitlenmesin diye izin verilir ve kullaniciya bildirilir."""
+        if self._peer_ok is None:
+            try:
+                self._peer_ok = hw.peer_in_my_session(self.client_address[1], PORT)
+                if not self._peer_ok:
+                    log("reddedildi: baska oturumdan ya da sahibi bulunamayan baglanti (port %d)"
+                        % self.client_address[1])
+            except Exception as exc:
+                self._peer_ok = True
+                if not _peer_warned:
+                    _peer_warned.append(1)
+                    notice("Bağlantı denetimi çalışmıyor (%s): yerel API yalnızca adres denetimiyle korunuyor."
+                           % exc)
+        return self._peer_ok
+
     def _allowed(self):
-        """Yalnizca kendi penceremizden gelen istekler: baska site veya DNS oyunu kabul edilmez."""
+        """Yalnizca kendi penceremizden ve bu oturumdaki sureclerden gelen istekler.
+        Host: DNS rebinding'i, Origin: baska sitelerin POST'unu, Sec-Fetch-Site: baska sitelerin (ve
+        127.0.0.1'deki baska yerel sitelerin) <img>/<script> ile tetikledigi GET'leri engeller."""
         if self.headers.get("Host") not in HOSTS:
             return False
         origin = self.headers.get("Origin")
-        return origin is None or origin in ["http://" + h for h in HOSTS]
+        if origin is not None and origin not in ["http://" + h for h in HOSTS]:
+            return False
+        if self.headers.get("Sec-Fetch-Site") not in (None, "same-origin", "none"):
+            return False
+        return self._peer_allowed()
 
     def _send(self, code, body, ctype):
         self.send_response(code)
@@ -346,7 +524,13 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if not self._allowed():
             return self._json({"error": "forbidden"}, 403)
-        path = self.path.split("?")[0]
+        try:
+            return self._get(self.path.split("?")[0])
+        except Exception as exc:  # okuma sirasindaki hata baglantiyi yanitsiz koparmasin
+            log("istek hatasi %s: %s" % (self.path, traceback.format_exc().replace("\n", " | ")))
+            return self._json({"error": str(exc)}, 500)
+
+    def _get(self, path):
         if path == "/":
             try:
                 with open(UI_PATH, "rb") as f:
@@ -370,13 +554,22 @@ class Handler(BaseHTTPRequestHandler):
                              for p in profiller.PROFILES],
                 "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
                 "gpu_state": s.get("gpu_state"), "cpu_power": s.get("cpu_power"),
-                "ac": (s.get("battery") or {}).get("ac", True)})
+                "ac": (s.get("battery") or {}).get("ac", True), "notices": list(App.notices)})
         if path == "/api/events":
             return self._events()
         return self._json({"error": "not found"}, 404)
 
     def _events(self):
-        """Canli akis (Server-Sent Events): klavye rengi ~20 kare/sn, sensorler saniyede bir."""
+        """Canli akis (Server-Sent Events): klavye rengi ~20 kare/sn, sensorler saniyede bir.
+        Sayisi sinirli: her akis kapanana dek bir is parcacigi tutar."""
+        if not SSE_SLOTS.acquire(blocking=False):
+            return self._json({"error": "too many streams"}, 503)
+        try:
+            self._stream()
+        finally:
+            SSE_SLOTS.release()
+
+    def _stream(self):
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
         self.send_header("Cache-Control", "no-store")
@@ -405,15 +598,24 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"error": "forbidden"}, 403)
         try:
             size = int(self.headers.get("Content-Length", "0"))
-            if size > 262144:
-                return self._json({"error": "too large"}, 413)
+        except ValueError:
+            return self._json({"error": "bad length"}, 400)
+        if size < 0:  # -1: rfile.read(-1) baglanti kapanana dek okur, bellek sinirsiz buyur
+            return self._json({"error": "bad length"}, 400)
+        if size > 262144:
+            return self._json({"error": "too large"}, 413)
+        try:
             body = json.loads(self.rfile.read(size).decode("utf-8")) if size else {}
-        except (ValueError, UnicodeDecodeError):
+        except (ValueError, RecursionError):  # RecursionError: cok derin ic ice JSON
             return self._json({"error": "bad json"}, 400)
+        except OSError:  # zaman asimi ya da kopan baglanti
+            self.close_connection = True
+            return None
         body = body if isinstance(body, dict) else {}
         try:
             return self._post(self.path.split("?")[0], body)
         except Exception as exc:  # her hata arayuzde okunur bir mesaj olsun
+            log("istek hatasi %s: %s" % (self.path, traceback.format_exc().replace("\n", " | ")))
             return self._json({"error": str(exc)}, 500)
 
     def _post(self, path, body):
@@ -514,6 +716,34 @@ class Handler(BaseHTTPRequestHandler):
 class Server(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = False
+    MAX_CONNECTIONS = 32  # yerel bir surec binlerce baglanti acip motoru is parcacigiyla bogamasin
+
+    def __init__(self, *args, **kwargs):
+        self._slots = threading.BoundedSemaphore(self.MAX_CONNECTIONS)
+        super().__init__(*args, **kwargs)
+
+    def server_bind(self):
+        # Ayni kullanici hesabindaki baska bir surec SO_REUSEADDR ile ayni porta baglanip baglantilari
+        # calamasin (sahte arayuz). Windows'a ozgu secenek.
+        if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
+    def process_request(self, request, client_address):
+        if not self._slots.acquire(blocking=False):
+            self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except Exception:
+            self._slots.release()
+            raise
+
+    def process_request_thread(self, request, client_address):
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self._slots.release()
 
     def handle_error(self, request, client_address):  # kopan baglantilar gurultu yapmasin
         pass
@@ -521,11 +751,13 @@ class Server(ThreadingHTTPServer):
 
 def shutdown():
     time.sleep(0.2)
-    App.engine.running = False
-    App.sensors.running = False
-    App.engine.join(1.5)
-    save()
-    App.server.shutdown()
+    try:
+        App.engine.running = False
+        App.sensors.running = False
+        App.engine.join(1.5)
+        save()
+    finally:  # kayit basarisiz olsa da sunucu kapanmali
+        App.server.shutdown()
 
 
 # ----------------------------------------------------------------------------- baslatici
@@ -614,20 +846,25 @@ def serve():
     except OSError as exc:
         alert("Yerel sunucu başlatılamadı (port %d):\n%s" % (PORT, exc))
         return False
-    App.cfg = core.load_config()
+    raw, problem = core.read_config()
+    if problem:
+        notice("Ayarlar okunamadı, varsayılan ayarlarla başlatıldı: " + problem)
+    App.cfg = sanitize_loaded(raw)
     if hw.is_admin():  # 'Windows ile baslat' ayarinin dogrusu gorevin kendisidir
         real = logon_trigger_enabled()
-        if real is not None and real != bool(App.cfg.get("autostart")):
+        if real is not None:
             App.cfg["autostart"] = real
-            core.save_config(App.cfg)
-    cc = dict(profiller.DEFAULTS)
-    cc.update(App.cfg.get("cc") or {})
-    App.cfg["cc"] = cc
+    save()  # dogrulanmis hali yazilir (yonetici motorda ilk acilista kullanici ayarlari buraya tasinir)
+    cc = App.cfg["cc"]
+    try:
+        import psutil  # noqa: F401
+    except ImportError:
+        notice("psutil kurulu değil: bellek, ağ ve disk ölçümleri gösterilmiyor (pip install psutil).")
     App.device = device_name()
     App.audio = hw.Audio()
     App.display = hw.Display()
     App.sensors = hw.Sensors(App.dchu)
-    App.manager = profiller.Manager(App.dchu, App.sensors, cc, save)
+    App.manager = profiller.Manager(App.dchu, App.sensors, cc, save, notice)
     App.engine = core.Engine(App.dchu)
     App.engine.settings = core.snapshot(App.cfg)
     App.engine.start()
@@ -639,12 +876,27 @@ def serve():
     return True
 
 
+def crash_log_path():
+    return os.path.join(core.CONFIG_DIR, "crash.log")
+
+
+def _log_exception(exc_type, exc, tb):
+    log("YAKALANMAMIS HATA: " + "".join(traceback.format_exception(exc_type, exc, tb)).replace("\n", " | "))
+
+
 def enable_crash_log():
-    """pythonw'da konsol yok: yerel bir cokuste (erisim ihlali) tum is parcaciklarinin yigini crash.log'a yazilir."""
+    """pythonw'da konsol yok: yerel cokusler (erisim ihlali, faulthandler) VE yakalanmamis Python hatalari
+    (ana surec ve tum is parcaciklari) crash.log'a yazilir. Gunluk 1 MB'i gecince crash.old.log olur."""
     import faulthandler
+    path = crash_log_path()
     try:
         os.makedirs(core.CONFIG_DIR, exist_ok=True)
-        f = open(os.path.join(core.CONFIG_DIR, "crash.log"), "a", encoding="utf-8")
+        try:
+            if os.path.getsize(path) > 1000000:
+                os.replace(path, path[:-4] + ".old.log")
+        except OSError:
+            pass
+        f = open(path, "a", encoding="utf-8")
         f.write("\n--- %s pid %d admin=%s %s\n" % (time.strftime("%Y-%m-%d %H:%M:%S"), os.getpid(),
                                                   hw.is_admin(), " ".join(sys.argv[1:])))
         f.flush()
@@ -652,62 +904,108 @@ def enable_crash_log():
         App.crash_log = f  # dosya acik kalmali
     except OSError:
         pass
+    sys.excepthook = _log_exception
+    threading.excepthook = lambda a: _log_exception(a.exc_type, a.exc_value, a.exc_traceback)
+
+
+def fans_to_factory():
+    """Motor tamamen durdugunda fanlari denetleyicinin kendi tablosuna birak (isi bekcisi artik yok)."""
+    try:
+        hw.DCHU().set_fan_mode(hw.FAN_AUTO)
+        return True
+    except Exception:
+        log("fanlar fabrika tablosuna alinamadi: " + traceback.format_exc().replace("\n", " | "))
+        return False
 
 
 def supervise():
-    """Gorevden gelen yonetici motoru: motoru alt surec olarak calistirir; yerel bir cokuste (crash.log'a
-    yazilir) 2 sn sonra yeniden baslatir, motor son profili geri yukler. Normal kapanis (cikis kodu 0) bekciyi
-    de bitirir. 10 dakikada 5'ten fazla cokus olursa vazgecer."""
+    """Gorevden gelen yonetici motoru: motoru alt surec olarak calistirir; cokuste (crash.log'a yazilir)
+    2 sn sonra yeniden baslatir, motor son profili geri yukler. Normal kapanis (cikis kodu 0) bekciyi
+    de bitirir. 10 dakikada 5'ten fazla cokus olursa vazgecer: fanlari fabrika tablosuna alir ve
+    kullaniciya NEDEN calismadigini soyler (eskiden sessizce vazgeciyordu)."""
     crashes = []
     while True:
         rc = subprocess.call(self_cmd("--engine"), cwd=APP_DIR, creationflags=0x08000000)
         if rc == 0:
             return
+        log("motor cikis kodu %d ile durdu" % rc)
         now = time.time()
         crashes = [t for t in crashes if now - t < 600] + [now]
         if len(crashes) > 5:
+            safe = fans_to_factory()
+            alert("Kendi Control Center motoru 10 dakikada %d kez çöktü ve durduruldu.\n\n"
+                  "Klavye ışığı, performans profilleri ve ısı koruması şu an ÇALIŞMIYOR. %s\n\n"
+                  "Ayrıntı: %s" % (len(crashes),
+                                   "Fanlar güvenlik için denetleyicinin kendi tablosuna alındı." if safe else
+                                   "Fanlar denetleyicide son profilin eğrisiyle çalışıyor.", crash_log_path()))
             return
         time.sleep(2)
 
 
-def main():
-    enable_crash_log()
+def run_mode(admin):
     if "--install-task" in sys.argv:
-        install_task()
-        return
+        return install_task()
     if "--tray" in sys.argv:
         import tepsi
         tepsi.run(BASE, open_window, start_engine)
-        return
-    if "--service" in sys.argv and hw.is_admin():
+        return 0
+    if "--service" in sys.argv and admin:
         supervise()
-        return
+        return 0
     service = "--service" in sys.argv or "--minimized" in sys.argv or "--engine" in sys.argv
-    if not hw.is_admin():  # yonetici surecten baslatilirsa simge de yonetici olur: tiklamalar engellenir
+    if not admin:  # yonetici surecten baslatilirsa simge de yonetici olur: tiklamalar engellenir
         ensure_tray()
     p = ping()
     if p and p.get("app") == core.APP_NAME and p.get("path") == HERE:
         if not service:
             open_window()
-        return
+        return 0
     if p:  # baska klasorden ya da eski surumden kalan motor: kapatip yerine gec
         ask_quit()
         wait_ping(4, want=False)
-    if not hw.is_admin() and task_exists():
+    if not admin and task_exists():
         hw.run(["schtasks", "/run", "/tn", TASK])
         if wait_ping(8):
             if not service:
                 open_window()
-            return
+            return 0
     if not service:
         threading.Thread(target=lambda: wait_ping(8) and open_window(), daemon=True).start()
     serve()
     if App.restart_elevated:  # yonetici gorevi yeni kuruldu: motoru yonetici olarak yeniden baslat
         hw.run(["schtasks", "/run", "/tn", TASK])
+    return 0
+
+
+def main():
+    admin = hw.is_admin()
+    trusted = trusted_install()
+    from_task = "--service" in sys.argv or "--engine" in sys.argv
+    if admin and not trusted and from_task:
+        # Eski surumlerin betik klasorunden kurdugu yonetici gorevi: guvensiz, kaldirilir.
+        removed = remove_legacy_tasks()
+        alert("Güvenlik: Betik klasöründen kurulmuş bir yönetici görevi bulundu ve kaldırıldı (%s).\n\n"
+              "Bu görev, o klasöre yazabilen her programa UAC sormadan yönetici yetkisi veriyordu.\n"
+              "Yönetici modu için uygulamayı kur.ps1 ile kurun. Şimdilik Control Center.bat ile "
+              "açabilirsiniz." % (", ".join(removed) or "silinemedi, Görev Zamanlayıcı'dan elle silin"), 0x30)
+        return 0
+    if admin and "--install-task" in sys.argv and not trusted:
+        return 3
+    if admin and trusted:
+        core.set_data_dir(data_dir())  # yonetici, kullanicinin yazabildigi %APPDATA%'ya yazmaz
+    enable_crash_log()
+    try:
+        return run_mode(admin)
+    except Exception as exc:
+        _log_exception(type(exc), exc, exc.__traceback__)
+        if "--engine" not in sys.argv:  # bekcinin alt sureci degilse: bekci zaten vazgecince bildirir
+            alert("Kendi Control Center beklenmeyen bir hatayla durdu:\n%s: %s\n\nAyrıntı: %s"
+                  % (type(exc).__name__, exc, crash_log_path()))
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    code = main()
     # Her sey kaydedildi. Yorumlayicinin kapanis temizligi, ctypes/COM/PDH nesnelerini toplarken
     # erisim ihlaline dusuyor (olculdu); temizligi atlayip sureci dogrudan bitir.
-    os._exit(0)
+    os._exit(code if isinstance(code, int) else 0)

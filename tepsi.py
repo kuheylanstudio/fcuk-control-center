@@ -175,6 +175,7 @@ class Tray:
         self.open_window = open_window
         self.start_engine = start_engine
         self.state = None          # son /api/tray yaniti; None: motor yok
+        self.notice_seen = 0       # motorun bildirdigi en son uyari (balon olarak bir kez gosterilir)
         self.down_since = None
         self.seen_engine = False
         self.level = 0
@@ -305,6 +306,7 @@ class Tray:
                 self.state = self.api.get("/api/tray")
                 self.seen_engine = True
                 self.down_since = None
+                self._show_notices()
             except (OSError, ValueError):
                 self.state = None
                 self.down_since = self.down_since or time.monotonic()
@@ -314,6 +316,13 @@ class Tray:
                     return
             u32.PostMessageW(self.hwnd, WM_REFRESH, 0, 0)
             time.sleep(2.0)
+
+    def _show_notices(self):
+        """Motorun kullaniciya iletmek istedigi sorunlar (bozuk ayar, isi bekcisi, okunamayan sensor...)."""
+        for n in (self.state or {}).get("notices") or []:
+            if isinstance(n, dict) and isinstance(n.get("id"), int) and n["id"] > self.notice_seen:
+                self.notice_seen = n["id"]
+                self.notify("Kendi Control Center uyarısı", str(n.get("text", "")))
 
     # -- menu
     def menu(self):
@@ -463,7 +472,10 @@ def run(base, open_window, start_engine):
     mutex = k32.CreateMutexW(None, False, "Local\\KendiControlCenterTray")
     if ctypes.get_last_error() == ERROR_ALREADY_EXISTS:
         return
-    make_icons()
+    try:
+        make_icons()
+    except Exception as exc:  # simge cizilemezse varsayilan simgeyle surer
+        fntus.log("tepsi simgeleri olusturulamadi: %r" % exc)
     tray = Tray(base, open_window, start_engine)
     tray.create()
     tray.loop()
