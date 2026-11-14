@@ -19,6 +19,7 @@ import urllib.request
 from ctypes import wintypes as wt
 
 import ceviri
+import donanim as hw
 import fntus
 import klavye_rgb as core
 from ceviri import t
@@ -218,8 +219,10 @@ class Tray:
         except Exception:
             import traceback
             fntus.log("OSD olusturulamadi: " + traceback.format_exc().replace("\n", " | "))
-        self.fn = fntus.Listener(lambda code: u32.PostMessageW(self.hwnd, WM_FNKEY, code, 0))
-        self.fn.start()
+        self.fn = None
+        if hw.vendor_kind() is None:  # HP Omen/Victus'ta Clevo Fn koprusu aranmaz (Fn tuslari HP'ye kalir)
+            self.fn = fntus.Listener(lambda code: u32.PostMessageW(self.hwnd, WM_FNKEY, code, 0))
+            self.fn.start()
 
     # -- Fn tuslari
     def _osd_later(self, label, value="", level=None, state=None):

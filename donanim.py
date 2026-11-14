@@ -201,6 +201,7 @@ class DCHU:
     """InsydeDCHU.dll sarmalayicisi. Tum cagrilar tek kilitten gecer (motor, sensor ve sunucu ayni anda cagirir)."""
     available = True
     vendor = "clevo"
+    kind = "clevo"
     kb_available = True
 
     def __init__(self):
@@ -357,6 +358,7 @@ class NullDCHU:
     'desteklenmiyor' olarak gosterir; geri kalan her sey calisir."""
     available = False
     vendor = ""
+    kind = ""
     kb_available = False
     path = ""
 
@@ -446,24 +448,29 @@ def power_text(dev, mode):
     return ceviri.t(key) if key else ceviri.t("power.%d" % mode)
 
 
-def open_vendor():
-    """Clevo olmayan bilgisayarlar icin uretici arka ucu (HP Omen/Victus BIOS WMI); yoksa (None, neden).
-    Algilama surec acmaz (kayit defterindeki SMBIOS bilgisi); yalnizca HP Omen/Victus'ta WMI kopru acilir."""
+def vendor_kind():
+    """Clevo disi uretici ('hp') ya da None. Surec acmaz (kayit defterindeki SMBIOS bilgisi); Clevo
+    algilamasindan ONCE bakilir: HP yolunda Clevo kodu (aygit aramasi, DLL, Fn koprusu) hic calismaz."""
     try:
         import hp_omen
-        return hp_omen.open_backend()
-    except Exception as exc:
-        return None, "%s: %s" % (type(exc).__name__, exc)
+        return "hp" if hp_omen.detected() else None
+    except Exception:
+        return None
 
 
 def open_dchu():
-    """Gercek denetleyici ya da (Clevo aygiti yoksa / kitaplik yoksa / yuklenemezse) NullDCHU.
-    Clevo degilse once uretici arka ucu (HP Omen/Victus) denenir."""
-    if not clevo_present():
-        dev, why = open_vendor()
+    """Uretici arka ucu (HP Omen/Victus), Clevo denetleyicisi ya da NullDCHU (donanima komut gitmez)."""
+    if vendor_kind() == "hp":
+        try:
+            import hp_omen
+            dev, why = hp_omen.open_backend()
+        except Exception as exc:
+            dev, why = None, "%s: %s" % (type(exc).__name__, exc)
         if dev is not None:
             return dev
         return NullDCHU(ceviri.t("err.notClevo") + (" (%s)" % why if why else ""), clevo=False)
+    if not clevo_present():
+        return NullDCHU(ceviri.t("err.notClevo"), clevo=False)
     try:
         return DCHU()
     except Exception as exc:

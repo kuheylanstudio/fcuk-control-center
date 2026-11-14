@@ -29,6 +29,7 @@ Windows PowerShell sureci kullanilir (satir basina bir komut); her cagri icin ye
 """
 import base64
 import queue
+import re
 import subprocess
 import threading
 import time
@@ -112,17 +113,23 @@ def system_info():
     return info
 
 
+# kurulum.ps1'deki 'hp' girdisiyle AYNI kural (Uretici ^HP|Hewlett, Model OMEN|Victus): hpqBIntM HP is
+# bilgisayarlarinda da bulunur, bu yuzden model sarti var. Kurulum ve calisma zamani ayni cihazi secmeli.
+MAKER_RE = re.compile(r"^HP|Hewlett", re.I)
+MODEL_RE = re.compile(r"OMEN|Victus", re.I)
+
+
 def classify(info):
-    """'omen' / 'victus' ya da None. Uretici HP olmali; model ya da aile adinda OMEN / Victus gecmeli."""
-    maker = (info.get("manufacturer") or "").upper()
-    if not (maker == "HP" or maker.startswith("HP ") or maker.startswith("HEWLETT")):
+    """'omen' / 'victus' ya da None: Win32_ComputerSystem Manufacturer ^HP|Hewlett ve Model OMEN|Victus."""
+    if not MAKER_RE.search((info.get("manufacturer") or "").strip()):
         return None
-    text = ("%s %s" % (info.get("model") or "", info.get("family") or "")).upper()
-    if "OMEN" in text:
-        return "omen"
-    if "VICTUS" in text:
-        return "victus"
-    return None
+    m = MODEL_RE.search(info.get("model") or "")
+    return m.group(0).lower() if m else None
+
+
+def detected():
+    """Bu bilgisayar HP Omen/Victus mu (surec acmadan)? Clevo kodundan ONCE bakilir."""
+    return classify(system_info()) is not None
 
 
 # ============================================================================= WMI tasima
@@ -259,6 +266,7 @@ class HpOmen:
     """HP Omen / Victus: donanim.DCHU yerine gecer. Ozellikler yoklamayla belirlenir (self.caps)."""
     available = True
     vendor = "hp"
+    kind = "hp"   # /api/state ec_kind; kurulum.ps1'deki anahtarla ayni
     clevo = False
 
     def __init__(self, info, family, bridge):

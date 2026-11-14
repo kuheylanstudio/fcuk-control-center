@@ -113,22 +113,39 @@ class Detection(unittest.TestCase):
         self.assertIn("NOCLASS", why)
         self.assertTrue(Broken.closed)
 
-    def test_open_dchu_uses_vendor_backend_only_without_clevo(self):
+    def test_hp_path_never_runs_clevo_code(self):
         sentinel = object()
-        with mock.patch.object(hw, "clevo_present", return_value=False), \
+        with mock.patch("hp_omen.system_info", return_value=OMEN), \
+                mock.patch.object(hw, "clevo_present") as cp, mock.patch.object(hw, "DCHU") as dchu, \
                 mock.patch("hp_omen.open_backend", return_value=(sentinel, "")):
+            self.assertEqual(hw.vendor_kind(), "hp")
             self.assertIs(hw.open_dchu(), sentinel)
-        with mock.patch.object(hw, "clevo_present", return_value=False), \
-                mock.patch("hp_omen.open_backend", return_value=(None, "")):
+            cp.assert_not_called()
+            dchu.assert_not_called()
+        # HP ama BIOS WMI yok: NullDCHU, yine Clevo'ya bakilmaz
+        with mock.patch("hp_omen.system_info", return_value=OMEN), \
+                mock.patch.object(hw, "clevo_present") as cp, \
+                mock.patch("hp_omen.open_backend", return_value=(None, "NOCLASS")):
             dev = hw.open_dchu()
             self.assertIsInstance(dev, hw.NullDCHU)
             self.assertFalse(any(hw.caps(dev).values()))
-        # Clevo varsa HP yoluna hic girilmez
-        with mock.patch.object(hw, "clevo_present", return_value=True), \
+            cp.assert_not_called()
+
+    def test_clevo_path_unchanged(self):
+        monster = {"manufacturer": "MONSTER", "model": "ABRA A5 V21.1", "family": "ABRA"}
+        with mock.patch("hp_omen.system_info", return_value=monster), \
+                mock.patch.object(hw, "clevo_present", return_value=True), \
                 mock.patch.object(hw, "DCHU", return_value="clevo"), \
                 mock.patch("hp_omen.open_backend") as ob:
+            self.assertIsNone(hw.vendor_kind())
             self.assertEqual(hw.open_dchu(), "clevo")
             ob.assert_not_called()
+
+    def test_same_rule_as_setup(self):
+        # kurulum.ps1: Uretici ^HP|Hewlett, Model OMEN|Victus (aile adi tek basina yetmez)
+        self.assertIsNone(hp.classify({"manufacturer": "HP", "model": "HP EliteBook 840", "family": "OMEN"}))
+        self.assertEqual(hp.classify({"manufacturer": "HP Inc.", "model": "victus 15"}), "victus")
+        self.assertEqual(make()[0].kind, "hp")
 
     def test_caps_for_clevo_like(self):
         class Clevo:

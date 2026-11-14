@@ -513,6 +513,7 @@ def state():
         "ec_clevo": bool(getattr(App.dchu, "clevo", True)),  # aygit var, yalnizca kitaplik yok
         "ec_reason": getattr(App.dchu, "reason", ""),
         "vendor": getattr(App.dchu, "vendor", "clevo"),  # clevo | hp | "" (denetleyici yok)
+        "ec_kind": getattr(App.dchu, "kind", ""),  # kurulum.ps1 cihaz anahtari: clevo | hp | ""
         "caps": hw.caps(App.dchu),
         "hp": App.dchu.describe() if getattr(App.dchu, "vendor", "") == "hp" else None,
         "cpu": App.inventory.data.get("cpu"),
