@@ -6,7 +6,8 @@
 #    kurulum\kurulum.ps1 içine gömülür. Hiçbir şey kurulmaz; kurmak için setup.exe'yi çalıştırın.
 #
 #   -Dagitim  herkese açık indirme için derler: üreticiye ait DLL pakete GİRMEZ. Uygulama InsydeDCHU.dll'i
-#             Clevo / Monster dizüstüde Windows sürücü deposundan yükler. Çıktı: dist\FCUK-Control-Center-Setup.exe
+#             Clevo / Monster dizüstüde Windows sürücü deposundan yükler. Çıktı: dist\FCUK-Control-Center-Setup-<sürüm>.exe;
+#             README'deki indirme düğmesi de bu dosyaya (sürüm etiketi v<sürüm>) güncellenir.
 param([switch]$Dagitim)
 $ErrorActionPreference = 'Stop'
 $src   = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -60,8 +61,19 @@ $out = Join-Path $dist 'setup.exe'
 if ($Dagitim) {
     $dll = @(Get-ChildItem $app -Recurse -File | Where-Object { $_.Name -in 'InsydeDCHU.dll', 'GetProductdll.dll' })
     if ($dll.Count) { throw "Dağıtım paketinde üretici DLL'i var: $($dll[0].FullName)" }
-    $pub = Join-Path $dist 'FCUK-Control-Center-Setup.exe'
+    # Dosya adında sürüm var: kullanıcı yeni sürümü indirdiğini adından görür
+    Get-ChildItem $dist -Filter 'FCUK-Control-Center-Setup*.exe' | Remove-Item -Force
+    $name = "FCUK-Control-Center-Setup-$ver.exe"
+    $pub = Join-Path $dist $name
     Move-Item $out $pub -Force
     $out = $pub
+    # README'deki indirme bağlantıları ve düğme bu sürümün dosyasına çevrilir (GitHub sürüm etiketi: v<sürüm>)
+    $readme = Join-Path $src 'README.md'
+    $md = [IO.File]::ReadAllText($readme)
+    $md = $md -replace 'releases/(latest/download|download/v[0-9.]+)/FCUK-Control-Center-Setup(-[0-9.]+)?\.exe', "releases/download/v$ver/$name"
+    $md = $md -replace 'FCUK-Control-Center-Setup(-[0-9.]+)?\.exe', $name
+    $md = $md -replace 'FCUK--Control--Center--Setup(--[0-9.]+)?\.exe', ($name -replace '-', '--')
+    [IO.File]::WriteAllText($readme, $md, (New-Object Text.UTF8Encoding($false)))
+    Write-Host "== README indirme bağlantısı: releases/download/v$ver/$name"
 }
 Write-Host ("Hazır: {0} ({1:N1} MB, sürüm {2})" -f $out, ((Get-Item $out).Length / 1MB), $ver)

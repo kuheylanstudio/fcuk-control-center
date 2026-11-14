@@ -107,6 +107,17 @@ function Copy-Tree([string]$src, [string]$dst, [switch]$Mirror, [string[]]$Exclu
     $global:LASTEXITCODE = 0
     return ($rc -lt 8)
 }
+# Windows PowerShell 5.1'de, ErrorActionPreference 'Stop' iken bir yerel programin hata akisini (2>$null) yonlendirmek
+# o programin hata metnini KESEN bir hataya cevirir. Ornek: olmayan bir gorev icin schtasks /end, "ERROR: Sistem
+# belirtilen dosyayi bulamiyor" yazar ve tum kurulum durur. Sonucu onemsiz (temizlik) cagrilari bununla calisir.
+function Invoke-Quiet([string]$exe, [string[]]$argv) {
+    $eap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try { & $exe @argv 2>&1 | Out-Null } finally { $ErrorActionPreference = $eap }
+    $rc = $LASTEXITCODE
+    $global:LASTEXITCODE = 0
+    return $rc
+}
 function Get-Clevo { return [bool](Get-PnpDevice -InstanceId 'ACPI\CLV0001*' -ErrorAction SilentlyContinue) }
 
 # ---------------------------------------------------------------------------- envanter
@@ -181,7 +192,7 @@ function Get-DriverState {
 # ---------------------------------------------------------------------------- FCUK süreçleri
 function Stop-Fcuk {
     if (Invoke-Api '/api/quit' 'POST' 3) { Info 'Çalışan FCUK Control Center motoru kapatıldı'; Start-Sleep -Seconds 3 }
-    foreach ($t in $Tasks + $OldTasks) { & schtasks.exe /end /tn $t 2>$null | Out-Null }
+    foreach ($t in $Tasks + $OldTasks) { [void](Invoke-Quiet 'schtasks.exe' @('/end', '/tn', $t)) }
     $global:LASTEXITCODE = 0
     Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
         ($ExeNames | ForEach-Object { "$_.exe" }) -contains $_.Name -or ($_.Name -match '^pythonw?\.exe$' -and "$($_.CommandLine)" -match 'control_center\.py')
@@ -281,7 +292,7 @@ function Remove-OldCC($inv, [bool]$clevo) {
         }
     }
     foreach ($u in $inv.Uninstall) {
-        & reg.exe export $u.Key (Join-Path $Backup ("kaldirma_kaydi_" + ($u.Key -split '\\')[-1] + '.reg')) /y 2>$null | Out-Null
+        [void](Invoke-Quiet 'reg.exe' @('export', $u.Key, (Join-Path $Backup ("kaldirma_kaydi_" + ($u.Key -split '\\')[-1] + '.reg')), '/y'))
         $global:LASTEXITCODE = 0
         Remove-Item $u.Path -Recurse -Force -ErrorAction SilentlyContinue
         Ok "Programlar listesinden çıkarıldı: $($u.Name)"
@@ -344,7 +355,7 @@ if ($Mode -eq 'Uninstall') {
     if ($wsh.Popup("$AppTitle kaldırılsın mı?`n`nAyarlarınız $Data\ayarlar altına yedeklenir.", 0, $AppTitle, 4 + 32) -ne 6) { exit 0 }
     Step 'FCUK Control Center kapatılıyor'
     Stop-Fcuk
-    foreach ($t in $Tasks + $OldTasks) { & schtasks.exe /delete /tn $t /f 2>$null | Out-Null }
+    foreach ($t in $Tasks + $OldTasks) { [void](Invoke-Quiet 'schtasks.exe' @('/delete', '/tn', $t, '/f')) }
     $global:LASTEXITCODE = 0
     Ok 'Açılış görevleri silindi'
     Step 'Eski Control Center engelleri kaldırılıyor'
@@ -410,7 +421,7 @@ try {
     Ok 'Kapatıldı'
 
     # Onceki surumler "Kendi Control Center" adiyla kuruluyordu: ayarlar tasinir, eski gorevler ve klasor silinir
-    foreach ($t in $OldTasks) { & schtasks.exe /delete /tn $t /f 2>$null | Out-Null }
+    foreach ($t in $OldTasks) { [void](Invoke-Quiet 'schtasks.exe' @('/delete', '/tn', $t, '/f')) }
     $global:LASTEXITCODE = 0
     if (Test-Path $OldDest) {
         $oldVeri = Join-Path $OldDest 'veri'
