@@ -436,8 +436,9 @@ def manufacturer():
 
 
 def is_msi(maker=None):
+    # kurulum.ps1 ile ayni kural: Uretici -match 'Micro-Star|^MSI' (PowerShell -match buyuk/kucuk harf duyarsiz)
     m = (manufacturer() if maker is None else maker).strip().lower()
-    return m.startswith("micro-star") or m in ("msi", "msi co., ltd")
+    return "micro-star" in m or m.startswith("msi")
 
 
 def open_msi(unsupported=Unsupported, maker=None, wmi_factory=None, kb_factory=None):

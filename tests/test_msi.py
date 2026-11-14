@@ -384,6 +384,10 @@ class DetectTest(unittest.TestCase):
         self.assertTrue(msi.is_msi("Micro-Star International Co., Ltd."))
         self.assertFalse(msi.is_msi("Monster Notebook"))
         self.assertFalse(msi.is_msi("ASUSTeK COMPUTER INC."))
+        self.assertTrue(msi.is_msi("MSI"))
+        self.assertTrue(msi.is_msi("msi co., ltd"))
+        self.assertFalse(msi.is_msi("Clevo"))
+        self.assertFalse(msi.is_msi(""))
 
     def test_open_msi_non_msi_returns_none(self):
         called = []
