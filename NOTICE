@@ -1,0 +1,10 @@
+FCUK Control Center
+This software was written with Claude Opus 5.5, an AI model by Anthropic.
+
+Third-party files are NOT part of the MIT license and are NOT distributed in
+this repository: InsydeDCHU.dll (Insyde / Clevo embedded controller library)
+belongs to its respective owner. Users of Clevo-based laptops copy it from
+their own computer into lib/ with lib/dll_topla.ps1 (see lib/README.md).
+
+"NVIDIA", "Intel", "Monster" and "Clevo" are trademarks of their respective
+owners; this project is not affiliated with them.

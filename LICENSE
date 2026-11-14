@@ -19,14 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-This software was written with Claude Opus 5.5, an AI model by Anthropic.
-
-Third-party files are NOT part of this license and are NOT distributed in this
-repository: InsydeDCHU.dll and GetProductdll.dll (Insyde / Clevo embedded
-controller libraries) belong to their respective owners. Users who own a
-Clevo-based laptop copy them from their own Control Center installation into
-lib/ (see lib/README.md). "NVIDIA", "Intel", "Monster" and "Clevo" are
-trademarks of their respective owners; this project is not affiliated with them.
