@@ -275,6 +275,60 @@ class TestFans(unittest.TestCase):
         self.assertEqual(aw.interpolate(pts, 120), 100)
 
 
+class TestExternalChange(unittest.TestCase):
+    """Alienware Fn tuslari (G-mode, Stealth) ya da AWCC profili uygulamadan bagimsiz degistirir."""
+
+    def test_gmode_key_stops_curve(self):
+        f = FakeAwcc()
+        f.temps = {0x01: 75, 0x06: 70}
+        ec = make(f, period=0.03)
+        ec.set_power_mode(0)
+        ec.set_fan_curve((60, 40, 80, 70), (60, 40, 80, 70))
+        self.assertGreater(f.boost[0x32], 0)
+        f.profile, f.gmode = 0xAB, 1          # kullanici G-mode tusuna basti
+        time.sleep(0.2)
+        self.assertEqual(ec.fan_mode(), aw.FAN_AUTO)
+        self.assertEqual(f.boost, {0x32: 0, 0x33: 0})   # takviye birakildi
+        self.assertEqual(f.profile, 0xAB)               # uygulama profili geri ALMADI
+        self.assertEqual(ec.power_mode(), 2)            # arayuz Performans gosterir
+        n = len(f.calls)
+        time.sleep(0.15)
+        self.assertFalse([c for c in f.calls[n:] if c[0] == aw.M_CONTROL])  # dongu bitti, yazma yok
+
+    def test_stealth_key_while_auto(self):
+        f = FakeAwcc()
+        ec = make(f)
+        ec.set_power_mode(2)
+        f.profile, f.gmode = 0xA3, 0          # Stealth: sessiz profil
+        self.assertEqual(ec.power_mode(), 0)
+        ec.set_fan_mode(aw.FAN_AUTO)          # sonraki otomatik donus kullanicinin secimini korur
+        self.assertEqual(f.profile, 0xA3)
+
+    def test_external_change_while_max(self):
+        f = FakeAwcc()
+        ec = make(f)
+        ec.set_fan_mode(aw.FAN_MAX)
+        f.profile = 0xA0
+        self.assertEqual(ec.fan_mode(), aw.FAN_AUTO)
+        self.assertEqual(f.boost, {0x32: 0, 0x33: 0})
+
+    def test_own_mode_not_misread(self):
+        """Guc tasarrufu, bu cihazda Quiet profiline duser; bu dis degisiklik sanilmamali."""
+        f = FakeAwcc()
+        ec = make(f)
+        ec.set_power_mode(1)
+        self.assertEqual(f.profile, 0xA3)
+        self.assertEqual(ec.power_mode(), 1)
+
+    def test_own_custom_mode_is_not_external(self):
+        f = FakeAwcc()
+        ec = make(f, period=10)
+        ec.set_power_mode(0)
+        ec.set_fan_curve((60, 40, 80, 70), (60, 40, 80, 70))
+        self.assertEqual((ec.fan_mode(), ec.power_mode()), (aw.FAN_CUSTOM, 0))
+        ec.shutdown()
+
+
 class TestKeyboard(unittest.TestCase):
     def setUp(self):
         FakeHidDevice.sent = []

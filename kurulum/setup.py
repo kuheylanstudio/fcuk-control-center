@@ -33,6 +33,33 @@ def version():
         return ""
 
 
+# kurulum.ps1'in tespit ettiği cihaz -> (görünen ad, üreticinin kendi uygulaması)
+MARKA = {
+    "alienware": ("Alienware / Dell G", "Alienware Command Center"),
+    "asus": ("Asus ROG / TUF", "Armoury Crate"),
+    "lenovo": ("Lenovo Legion / LOQ", "Lenovo Vantage / Legion Zone"),
+    "msi": ("MSI", "MSI Center"),
+    "hp": ("HP Omen / Victus", "OMEN Gaming Hub"),
+    "acer": ("Acer Predator / Nitro", "PredatorSense / NitroSense"),
+    "gigabyte": ("Gigabyte Aorus / Aero", "Gigabyte Control Center"),
+}
+
+
+def device_text(kind):
+    """Clevo dışı bir cihaz için kurulum penceresindeki açıklama."""
+    if kind in MARKA:
+        name, app = MARKA[kind]
+        return ("Bu bilgisayar %s olarak tespit edildi. Kurulum yalnızca bu cihaza ait adımları uygular: Monster/Clevo "
+                "bileşenleri kurulmaz, %s dahil hiçbir üretici yazılımı, sürücüsü ya da hizmeti kaldırılmaz. İkisi "
+                "birlikte çalışır; aynı ayarı (fan, güç modu, klavye ışığı) ikisi birden değiştirirse son değiştirenin "
+                "ayarı geçerli olur. Bu cihazda desteklenmeyen özellikler arayüzde 'kullanılamaz' görünür ve donanıma "
+                "komut gönderilmez." % (name, app))
+    return ("Bu bilgisayarda desteklenen bir denetleyici arayüzü bulunamadı. Kurulum yalnızca FCUK Control Center'ı "
+            "kurar; bilgisayarın kendi uygulamasına, sürücülerine ve hizmetlerine dokunmaz, hiçbir şey kaldırılmaz. "
+            "Fan eğrisi, denetleyici güç modu ve klavye RGB bu bilgisayarda yoktur; arayüzde 'kullanılamaz' görünür "
+            "ve donanıma komut gönderilmez.")
+
+
 def run_script(mode, on_line, launch=True, restore=False):
     """kurulum.ps1'i çalıştırır, her çıktı satırını (tür, metin) olarak on_line'a verir. Çıkış kodunu döndürür."""
     cmd = ["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", SCRIPT,
@@ -53,7 +80,7 @@ def run_script(mode, on_line, launch=True, restore=False):
         if not line.strip():
             continue
         kind, sep, msg = line.partition("|")
-        if sep and kind in ("ADIM", "BILGI", "OK", "UYARI", "HATA", "CIHAZ"):  # CIHAZ: clevo | diger
+        if sep and kind in ("ADIM", "BILGI", "OK", "UYARI", "HATA", "CIHAZ"):  # CIHAZ: tespit edilen cihaz (bkz. MARKA)
             on_line(kind, msg)
         else:
             on_line("HAM", line)
@@ -137,8 +164,9 @@ def gui():
     head = tk.Frame(root, bg=BG)
     head.pack(fill="x", padx=24, pady=(20, 8))
     tk.Label(head, text=TITLE, bg=BG, fg="#ffffff", font=(FONT, 20, "bold"), anchor="w").pack(fill="x")
-    tk.Label(head, text="Sürüm %s  ·  Monster / Clevo Control Center'ın yerine geçer" % version(), bg=BG, fg=TEXT3,
-             font=(FONT, 10), anchor="w").pack(fill="x")
+    sub = tk.Label(head, text="Sürüm %s  ·  Bilgisayar tespit ediliyor..." % version(), bg=BG, fg=TEXT3,
+                   font=(FONT, 10), anchor="w")
+    sub.pack(fill="x")
     desc = tk.Label(head, bg=BG, fg=TEXT2, font=(FONT, 10), justify="left", anchor="w", wraplength=720, text=(
         "Kurulum eski Control Center'ı yedek alarak kaldırır ve FCUK Control Center'ı kurar. Üreticinin kaldırıcısı "
         "çalıştırılmaz, çünkü o kaldırıcı AcpiBridge sürücülerini de siler. Sürücüler ve CCDCHUService korunur: önce "
@@ -196,13 +224,13 @@ def gui():
                 item = q.get_nowait()
                 if item[0] == "line" and item[1] == "CIHAZ":
                     st["clevo"] = item[2] == "clevo"
-                    if not st["clevo"]:
-                        desc.configure(text=(
-                            "Bu bilgisayar Clevo/Monster değil. Kurulum yalnızca FCUK Control Center'ı kurar; bilgisayarın "
-                            "kendi Control Center'ına ya da üretici uygulamasına (Armoury Crate, Vantage, MSI Center, "
-                            "Omen, Alienware...), sürücülerine ve hizmetlerine dokunmaz, hiçbir şey kaldırılmaz. İkisi "
-                            "birlikte çalışır. Fan eğrisi, denetleyici güç modu ve klavye RGB bu bilgisayarda yoktur; "
-                            "arayüzde 'kullanılamaz' görünür ve donanıma komut gönderilmez."))
+                    if st["clevo"]:
+                        sub.configure(text="Sürüm %s  ·  Clevo / Monster tespit edildi: Monster Control Center'ın yerine geçer"
+                                      % version())
+                    else:
+                        name = MARKA.get(item[2], ("Diğer",))[0]
+                        sub.configure(text="Sürüm %s  ·  Tespit edilen cihaz: %s" % (version(), name))
+                        desc.configure(text=device_text(item[2]))
                 elif item[0] == "line":
                     _, kind, msg = item
                     if kind == "HATA":

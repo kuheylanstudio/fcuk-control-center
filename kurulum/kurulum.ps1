@@ -99,9 +99,10 @@ function Invoke-Api([string]$path, [string]$method = 'GET', [int]$timeout = 2) {
         return Invoke-RestMethod -Uri ($Api + $path) -TimeoutSec $timeout
     } catch { return $null }
 }
-function Copy-Tree([string]$src, [string]$dst, [switch]$Mirror, [string[]]$ExcludeDirs = @()) {
+function Copy-Tree([string]$src, [string]$dst, [switch]$Mirror, [string[]]$ExcludeDirs = @(), [string[]]$ExcludeFiles = @()) {
     $ra = @($src, $dst, $(if ($Mirror) { '/MIR' } else { '/E' }), '/R:3', '/W:1', '/NFL', '/NDL', '/NJH', '/NJS', '/NP')
     if ($ExcludeDirs.Count) { $ra += '/XD'; $ra += $ExcludeDirs }
+    if ($ExcludeFiles.Count) { $ra += '/XF'; $ra += $ExcludeFiles }
     & robocopy.exe @ra | Out-Null
     $rc = $LASTEXITCODE
     $global:LASTEXITCODE = 0
@@ -122,6 +123,97 @@ function Invoke-Quiet([string]$exe, [string[]]$argv) {
 # yazılımına, sürücüsüne, hizmetine ya da IFEO kaydına dokunmaz: Armoury Crate, Lenovo Vantage, MSI Center, Dell/
 # Alienware, HP Omen, Acer NitroSense ve diğer Control Center türevleri olduğu gibi çalışmaya devam eder.
 function Get-Clevo { return [bool](Get-PnpDevice -PresentOnly -InstanceId 'ACPI\CLV*' -ErrorAction SilentlyContinue) }
+
+# ---------------------------------------------------------------------------- cihaz tespiti
+# Tek setup.exe her modele kurulur; kurulum bilgisayarın hangi denetleyici arayüzünü taşıdığını DONANIMDAN tespit
+# eder (yalnızca üretici adına güvenilmez: arayüzün WMI sınıfı da bulunmalı) ve YALNIZCA o cihaza ait adımları
+# uygular. Clevo adımları (eski Monster CC'yi kaldırma, Fn engelleri, AcpiBridge sürücü yedeği, InsydeDCHU.dll)
+# yalnızca 'clevo'da çalışır; başka bir markada bunların hiçbiri yapılmaz ve Clevo DLL'leri diske bile kopyalanmaz.
+# Sıra önemli: Clevo köprüsü (ACPI\CLV) takılıysa üretici adı ne olursa olsun Clevo yolu seçilir (Monster, bazı
+# Gigabyte/XMG modelleri Clevo tabanlıdır).
+#   Sinif    root\wmi altında bulunması gereken denetleyici sınıfı
+#   Uretici  Win32_ComputerSystem.Manufacturer için düzenli ifade;  Model: Model + SystemFamily için (isteğe bağlı)
+#   Uygulama üreticinin kendi uygulaması/hizmeti (Win32_Service ve Programlar listesinde ad deseni). DOKUNULMAZ;
+#            yalnızca aynı anda fan/güç modu ayarlarsa çakışabileceği bildirilir.
+#   Kur      markaya özel kurulum adımı (scriptblock, isteğe bağlı; $Dest kurulduktan sonra çağrılır). Marka dalları
+#            gerekirse buraya ekler. Clevo dışındaki hiçbir adım üretici yazılımını, sürücüsünü ya da hizmetini
+#            kaldırmamalı/değiştirmemeli.
+$Markalar = [ordered]@{
+    clevo     = @{ Ad = 'Clevo / Monster';        Sinif = $null;                   Uretici = $null;               Model = $null
+                   Uygulama = $null; Kur = $null }
+    alienware = @{ Ad = 'Alienware / Dell G';     Sinif = 'AWCCWmiMethodFunction'; Uretici = 'Alienware|Dell';    Model = $null
+                   Uygulama = 'Alienware Command Center|AWCC|Alienware Update'; Kur = $null }
+    asus      = @{ Ad = 'Asus ROG / TUF';         Sinif = 'AsusAtkWmi_WMNB';       Uretici = '^\s*ASUSTeK';       Model = $null
+                   Uygulama = 'Armoury Crate|ArmouryCrate|ASUS Optimization|ROG Live'; Kur = $null }
+    lenovo    = @{ Ad = 'Lenovo Legion';          Sinif = 'LENOVO_GAMEZONE_DATA';  Uretici = '^\s*LENOVO\s*$';   Model = 'Legion'
+                   Uygulama = 'Lenovo Vantage|Legion Zone|Lenovo Legion|ImControllerService|Lenovo Hotkeys'; Kur = $null }
+    msi       = @{ Ad = 'MSI';                    Sinif = 'MSI_ACPI';              Uretici = 'Micro-Star|^MSI';   Model = $null
+                   Uygulama = 'MSI Center|MSI Central|Dragon Center|MSI SDK'; Kur = $null }
+    hp        = @{ Ad = 'HP Omen / Victus';       Sinif = 'hpqBIntM';              Uretici = '^HP|Hewlett';       Model = 'OMEN|Victus'
+                   Uygulama = 'OMEN Gaming Hub|OMEN Command Center|HP Omen|OmenCommandCenter|HP Gaming'; Kur = $null }
+    acer      = @{ Ad = 'Acer Predator / Nitro';  Sinif = 'AcerGamingFunction';    Uretici = 'Acer';              Model = 'Predator|Nitro'
+                   Uygulama = 'PredatorSense|NitroSense|Acer Quick Access'; Kur = $null }
+    gigabyte  = @{ Ad = 'Gigabyte Aorus / Aero';  Sinif = 'GB_WMIACPI_Get';        Uretici = 'GIGABYTE|AORUS';    Model = $null
+                   Uygulama = 'Gigabyte Control Center|GIGABYTE Control Center|AORUS Control Center'; Kur = $null }
+    diger     = @{ Ad = 'Diğer';                  Sinif = $null;                   Uretici = $null;               Model = $null
+                   Uygulama = $null; Kur = $null }
+}
+# Sınıfın yalnızca tanımlı olması yetmez, bir ÖRNEĞİ olmalı (uygulamanın çalışma zamanı tespitiyle aynı ölçüt;
+# yoksa setup markayı tanıyıp uygulama denetleyicisiz açılabilirdi)
+function Test-WmiSinif([string]$name) {
+    try { return [bool](Get-CimInstance -Namespace 'root\wmi' -ClassName $name -ErrorAction Stop | Select-Object -First 1) } catch { return $false }
+}
+function Get-Cihaz {
+    if (Get-Clevo) { return 'clevo' }
+    $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue
+    $uretici = "$($cs.Manufacturer)"
+    # Lenovo'da Model makine tipidir (82JW); "Legion" SystemFamily ya da ürün sürümünde (SystemVersion) geçer
+    $csp = Get-CimInstance Win32_ComputerSystemProduct -ErrorAction SilentlyContinue
+    $model = "$($cs.Model) $($cs.SystemFamily) $($csp.Version) $($csp.Name)"
+    foreach ($k in $Markalar.Keys) {
+        $m = $Markalar[$k]
+        if (-not $m.Sinif) { continue }
+        if ($m.Uretici -and $uretici -notmatch $m.Uretici) { continue }
+        if ($m.Model -and $model -notmatch $m.Model) { continue }
+        if (Test-WmiSinif $m.Sinif) { return $k }
+    }
+    return 'diger'
+}
+# Üreticinin kendi uygulaması kurulu/çalışıyor mu (yalnızca bilgi; hiçbir şey kaldırılmaz, durdurulmaz)
+function Get-UreticiUygulamasi([string]$kind) {
+    $rx = $Markalar[$kind].Uygulama
+    if (-not $rx) { return @() }
+    $bulunan = @()
+    $bulunan += @(Get-CimInstance Win32_Service -ErrorAction SilentlyContinue |
+        Where-Object { "$($_.DisplayName) $($_.Name)" -match $rx } | ForEach-Object { "hizmet: $($_.DisplayName) ($($_.State))" })
+    foreach ($root in 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
+                      'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall') {
+        $bulunan += @(Get-ChildItem $root -ErrorAction SilentlyContinue | ForEach-Object {
+            $n = "$((Get-ItemProperty $_.PSPath -ErrorAction SilentlyContinue).DisplayName)"
+            if ($n -and $n -match $rx) { "program: $n" } })
+    }
+    $arx = $rx -replace ' ', ''   # paket adlarında boşluk yok (ör. B9ECED6F.ArmouryCrate)
+    try { $bulunan += @(Get-AppxPackage -AllUsers -ErrorAction Stop | Where-Object { $_.Name -match $arx } | ForEach-Object { "uygulama paketi: $($_.Name)" }) } catch {}
+    return @($bulunan | Select-Object -Unique)
+}
+function Show-Marka([string]$kind) {
+    $m = $Markalar[$kind]
+    if ($kind -eq 'diger') {
+        Info 'Desteklenen bir denetleyici arayüzü bulunamadı (Clevo, Alienware, Asus, Lenovo, MSI, HP, Acer, Gigabyte): bu bilgisayarın kendi uygulamasına, sürücülerine ve hizmetlerine DOKUNULMAYACAK'
+        Info 'Çalışacak: canlı izleme, işlemci ve ekran kartı ayarları, performans profilleri (işlemci / ekran kartı / ekran), ses ve ekran'
+        Info 'Bu bilgisayarda olmayan (arayüzde "kullanılamaz" görünür, hiçbir komut gönderilmez): fan eğrisi, denetleyici güç modu, klavye RGB, Fn tuşları'
+        return
+    }
+    Info "Cihaz: $($m.Ad) (denetleyici arayüzü: root\wmi $($m.Sinif))"
+    Info 'Yalnızca bu cihaza ait adımlar uygulanır: Monster/Clevo bileşenleri kurulmaz, hiçbir üretici yazılımı kaldırılmaz'
+    $apps = @(Get-UreticiUygulamasi $kind)
+    foreach ($a in $apps) { Info "Üretici yazılımı (DOKUNULMAYACAK): $a" }
+    if ($apps.Count) {
+        Info 'Üretici yazılımı da fan / güç modu / klavye ışığı ayarlıyorsa son ayarlayanın değeri geçerli olur; çakışma görürseniz o yazılımdaki aynı ayarı kapatın'
+    }
+}
+# Clevo'ya özgü dosyalar (uygulama klasörüne göre): başka bir markada diske kopyalanmaz
+$ClevoDosyalari = @('_internal\lib\InsydeDCHU.dll', '_internal\lib\GetProductdll.dll')
 
 # ---------------------------------------------------------------------------- envanter
 function Get-OldInventory {
@@ -331,11 +423,10 @@ function Restore-Drivers($before) {
 if ($Mode -eq 'Report') {
     $cs = Get-CimInstance Win32_ComputerSystem
     Info ("Bilgisayar: $($cs.Manufacturer) $($cs.Model)")
-    if (-not (Get-Clevo)) {
-        $script:StdOut.WriteLine('CIHAZ|diger')
-        Info 'Clevo/Monster gömülü denetleyicisi yok: bu bilgisayarın kendi Control Center / üretici uygulamasına, sürücülerine ve hizmetlerine DOKUNULMAYACAK'
-        Info 'Çalışacak: canlı izleme, işlemci ve ekran kartı ayarları, performans profilleri (işlemci / ekran kartı / ekran), ses ve ekran'
-        Info 'Bu bilgisayarda olmayan (arayüzde "kullanılamaz" görünür, hiçbir komut gönderilmez): fan eğrisi, denetleyici güç modu, klavye RGB, Monster Fn tuşları'
+    $cihaz = Get-Cihaz
+    if ($cihaz -ne 'clevo') {
+        $script:StdOut.WriteLine("CIHAZ|$cihaz")
+        Show-Marka $cihaz
         if (Test-Path $Exe) { Info "FCUK Control Center zaten kurulu: $Dest (güncellenecek)" }
         exit 0
     }
@@ -397,10 +488,12 @@ if ($Mode -eq 'Uninstall') {
 try {
     if (-not $Payload -or -not (Test-Path (Join-Path $Payload 'FCUKControlCenter.exe'))) { throw "Kurulum paketi bozuk: $Payload" }
     if (-not [Environment]::Is64BitOperatingSystem) { throw '64 bit Windows gerekli' }
-    $clevo = Get-Clevo
-    $script:StdOut.WriteLine($(if ($clevo) { 'CIHAZ|clevo' } else { 'CIHAZ|diger' }))
+    $cihaz = Get-Cihaz
+    $clevo = $cihaz -eq 'clevo'
+    $script:StdOut.WriteLine("CIHAZ|$cihaz")
     $cs = Get-CimInstance Win32_ComputerSystem
     Info ("Bilgisayar: $($cs.Manufacturer) $($cs.Model)")
+    Info ("Tespit edilen cihaz: " + $Markalar[$cihaz].Ad + " - kurulum buna göre yapılıyor")
 
     if ($RestorePoint) {
         Step 'Sistem geri yükleme noktası oluşturuluyor'
@@ -410,22 +503,25 @@ try {
         } catch { Info "Geri yükleme noktası oluşturulamadı ($($_.Exception.Message.Trim())). Kurulum yine de yedek alarak devam ediyor." }
     } else { Info 'Geri yükleme noktası istenmedi (sürücüler ve eski bileşenler yine yedeklenir)' }
 
-    if (-not $clevo) {
-        Info 'Clevo/Monster değil: başka üreticilerin Control Center uygulamalarına, sürücülerine ve hizmetlerine dokunulmuyor'
-    }
-    Step 'AcpiBridge sürücüleri yedekleniyor'
-    $drivers = @(if ($clevo) { Get-DriverState })
     New-Item -ItemType Directory -Force $Backup | Out-Null
-    if ($drivers.Count) {
-        $drv = Join-Path $Backup 'surucu'
-        New-Item -ItemType Directory -Force $drv | Out-Null
-        foreach ($inf in $drivers | ForEach-Object Inf | Select-Object -Unique) {
-            & pnputil.exe /export-driver $inf $drv | Out-Null
-            if ($LASTEXITCODE -eq 0) { Ok "Dışa aktarıldı: $inf" } else { Warn "Dışa aktarılamadı: $inf (pnputil $LASTEXITCODE)" }
-            $global:LASTEXITCODE = 0
-        }
-        $drivers | Format-Table -AutoSize | Out-String | Set-Content (Join-Path $Backup 'suruculer.txt') -Encoding UTF8
-    } else { Info 'AcpiBridge aygıtı yok: atlandı' }
+    $drivers = @()
+    if (-not $clevo) {
+        Step "$($Markalar[$cihaz].Ad) için kurulum hazırlanıyor"
+        Show-Marka $cihaz
+    } else {
+        Step 'AcpiBridge sürücüleri yedekleniyor'
+        $drivers = @(Get-DriverState)
+        if ($drivers.Count) {
+            $drv = Join-Path $Backup 'surucu'
+            New-Item -ItemType Directory -Force $drv | Out-Null
+            foreach ($inf in $drivers | ForEach-Object Inf | Select-Object -Unique) {
+                & pnputil.exe /export-driver $inf $drv | Out-Null
+                if ($LASTEXITCODE -eq 0) { Ok "Dışa aktarıldı: $inf" } else { Warn "Dışa aktarılamadı: $inf (pnputil $LASTEXITCODE)" }
+                $global:LASTEXITCODE = 0
+            }
+            $drivers | Format-Table -AutoSize | Out-String | Set-Content (Join-Path $Backup 'suruculer.txt') -Encoding UTF8
+        } else { Info 'AcpiBridge aygıtı yok: atlandı' }
+    }
 
     if ($clevo) {
         Step 'Eski Control Center taranıyor'
@@ -453,13 +549,19 @@ try {
     }
 
     Step "Dosyalar kopyalanıyor: $Dest"
-    if (-not (Copy-Tree $Payload $Dest -Mirror -ExcludeDirs $Veri)) {
+    # Clevo değilse Clevo'ya özgü DLL'ler kopyalanmaz; önceki bir kurulumdan kalmışsa silinir
+    $xf = @(if (-not $clevo) { $ClevoDosyalari | ForEach-Object { Split-Path $_ -Leaf } })
+    if (-not (Copy-Tree $Payload $Dest -Mirror -ExcludeDirs $Veri -ExcludeFiles $xf)) {
         Start-Sleep -Seconds 2; Stop-Fcuk
-        if (-not (Copy-Tree $Payload $Dest -Mirror -ExcludeDirs $Veri)) { throw "Dosyalar kopyalanamadı: $Dest" }
+        if (-not (Copy-Tree $Payload $Dest -Mirror -ExcludeDirs $Veri -ExcludeFiles $xf)) { throw "Dosyalar kopyalanamadı: $Dest" }
+    }
+    if (-not $clevo) {
+        foreach ($f in $ClevoDosyalari) { Remove-Item (Join-Path $Dest $f) -Force -ErrorAction SilentlyContinue }
+        Ok 'Clevo/Monster bileşenleri (InsydeDCHU.dll, GetProductdll.dll) bu cihaza kopyalanmadı'
     }
     Copy-Item $PSCommandPath (Join-Path $Dest 'kaldir.ps1') -Force
     $root = $Payload.TrimEnd('\')
-    $files = @(Get-ChildItem $root -Recurse -File)
+    $files = @(Get-ChildItem $root -Recurse -File | Where-Object { $clevo -or $xf -notcontains $_.Name })
     $bad = @($files | Where-Object {
         $t = Join-Path $Dest $_.FullName.Substring($root.Length + 1)
         -not (Test-Path -LiteralPath $t) -or (Get-Item -LiteralPath $t).Length -ne $_.Length })
@@ -471,6 +573,11 @@ try {
             ForEach-Object { Join-Path $_.FullName 'InsydeDCHU.dll' } | Where-Object { Test-Path $_ })
         if ($ds.Count) { Ok "InsydeDCHU.dll sürücü deposundan kullanılacak: $(Split-Path $ds[0] -Parent | Split-Path -Leaf)" }
         else { Warn 'InsydeDCHU.dll bulunamadı (pakette de sürücü deposunda da yok): fan / güç modu / klavye ışığı çalışmaz. AcpiBridge sürücüsünü kurun, bkz. lib\README.md' }
+    }
+    $kur = $Markalar[$cihaz].Kur
+    if ($kur) {
+        Step "$($Markalar[$cihaz].Ad) için cihaza özel kurulum adımları"
+        & $kur
     }
 
     Step 'Windows açılış görevleri kuruluyor (motor yönetici, tepsi normal yetki)'
@@ -499,6 +606,7 @@ try {
     foreach ($k in $props.Keys) { New-ItemProperty -Path $UninstKey -Name $k -Value $props[$k] -PropertyType String -Force | Out-Null }
     foreach ($k in 'NoModify', 'NoRepair') { New-ItemProperty -Path $UninstKey -Name $k -Value 1 -PropertyType DWord -Force | Out-Null }
     New-ItemProperty -Path $UninstKey -Name EstimatedSize -Value $size -PropertyType DWord -Force | Out-Null
+    New-ItemProperty -Path $UninstKey -Name FCUKCihaz -Value $cihaz -PropertyType String -Force | Out-Null  # tanı için: hangi cihaz yoluyla kuruldu
     Ok 'Ayarlar > Uygulamalar listesine eklendi'
 
     if ($NoLaunch) { Info 'Başlatma atlandı (-NoLaunch)' }
@@ -518,6 +626,10 @@ try {
             for ($i = 0; $i -lt 10 -and -not ($now -and $null -ne $now.cpu_rpm); $i++) { Start-Sleep -Milliseconds 700; $now = Invoke-Api '/api/now' }
             if ($now -and $null -ne $now.cpu_rpm) { Ok "Fan okuması: işlemci $($now.cpu_rpm) RPM, ekran kartı $($now.gpu_rpm) RPM, işlemci $($now.cpu_temp) °C" }
             else { Warn 'Fan okuması henüz gelmedi' }
+        } elseif ($cihaz -ne 'diger' -and $st) {
+            # Kurulum cihazı tanıdı; uygulamanın bu sürümünde o markanın denetleyici desteği var mı?
+            if ($st.ec -and "$($st.ec_kind)" -eq $cihaz) { Ok "$($Markalar[$cihaz].Ad) denetleyicisi bağlı: $($st.device)" }
+            else { Info "$($Markalar[$cihaz].Ad) denetleyici desteği bu sürümde etkin değil: fan / güç modu / klavye ışığı arayüzde 'kullanılamaz' görünür, donanıma komut gönderilmez" }
         } elseif ($st) { Ok "Arayüz durumu okundu: $($st.device)" }
         $tray = $null
         for ($i = 0; $i -lt 20 -and -not $tray; $i++) {
@@ -539,7 +651,7 @@ try {
         Info 'Yeniden başlatma gerekli: sürücü, hizmet ve Fn tuşu değişiklikleri için kurulumdan sonra bilgisayarı yeniden başlatın'
     } else {
         Ok 'Bu bilgisayarın kendi Control Center / üretici uygulamasına dokunulmadı; ikisi birlikte çalışır'
-        Info 'Fan eğrisi, denetleyici güç modu ve klavye RGB bu bilgisayarda yok: arayüzde "kullanılamaz" görünür, donanıma komut gönderilmez'
+        if ($cihaz -eq 'diger') { Info 'Fan eğrisi, denetleyici güç modu ve klavye RGB bu bilgisayarda yok: arayüzde "kullanılamaz" görünür, donanıma komut gönderilmez' }
         Info "Kayıt: $LogFile"
     }
 } catch {

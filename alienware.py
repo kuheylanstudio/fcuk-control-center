@@ -22,6 +22,10 @@ Clevo'dan temel fark: Clevo'da ozel fan egrisini denetleyicinin kendisi calistir
 "Ozel" (0x00) profilde her fana takviye degeri yazilir. Egriyi bu yuzden bu modul saniyede bir uygular
 (Alienware Command Center ve alienfx-tools da boyle yapar). Uygulama kapanirken ya da sicaklik okunamazsa
 fanlar denetleyicinin kendi profiline birakilir.
+
+Alienware Fn tuslari (Stealth, G-mode) ve AWCC profili uygulamadan bagimsiz degistirebilir; uygulama bunlari
+engellemez. Etkin profil her saniye (egri dongusu) ve her durum okumasinda denetlenir: disaridan degistiyse
+ozel fan egrisi durur ve arayuz gercek guc modunu gosterir (_sync).
 """
 import os
 import sys
@@ -49,6 +53,8 @@ MODE_PREFS = {
     2: ["gmode", "perf", "balperf", "balanced"],       # Performans
     3: ["balanced", "balperf"],                        # Eglence (gunluk denge)
 }
+# Disaridan (Fn tusu, AWCC) secilen bir profilin uygulamadaki karsiligi: arayuz gercek modu gostersin diye
+NAME_MODE = {"quiet": 0, "cool": 0, "lowpower": 1, "balanced": 3, "balperf": 3, "perf": 2, "gmode": 2}
 GPU_FANS = {0x33, 0x3C}           # GPU1, GPU2; digerleri islemci tarafi sayilir
 SENSOR_CPU, SENSOR_GPU = 0x01, 0x06
 FAN_AUTO, FAN_MAX, FAN_CUSTOM = 0, 1, 6  # donanim.py ile ayni
@@ -307,17 +313,37 @@ class AlienwareEC:
         return s["cpu_temp"], s["gpu_temp"]
 
     # ------------------------------------------------------------------ guc modu
+    def _sync(self):
+        """Etkin profili denetleyiciden okur ve disaridan bir degisikligi (Alienware Fn tuslari: Stealth, G-mode;
+        Alienware Command Center) benimser: uygulamanin ozel fan modu biter (takviye sifirlanir, fanlar o profilin
+        tablosuna kalir) ve guc modu o profilden okunur. Uygulama profili GERI ALMAZ; son secen kazanir.
+        Donus: etkin profil kimligi ya da (okunamazsa) None."""
+        with self.lock:
+            try:
+                cur = self.awcc.info(OP_PROFILE) & 0xFF
+            except AwccError:
+                return None
+            if cur == P_CUSTOM:  # bizim ozel fan modumuz (ya da AWCC'de elle ozel mod)
+                return cur
+            if self._fan != FAN_AUTO:  # biz "Ozel"deydik, biri baska profile gecti
+                self._stop_curve()
+                self._fan = FAN_AUTO
+                for f in self.th.fans:
+                    try:
+                        self._set_boost(f, 0)
+                    except AwccError:
+                        pass
+            if self._mode is None or self.th.profile_for_mode(self._mode) != cur:
+                m = NAME_MODE.get(PROFILE_NAMES.get(cur))
+                if m is not None:
+                    self._mode = m
+            return cur
+
     def power_mode(self):
+        cur = self._sync()
         if self._mode is not None:
             return self._mode
-        try:
-            cur = self.awcc.info(OP_PROFILE) & 0xFF
-        except AwccError:
-            return None
-        for mode in (2, 0, 1, 3):
-            if self.th.profile_for_mode(mode) == cur:
-                return mode
-        return 3
+        return None if cur is None else 3
 
     def _gmode_on(self):
         return bool(self.awcc.call(M_GAMESHIFT, 0x02) & 0xFF)
@@ -345,6 +371,8 @@ class AlienwareEC:
 
     # ------------------------------------------------------------------ fan
     def fan_mode(self):
+        if self._fan != FAN_AUTO:  # en cok fan modu icin dongu yok: dis degisiklik burada yakalanir
+            self._sync()
         return self._fan
 
     def _base_profile(self):
@@ -431,6 +459,9 @@ class AlienwareEC:
         while not stop.wait(self._period):
             with self.lock:
                 if stop.is_set() or self._fan != FAN_CUSTOM:
+                    return
+                self._sync()  # Fn tusu ya da AWCC profili degistirdiyse egri durur, takviye yazilmaz
+                if self._fan != FAN_CUSTOM:
                     return
                 try:
                     ok = self._curve_step()

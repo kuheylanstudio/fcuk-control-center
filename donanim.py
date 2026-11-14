@@ -436,6 +436,18 @@ def open_dchu():
             ec, err = None, str(exc)
         if ec is not None:
             return ec
+        # Asus ROG/TUF: yalnizca uretici ASUSTeK ve AsusAtkWmi_WMNB varsa (asus_rog.py). Ozellikler tek tek
+        # DSTS ile sinanir; olmayan ozellige hicbir komut gitmez.
+        try:
+            import asus_rog
+            if asus_rog.asus_present():
+                try:
+                    return asus_rog.open_asus()
+                except Exception as exc:
+                    msg = ceviri.t("err.asusOpen", err=exc)
+                    return NullDCHU(msg, clevo=False, message=msg)
+        except Exception:
+            pass
         if err:  # Alienware/Dell ama arayuz acilamadi (cogu zaman yonetici yetkisi yok)
             msg = ceviri.t("err.awOpen", err=err)
             return NullDCHU(msg, clevo=False, message=msg)
@@ -818,7 +830,7 @@ class Sensors(threading.Thread):
             "energy": r"\Energy Meter(*)\Power",
             "gpu": r"\GPU Engine(*)\Utilization Percentage",
         }
-        if not self.dchu.available:  # denetleyici yoksa islemci sicakligi icin ACPI isi bolgesi (Kelvin)
+        if not getattr(self.dchu, "ec_temps", self.dchu.available):  # denetleyici (ya da sicakligi) yoksa islemci sicakligi icin ACPI isi bolgesi (Kelvin)
             counters["tz"] = r"\Thermal Zone Information(*)\Temperature"
         pdh = Pdh(counters)
         last_net = last_disk = None

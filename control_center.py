@@ -31,13 +31,14 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import ceviri
 import donanim as hw
 import envanter
+import guncelleme
 import islemci
 import klavye_rgb as core
 import nvidia
 import profiller
 from ceviri import t
 
-VERSION = "2.0.4"
+VERSION = "2.1.0"
 PORT = 47815
 HOSTS = ("127.0.0.1:%d" % PORT, "localhost:%d" % PORT)
 BASE = "http://127.0.0.1:%d" % PORT
@@ -59,6 +60,7 @@ BROWSERS = (
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",
 )
 HEX = re.compile(r"#[0-9a-fA-F]{6}")
+UPDATE_MODES = ("auto", "manual")
 SPEED_KEY = {"Hız": "mode.speed", "Tepki hızı": "mode.react"}  # klavye_rgb.MODES hiz etiketi -> ceviri
 
 
@@ -130,6 +132,7 @@ class App:
     nvcard = None  # NVML sabit bilgileri: karti uyandirdigi icin NVIDIA sayfasi ilk acilinca okunur
     notices = []  # kullaniciya gosterilecek uyarilar: [{"id", "text"}]; arayuz ve tepsi gosterir
     crash_log = None
+    updater = None  # guncelleme.Updater: GitHub'dan yeni surum denetimi / indirme / kurulum
 
 
 def log(msg):
@@ -206,6 +209,7 @@ def _mode_values(mid, vals, base):
         out["source"] = src if src in [s[0] for s in core.SOURCES] else base.get("source", "cpu_temp")
     if mid == "oyun":
         keys = vals.get("keys")
+        keys = "cs" if keys == "fps" else keys  # 2.0.4 gelistirme surumundeki genel FPS duzeni -> CS2
         out["keys"] = keys if keys in core.GAME_LAYOUTS else base.get("keys", "lol")
     return out
 
@@ -216,7 +220,8 @@ def sanitize(raw, current):
     cfg = {"mode": raw.get("mode") if raw.get("mode") in core.MODE_IDS else current["mode"],
            "brightness": _int(raw.get("brightness"), 0, 100, current["brightness"]),
            "autostart": bool(current.get("autostart")),
-           "modes": {}, "presets": {}, "cc": current["cc"], "lang": current.get("lang", "auto")}
+           "modes": {}, "presets": {}, "cc": current["cc"], "lang": current.get("lang", "auto"),
+           "update_mode": current.get("update_mode", "auto")}
     modes = raw.get("modes") if isinstance(raw.get("modes"), dict) else {}
     for mid in core.MODE_IDS:
         cfg["modes"][mid] = _mode_values(mid, modes.get(mid), current["modes"][mid])
@@ -264,6 +269,9 @@ def sanitize_loaded(raw):
                      for mid in core.MODE_IDS}
     cfg = sanitize(full, base)
     cfg["autostart"] = bool(raw.get("autostart"))
+    # Guncelleme: "auto" (denetle, indir, kur) ya da "manual" (yalnizca bildir). Eski "updates": false -> manual
+    mode = raw.get("update_mode")
+    cfg["update_mode"] = mode if mode in UPDATE_MODES else ("manual" if raw.get("updates") is False else "auto")
     cfg["cc"] = sanitize_cc(raw.get("cc"))
     lang = raw.get("lang")
     cfg["lang"] = lang if lang == "auto" or lang in ceviri.CODES else "auto"
@@ -497,6 +505,7 @@ def state():
         "sources": [{"id": s[0], "label": t("src." + s[0])} for s in core.SOURCES],
         "layouts": [{"id": k, "label": t("keys." + k)} for k in core.GAME_LAYOUTS],
         "slots": [t("slot." + k) for k in core.GAME_SLOTS],
+        "slotsUsed": core.GAME_SLOTS_USED,
         "lang": ceviri.lang(),
         "lang_setting": App.cfg.get("lang", "auto"),
         "lang_detected": ceviri.detect(),
@@ -515,11 +524,14 @@ def state():
         "kb_reason": getattr(App.dchu, "kb_reason", ""),
         "ec_clevo": bool(getattr(App.dchu, "clevo", True)),  # aygit var, yalnizca kitaplik yok
         "ec_reason": getattr(App.dchu, "reason", ""),
+        "asus": App.dchu.features() if App.dchu.kind == "asus" else None,  # yalnizca desteklenen Asus ozellikleri
         "cpu": App.inventory.data.get("cpu"),
         "nvidia": bool(App.sensors.gpu_name),
         "igpu_name": App.sensors.igpu_name,
         "trusted_install": trusted_install(),
         "notices": list(App.notices),
+        "update": App.updater.status() if App.updater else None,
+        "update_mode": App.cfg.get("update_mode", "auto"),
     }
 
 
@@ -638,7 +650,8 @@ class Handler(BaseHTTPRequestHandler):
                 "profile": mgr.applied, "guard": mgr.guard, "lang": ceviri.lang(),
                 "profiles": [{"id": p["id"], "name": profiller.name(p["id"]), "ac_only": bool(p.get("ac_only"))}
                              for p in profiller.PROFILES],
-                "ec": App.dchu.available, "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
+                "ec": App.dchu.available and getattr(App.dchu, "fan_control", True),  # tepsi fan menusu
+                "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
                 "gpu_state": s.get("gpu_state"), "cpu_power": s.get("cpu_power"),
                 "ac": (s.get("battery") or {}).get("ac", True), "notices": list(App.notices)})
         if path == "/api/now":  # yalnizca son olcum (gecmissiz): ek sayfalar saniyede bir okur
@@ -649,6 +662,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(nvidia_state())
         if path == "/api/cpu":
             return self._json(cpu_state())
+        if path == "/api/update":
+            return self._json(App.updater.status())
         if path == "/api/events":
             return self._events()
         return self._json({"error": "not found"}, 404)
@@ -675,7 +690,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             while eng.running:
                 v = eng.value
-                msg = {"c": eng.current, "info": eng.info, "err": eng.error,
+                msg = {"c": eng.current, "info": eng.info, "err": eng.error, "w": eng.warn,
                        "v": None if v is None else round(v, 3)}
                 if sen.seq != seq:
                     seq = sen.seq
@@ -744,6 +759,13 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 return self._json({"error": t("err.fanMode")}, 400)
             return self._json({"ok": True, "cc": mgr.status()})
+        if path == "/api/asus":  # sarj siniri / ekran karti modu (asus_rog.AsusRog.handle)
+            if App.dchu.kind != "asus":
+                return self._json({"error": t("asus.unsupported")}, 400)
+            try:
+                return self._json(dict(App.dchu.handle(body), ok=True))
+            except (hw.Unsupported, ValueError) as exc:
+                return self._json({"error": str(exc), "asus": App.dchu.features()}, 400)
         if path == "/api/audio":
             which = body.get("which")
             if which not in ("speaker", "mic"):
@@ -800,6 +822,8 @@ class Handler(BaseHTTPRequestHandler):
             self._json({"ok": True, "restarting": True})
             threading.Thread(target=shutdown, daemon=True).start()
             return None
+        if path == "/api/update":
+            return self._update(body)
         if path == "/api/lang":
             setting = body.get("lang")
             if setting != "auto" and setting not in ceviri.CODES:
@@ -828,6 +852,39 @@ class Handler(BaseHTTPRequestHandler):
             threading.Thread(target=shutdown, daemon=True).start()
             return None
         return self._json({"error": "not found"}, 404)
+
+
+    def _update(self, body):
+        """Guncelleme: {"action": "check" | "download" | "install" | "mode", "mode": "auto" | "manual"}"""
+        up, act = App.updater, body.get("action")
+        if act == "mode":
+            mode = body.get("mode")
+            if mode not in UPDATE_MODES:
+                return self._json({"error": t("err.action")}, 400)
+            with App.lock:
+                App.cfg["update_mode"] = mode
+                core.save_config(App.cfg)
+            if mode == "auto":  # otomatige gecince bekleyen surum hemen indirilip kurulur
+                up.run_async(lambda: up.automatic("auto"))
+            return self._json(dict(up.status(), ok=True, update_mode=mode))
+        if act == "check":
+            mode = App.cfg.get("update_mode", "auto")
+            up.run_async(lambda: up.automatic(mode))
+        elif act == "download":
+            up.run_async(up.download)
+        elif act == "cancel":
+            up.cancel()
+        elif act == "install":
+            if up.install_now():
+                return self._json(dict(up.status(), ok=True))
+            if not up.can_install:
+                return self._json(dict(up.status(), error=t("upd.notInstalled")), 400)
+            if not up.run_async(up.fetch_and_install):
+                return self._json(dict(up.status(), error=t("upd.busy")), 409)
+        else:
+            return self._json({"error": t("err.action")}, 400)
+        time.sleep(0.05)  # is parcacigi durumu degistirsin (checking / downloading)
+        return self._json(dict(up.status(), ok=True))
 
 
 class Server(ThreadingHTTPServer):
@@ -1006,6 +1063,13 @@ def serve():
     App.engine.settings = core.snapshot(App.cfg)
     App.engine.start()
     App.sensors.start()
+    App.updater = guncelleme.Updater(
+        VERSION, os.path.join(core.CONFIG_DIR, "guncelleme"), FROZEN, hw.is_admin, log,
+        lambda v: notice(t("upd.readyNotice", v=v)), lambda v: notice(t("upd.banner", v=v)),
+        lambda v, s: notice(t("upd.autoNotice", v=v, s=guncelleme.AUTO_DELAY) + (" " + s if s else "")))
+    App.updater.cleanup()
+    threading.Thread(target=App.updater.loop, daemon=True,
+                     args=(lambda: App.cfg.get("update_mode", "auto"), lambda: App.engine.running)).start()
     if hw.is_admin() and App.dchu.kind == "clevo":  # yalnizca Clevo/Monster: Monster Fn programlari engellenir
         threading.Thread(target=fn_block_loop, daemon=True).start()
     if cc.get("profile") in profiller.BY_ID:  # yeniden baslatmadan sonra denetleyici ayarlari geri gelsin

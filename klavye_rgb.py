@@ -42,7 +42,8 @@ MODES = [
     ("sistem", "Sistem durumu", True, None, "Seçtiğin değere göre: düşükken ilk renk, yüksekken son renk."),
     ("ekran", "Ekran rengi", False, "Tepki hızı", "Ekrandaki baskın rengi klavyeye yansıtır."),
     ("oyun", "Oyun tepkisi", True, "Tepki hızı",
-     "Ateş etme ve yetenek tuşlarında parlar; LoL'de kill, ölüm, can ve ulti olaylarına tepki verir."),
+     "Can yüksekken yeşil, azaldıkça kırmızıya döner; %35'in altında kalp atışı. Ateş, yetenek, kill ve "
+     "ölümde parlar. LoL ve Counter-Strike 2."),
 ]
 MODE_IDS = [m[0] for m in MODES]
 SOURCES = [
@@ -52,7 +53,8 @@ SOURCES = [
     ("battery", "Pil seviyesi (%0-100)"),
 ]
 # Oyun modu tus duzenleri ve renk yuvalari (palet sirasi sabittir)
-GAME_LAYOUTS = ["lol", "fps"]
+GAME_LAYOUTS = ["lol", "cs"]
+GAME_SLOTS_USED = {"lol": [0, 1, 2, 3, 4, 5, 6], "cs": [0, 1]}  # duzende kullanilan yuvalar
 GAME_SLOTS = ["bg", "fire", "q", "w", "e", "r", "spell"]
 DEFAULTS = {
     "mode": "gecis",
@@ -288,7 +290,7 @@ class SystemInfo:
 
 
 # ----------------------------------------------------------------------------- oyun efektleri
-# LoL olaylarinin renkleri ve sureleri (sn): (renk ya da None=gokkusagi, sure, bicim)
+# LoL / CS2 olaylarinin renkleri ve sureleri (sn): (renk ya da None=gokkusagi, sure, bicim)
 GAME_EVENTS = {
     "kill": ((255, 196, 0), 0.9, "pop"),
     "assist": ((0, 229, 255), 0.5, "pop"),
@@ -301,7 +303,27 @@ GAME_EVENTS = {
     "ace": ((255, 255, 255), 1.6, "double"),
     "win": (None, 5.0, "rainbow"),
     "lose": ((255, 0, 0), 3.0, "slow"),
+    "hit": ((255, 0, 0), 0.35, "pop"),          # CS2: hasar aldin
+    "bomb": ((255, 0, 0), 1.5, "double"),       # CS2: bomba kuruldu
+    "defused": ((0, 120, 255), 1.5, "double"),  # CS2: bomba imha edildi
+    "exploded": ((255, 120, 0), 2.0, "pop"),    # CS2: bomba patladi
 }
+HEALTH_GREEN = 0.5   # bu oranin ustunde tam yesil
+HEALTH_BEAT = 0.35   # bu oran ve altinda kalp atisi
+
+
+def health_color(h):
+    """Can orani -> renk: %50 ve ustu yesil, %50'den %1'e dogru sariya ve kirmiziya kayar."""
+    if h >= HEALTH_GREEN:
+        return (0.0, 255.0, 0.0)
+    t = clamp((HEALTH_GREEN - h) / (HEALTH_GREEN - 0.01))
+    r, g, b = colorsys.hsv_to_rgb((1.0 - t) / 3.0, 1.0, 1.0)  # ton 120 derece -> 0 derece
+    return (r * 255, g * 255, b * 255)
+
+
+def heartbeat(x):
+    """Kalp atisi bicimi (0..1 periyot): guclu vurus + daha zayif ikinci vurus."""
+    return max(math.exp(-((x - 0.12) / 0.06) ** 2), 0.65 * math.exp(-((x - 0.34) / 0.08) ** 2))
 
 
 def game_envelope(shape, x):
@@ -309,7 +331,7 @@ def game_envelope(shape, x):
     if shape == "pop":
         return (1.0 - x) ** 2
     if shape == "double":  # ulti / hedef: iki guclu vurus
-        return max(math.exp(-((x - 0.05) / 0.08) ** 2), 0.9 * math.exp(-((x - 0.35) / 0.1) ** 2), (1.0 - x) ** 3 * 0.5)
+        return max(math.exp(-(x / 0.12) ** 2), 0.9 *math.exp(-((x - 0.35) / 0.1) ** 2), (1.0 - x) ** 3 * 0.5)
     if shape == "rainbow":
         return 1.0 - x ** 3
     if shape == "slow":
@@ -318,13 +340,31 @@ def game_envelope(shape, x):
 
 
 class GameFx:
-    """Oyun modunun durumu: aktif parlamalar ve basili tutulan tuslar -> renk."""
+    """Oyun modunun durumu -> renk. Taban renk cana gore (yesil -> kirmizi), uzerine aksiyon parlamalari.
+
+    Her karede yapilan is: birkac GetAsyncKeyState cagrisi ve bir kac carpma; ag/disk isi ayri is
+    parcaciklarinda (LoL yoklamasi) ya da yalnizca oyun veri yolladiginda (CS2) yapilir."""
     SLOT = {name: i for i, name in enumerate(GAME_SLOTS)}
 
     def __init__(self):
         self.keys = oyun.KeyWatcher()
-        self.lol = None
+        self.sources = {}  # duzen -> kaynak (ilk kullanildiginda olusur)
         self.flashes = []  # [renk ya da None, baslangic, sure, bicim]
+        self.shown = None  # yumusatilmis can orani
+        self.beat = 0.0
+        self.last = None
+        self.on = False
+
+    def source(self, layout):
+        src = self.sources.get(layout)
+        if src is None:
+            if layout == "lol":
+                src = oyun.LolClient()
+                src.start()
+            else:
+                src = oyun.CsClient()
+            self.sources[layout] = src
+        return src
 
     def flash(self, col, now, dur, shape):
         self.flashes.append([col, now, dur, shape])
@@ -332,38 +372,47 @@ class GameFx:
 
     def frame(self, pal, speed, layout, now):
         """(renk, bilgi metni, olculen deger ya da None)."""
+        self.on = True
+        if layout not in GAME_LAYOUTS:
+            layout = GAME_LAYOUTS[0]
+        dt = 0.0 if self.last is None else min(0.5, max(0.0, now - self.last))
+        self.last = now
         pal = list(pal) + [(255, 255, 255)] * (len(GAME_SLOTS) - len(pal))
-        if self.lol is None:
-            self.lol = oyun.LolClient()
-            self.lol.start()
-        self.lol.wanted = layout == "lol"
+        src = self.source(layout)
+        for name, other in self.sources.items():  # yalnizca secili oyun dinlenir
+            other.wanted = name == layout
+        if isinstance(src, oyun.CsClient):
+            src.tick(now)
         fade = period(speed, 1.0, 0.12)
         pressed, held = self.keys.poll(layout, now)
         for fx in pressed:
             col = pal[self.SLOT[fx]]
             if fx == "r":
                 self.flash(col, now, fade * 3.0, "double")
-            elif fx != "fire":
-                self.flash(col, now, fade, "pop")
-            else:
+            elif fx == "fire":
                 self.flash(col, now, fade * 0.7, "pop")
-        lol = self.lol
-        live = layout == "lol" and lol.connected
-        if live:
-            for ev in lol.pop_events():
-                col, dur, shape = GAME_EVENTS.get(ev, ((255, 255, 255), 0.6, "pop"))
-                self.flash(col, now, dur, shape)
-        base = pal[0]
-        value = None
-        if live:
-            value = lol.health
-            if lol.dead:
-                base = (25, 25, 30)
-            elif lol.health is not None and lol.health < 0.35:
-                # can azaldikca hizlanan kirmizi kalp atisi
-                rate = 1.0 + (0.35 - lol.health) / 0.35 * 2.5
-                beat = math.sin(math.pi * ((now * rate) % 1.0)) ** 6
-                base = mix(base, (255, 0, 0), 0.25 + 0.6 * beat)
+            else:
+                self.flash(col, now, fade, "pop")
+        live = src.connected
+        for ev in src.pop_events():
+            col, dur, shape = GAME_EVENTS.get(ev, ((255, 255, 255), 0.6, "pop"))
+            self.flash(col, now, dur, shape)
+        health = src.health if live else None
+        if health is None:
+            self.shown = None
+            base = pal[0]
+        else:
+            self.shown = health if self.shown is None else self.shown + (health - self.shown) * min(1.0, dt * 6.0)
+            h = self.shown
+            if src.dead or health <= 0.0:
+                base = (25.0, 25.0, 30.0)
+            else:
+                base = health_color(h)
+                if h <= HEALTH_BEAT:  # can azaldikca hizlanan kalp atisi (yaklasik 65 -> 160 vurus/dk)
+                    self.beat += dt * (1.1 + clamp((HEALTH_BEAT - h) / (HEALTH_BEAT - 0.01)) * 1.6)
+                    base = scale(base, 0.22 + 0.78 * heartbeat(self.beat % 1.0))
+            if src.burning:
+                base = mix(base, (255, 90, 0), 0.45 + 0.35 * math.sin(now * 2 * math.pi * 7) ** 2)
         col = base
         alive = []
         for f in self.flashes:
@@ -379,22 +428,37 @@ class GameFx:
         self.flashes = alive
         if "fire" in held:  # otomatik silah: basili tutuldukca titresin
             col = mix(col, pal[1], 0.55 + 0.45 * math.sin(now * 2 * math.pi * 12) ** 2)
-        if layout == "lol":
-            if live:
-                info = ceviri.t("info.lolLive", v=ceviri.pct(round((lol.health or 0) * 100)))
-                if lol.dead:
-                    info = ceviri.t("info.lolDead")
-            elif self.keys.active(layout):
-                info = ceviri.t("info.lolWait")
-            else:
-                info = ceviri.t("info.gameWaitLol")
-        else:
-            info = ceviri.t("info.gameKeys") if self.keys.active(layout) else ceviri.t("info.gameWaitFps")
-        return col, info, value
+        if live and src.flashed > 0.0:  # CS2 flas bombasi: gozun kadar klavye de beyaz
+            col = mix(col, (255, 255, 255), src.flashed)
+        return col, self.describe(layout, src, live, health), health
+
+    def warning(self, layout):
+        """Kullaniciya gosterilecek uyari: on plandaki program tanimlanamiyorsa tus tepkisi calismaz."""
+        if self.keys.unrecognized:
+            return ceviri.t("info.gameUnknown", game="LoL" if layout == "lol" else "CS2")
+        return ""
+
+    def describe(self, layout, src, live, health):
+        game = "LoL" if layout == "lol" else "CS2"
+        if live and health is not None:
+            if src.dead or health <= 0.0:
+                return ceviri.t("info.gameDead", game=game)
+            return ceviri.t("info.gameLive", game=game, v=ceviri.pct(round(health * 100)))
+        if layout == "cs" and src.problem == "nocfg":
+            return ceviri.t("info.csNoCfg")
+        if layout == "cs" and src.problem == "port":
+            return ceviri.t("info.csPort", port=oyun.CS_PORT)
+        if self.keys.active(layout):
+            return ceviri.t("info.lolWait" if layout == "lol" else "info.csWait")
+        return ceviri.t("info.gameWaitLol" if layout == "lol" else "info.gameWaitCs")
 
     def stop(self):
-        if self.lol is not None:
-            self.lol.wanted = False
+        self.on = False
+        self.last = None
+        for src in self.sources.values():
+            src.wanted = False
+            if isinstance(src, oyun.CsClient):
+                src.tick(time.monotonic())
 
 
 # ----------------------------------------------------------------------------- motor
@@ -410,6 +474,7 @@ class Engine(threading.Thread):
         self.info = ""
         self.value = None  # ses/sistem modlarinda 0..1 arasi olculen deger
         self.error = ""
+        self.warn = ""  # kalici olmayan uyari (ornegin oyun penceresi tanimlanamadi)
         self.running = True
 
     def run(self):
@@ -428,11 +493,12 @@ class Engine(threading.Thread):
             last = now
             mode, pal, speed, source, bright = self.settings
             value = None
+            warn = ""
             kb_ok = getattr(self.kb, "kb_available", getattr(self.kb, "available", True))  # Alienware: ayri
             if not kb_ok and mode in ("ses", "ekran", "sistem", "oyun"):
                 mode = "sabit"  # klavye isigi yok: ses/ekran ornekleme ve olcum bosuna calismasin
-            if mode != "oyun" and game is not None:
-                game.stop()  # LoL yoklamasi yalnizca Oyun modundayken
+            if mode != "oyun" and game is not None and game.on:
+                game.stop()  # oyun kaynaklari yalnizca Oyun modundayken dinlenir (moddan cikista bir kez)
             try:
                 if mode == "sabit":
                     col = pal[0] if pal else (255, 255, 255)
@@ -501,11 +567,13 @@ class Engine(threading.Thread):
                     if game is None:
                         game = GameFx()
                     col, self.info, value = game.frame(pal, speed, source, now)
+                    warn = game.warning(source if source in GAME_LAYOUTS else GAME_LAYOUTS[0])
                 else:
                     col = (255, 255, 255)
                 out = tuple(int(clamp(c * bright / 255.0) * 255 + 0.5) for c in col)
                 self.current = out
                 self.value = value
+                self.warn = warn
                 if out != sent or now - sent_at > 1.0:  # uyku/Fn tusu sonrasi rengi geri getirmek icin tekrar yolla
                     self.kb.set_color(*out)
                     sent, sent_at = out, now

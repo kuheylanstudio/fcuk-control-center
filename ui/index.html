@@ -164,6 +164,7 @@ select:hover{border-color:var(--text-3)}
 .hex{font:600 var(--fs-7)/.9 var(--f-display);font-variant-numeric:tabular-nums;letter-spacing:.02em;text-transform:uppercase;color:var(--live-ink);min-width:7.6ch;white-space:nowrap}
 .info{font:500 var(--fs-5)/1 var(--f-display);font-variant-numeric:tabular-nums;color:var(--text);min-height:20px;white-space:nowrap}
 .info.err{color:var(--danger);white-space:normal;font-size:var(--fs-3)}
+.info.warn{color:var(--warn);white-space:normal;font-size:var(--fs-3)}
 .cell.grow{flex:1 1 200px}
 .row{display:flex;align-items:center;gap:var(--s-3)}
 output{font:500 var(--fs-3)/1 var(--f-display);font-variant-numeric:tabular-nums;color:var(--text-2)}
@@ -269,6 +270,25 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
   transform:translateX(-50%);transition:opacity var(--t-med) var(--ease-out)}
 .banner.info{border-color:var(--live-ink)}
 .banner.closed{opacity:0;visibility:hidden;transition:opacity var(--t-fast) var(--ease-in),visibility 0s var(--t-fast)}
+/* guncelleme: kurulumdan once yenilikler */
+.upd-dlg{width:min(620px,calc(100% - 32px));max-height:min(80vh,720px);padding:0;background:var(--surface);color:var(--text);border:1px solid var(--line-strong);border-radius:var(--r-3)}
+.upd-dlg[open]{display:grid;grid-template-rows:auto minmax(0,1fr) auto}
+.upd-dlg::backdrop{background:rgb(0 0 0 / .6)}
+.upd-dlg header{padding:var(--s-4) var(--s-5) var(--s-3);border-bottom:1px solid var(--line)}
+.upd-dlg h2{margin:0;font:600 var(--fs-5)/1.2 var(--f-display);color:var(--text-hi)}
+.upd-dlg header p{margin:var(--s-1) 0 0;color:var(--text-2);font-size:var(--fs-3)}
+.upd-body{overflow:auto;padding:var(--s-3) var(--s-5);display:grid;gap:var(--s-4);align-content:start}
+.upd-ver{display:grid;gap:var(--s-2)}
+.upd-ver h3{margin:0;display:flex;gap:var(--s-2);align-items:baseline;font:600 var(--fs-4)/1.2 var(--f-display);color:var(--text-hi)}
+.upd-ver h3 small{color:var(--text-3);font-weight:400;font-size:var(--fs-2)}
+.upd-ver h4{margin:var(--s-1) 0 0;font-size:var(--fs-3);color:var(--text)}
+.upd-ver p,.upd-ver ul{margin:0;color:var(--text-2);font-size:var(--fs-3);line-height:1.5}
+.upd-ver ul{padding-left:var(--s-5);display:grid;gap:var(--s-1);list-style:disc}
+.upd-ver li{display:list-item}
+.upd-ver b{color:var(--text)}
+.upd-ver code{font-family:ui-monospace,Consolas,monospace;font-size:.92em;color:var(--text);overflow-wrap:anywhere}
+.upd-dlg footer{display:flex;flex-wrap:wrap;gap:var(--s-2);align-items:center;justify-content:flex-end;padding:var(--s-3) var(--s-5) var(--s-4);border-top:1px solid var(--line)}
+.upd-dlg footer .hint{margin-right:auto}
 
 @media (max-width:1100px){
   .prof-row{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -536,6 +556,22 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
             <p class="hint" data-i18n="set.startupHint">Açılışta son seçtiğin profil yeniden uygulanır; denetleyici bazı ayarları yeniden başlatmada sıfırlar.</p>
           </div>
           <div class="tile form">
+            <span class="lbl" data-i18n="upd.title">Güncellemeler</span>
+            <label class="lbl" for="updMode" data-i18n="upd.mode">Güncelleme yöntemi</label>
+            <select id="updMode">
+              <option value="auto" data-i18n="upd.modeAuto">Otomatik: denetle, indir ve kur</option>
+              <option value="manual" data-i18n="upd.modeManual">Elle: yalnızca bildir, ben kurarım</option>
+            </select>
+            <p class="hint" id="updModeHint"></p>
+            <p id="updTxt" role="status" aria-live="polite"></p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn" id="updCheck" type="button" data-i18n="upd.check">Şimdi denetle</button>
+              <button class="btn" id="updNotes" type="button" hidden data-i18n="upd.whatsNew">Neler değişti?</button>
+              <button class="btn solid" id="updInstall" type="button" hidden data-i18n="upd.install">Kur ve yeniden başlat</button>
+            </div>
+            <p class="hint"><span data-i18n="upd.hint">Güncellemeler GitHub'daki resmi sürüm sayfasından indirilir ve kurulmadan önce SHA-256 özetiyle doğrulanır.</span> <a id="updPage" href="#" target="_blank" rel="noopener" data-i18n="upd.page">Sürüm sayfası</a></p>
+          </div>
+          <div class="tile form">
             <span class="lbl" data-i18n="set.engine">Motor</span>
             <p class="hint" data-i18n="set.engineHint">Kapatınca profil, fan eğrisi ve klavye son halinde kalır. Canlı ölçüm, otomatik geçiş ve ısı koruması durur.</p>
             <div><button class="btn danger" id="quit" type="button" data-i18n="set.quit">Motoru kapat</button></div>
@@ -561,6 +597,18 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
   </div>
 </div>
 <div class="banner closed" id="banner" role="status"></div>
+<dialog class="upd-dlg" id="updDlg" aria-labelledby="updDlgTitle">
+  <header>
+    <h2 id="updDlgTitle"></h2>
+    <p id="updDlgSub"></p>
+  </header>
+  <div class="upd-body" id="updDlgBody"></div>
+  <footer>
+    <span class="hint" id="updDlgCount" role="status" aria-live="polite"></span>
+    <button class="btn" id="updDlgCancel" type="button" data-i18n="upd.later">Şimdi değil</button>
+    <button class="btn solid" id="updDlgInstall" type="button" data-i18n="upd.install">Kur ve yeniden başlat</button>
+  </footer>
+</dialog>
 
 <script>
 (() => {
@@ -671,8 +719,9 @@ function paintLive() {
   $('#hex').textContent = rgbToHex(d.c);
   const info = $('#info');
   info.classList.toggle('err', !!d.err);
-  info.textContent = d.err ? t('kb.error', { err: d.err }) : d.info;
-  $('#infoCell').hidden = !(d.err || d.info);
+  info.classList.toggle('warn', !d.err && !!d.w);
+  info.textContent = d.err ? t('kb.error', { err: d.err }) : (d.w || d.info);
+  $('#infoCell').hidden = !(d.err || d.w || d.info);
   const m = $('#meter');
   if (m && d.v != null) {
     m.firstElementChild.style.setProperty('--v', d.v);
@@ -991,6 +1040,9 @@ function renderSettingsPage() {
   setText('aboutGpu', meta.gpu_name || '–');
   setText('aboutDll', meta.dll || '–');
   setText('verNote', t('set.verNote', { v: meta.version }));
+  $('#updMode').value = meta.update_mode || 'auto';
+  setText('updModeHint', t(meta.update_mode === 'manual' ? 'upd.modeManualHint' : 'upd.modeAutoHint'));
+  renderUpdate(meta.update);
   const ls = $('#langSel');
   ls.textContent = '';
   const nameOf = c => (meta.languages.find(l => l.code === c) || {}).name || c;
@@ -998,7 +1050,146 @@ function renderSettingsPage() {
   for (const l of meta.languages) ls.append(new Option(l.name, l.code));
   ls.value = meta.lang_setting || 'auto';
 }
+/* ---------- guncelleme (GitHub) ---------- */
+let updTimer = 0;
+function renderUpdate(u) {
+  if (!u) return;
+  meta.update = u;
+  const mb = b => fmt(b / 1048576, 1);
+  const txt = {
+    idle: t('upd.idle'),
+    checking: t('upd.checking'),
+    uptodate: t('upd.uptodate', { v: u.current }),
+    available: t('upd.available', { v: u.latest }),
+    downloading: t('upd.downloading', { v: u.latest, done: mb(u.done), size: mb(u.size),
+      pct: u.size ? Math.floor(u.done * 100 / u.size) : 0 }),
+    ready: t('upd.ready', { v: u.latest }),
+    scheduled: t('upd.scheduled', { v: u.latest, s: u.install_in }),
+    installing: t('upd.installing', { v: u.latest }),
+    error: t('upd.error', { err: u.error || '?' }),
+  }[u.state] || '';
+  setText('updTxt', txt + (u.state !== 'error' && u.error ? ' (' + u.error + ')' : ''));
+  const newer = !!u.latest && u.latest !== u.current && u.state !== 'uptodate';
+  const inst = $('#updInstall');
+  inst.hidden = !u.can_install || !['available', 'ready', 'error', 'scheduled'].includes(u.state) || !newer;
+  inst.disabled = !!u.busy && u.state !== 'scheduled';
+  inst.textContent = u.state === 'scheduled' ? t('upd.installNow') : u.state === 'ready' ? t('upd.install') : t('upd.downloadInstall');
+  $('#updNotes').hidden = !newer || !(u.changes || []).length;
+  $('#updCheck').disabled = !!u.busy || ['checking', 'downloading', 'installing', 'scheduled'].includes(u.state);
+  $('#updPage').href = u.page || '#';
+  // Otomatik modda kurulum zamanlandi: yenilikler penceresi kendiliginden acilir (her surum icin bir kez)
+  if (u.state === 'scheduled' && updShown !== u.latest) { updShown = u.latest; openChanges(); }
+  if ($('#updDlg').open) syncChanges();
+  clearTimeout(updTimer);
+  if (u.busy || ['checking', 'downloading', 'scheduled'].includes(u.state))
+    updTimer = setTimeout(async () => { try { renderUpdate(await api('/api/update')); } catch (e) { /* motor yok */ } }, 700);
+  else if (u.state === 'installing') waitForUpdate(u.current);
+}
+/* Yayin notlari GitHub Markdown'idir: baslik, madde, kalin ve kod yeterli. innerHTML kullanilmaz. */
+function mdInline(parent, text) {
+  for (const part of text.split(/(\*\*[^*]+\*\*|`[^`]+`)/)) {
+    if (!part) continue;
+    if (part.startsWith('**') && part.endsWith('**') && part.length > 4) parent.append(el('b', null, part.slice(2, -2)));
+    else if (part.startsWith('`') && part.endsWith('`') && part.length > 2) parent.append(el('code', null, part.slice(1, -1)));
+    else parent.append(part);
+  }
+}
+function mdBlock(text) {
+  const box = document.createDocumentFragment();
+  let list = null, para = null;
+  for (const raw of String(text || '').split('\n')) {
+    const line = raw.trim();
+    const item = line.match(/^[-*•]\s+(.*)$/);
+    const head = line.match(/^#{1,6}\s+(.*)$/);
+    if (!line) { list = para = null; continue; }
+    if (item) {
+      if (!list) { list = el('ul'); box.append(list); para = null; }
+      const li = el('li'); mdInline(li, item[1]); list.append(li);
+    } else if (head) {
+      list = para = null;
+      const h = el('h4'); mdInline(h, head[1]); box.append(h);
+    } else {
+      list = null;
+      if (!para) { para = el('p'); box.append(para); } else para.append(' ');
+      mdInline(para, line);
+    }
+  }
+  return box;
+}
+let updShown = '';
+function openChanges() {
+  const u = meta.update || {};
+  setText('updDlgTitle', t('upd.dlgTitle', { v: u.latest }));
+  setText('updDlgSub', t('upd.dlgSub', { cur: u.current, v: u.latest }));
+  const body = $('#updDlgBody');
+  body.textContent = '';
+  const changes = (u.changes || []).length ? u.changes : [{ version: u.latest, date: '', notes: u.notes || '' }];
+  for (const c of changes) {
+    const sec = el('section', 'upd-ver');
+    const h = el('h3', null, c.version);
+    if (c.date) h.append(el('small', null, new Date(c.date + 'T00:00:00').toLocaleDateString(LOCALE)));
+    sec.append(h);
+    if (c.notes) sec.append(mdBlock(c.notes)); else sec.append(el('p', null, t('upd.noNotes')));
+    body.append(sec);
+  }
+  syncChanges();
+  const d = $('#updDlg');
+  if (!d.open) d.showModal();
+  body.scrollTop = 0;
+}
+function syncChanges() {
+  const u = meta.update || {};
+  const sched = u.state === 'scheduled';
+  setText('updDlgCount', sched ? t('upd.countdown', { s: u.install_in }) : '');
+  const inst = $('#updDlgInstall');
+  inst.hidden = !u.can_install || !['available', 'ready', 'error', 'scheduled'].includes(u.state);
+  inst.textContent = sched ? t('upd.installNow') : u.state === 'ready' ? t('upd.install') : t('upd.downloadInstall');
+  setText('updDlgCancel', sched ? t('upd.skipOnce') : t('upd.later'));
+  if (u.state === 'installing') $('#updDlg').close();
+}
+let updWaiting = false;
+async function waitForUpdate(from) {
+  if (updWaiting) return;
+  updWaiting = true;
+  quitting = true;
+  banner(t('upd.restarting'), true);
+  for (let i = 0; i < 240; i++) {  // en fazla ~2 dk: kurulum motoru kapatir, dosyalari degistirir, yeniden baslatir
+    await wait(500);
+    try { const p = await api('/api/ping'); if (p.version && p.version !== from) { location.reload(); return; } } catch (e) { /* kuruluyor */ }
+  }
+  quitting = false;
+  updWaiting = false;
+  banner(t('upd.noRestart'));
+}
+async function updateAction(body) {
+  try { renderUpdate(await api('/api/update', body)); }
+  catch (e) { banner(t('upd.error', { err: e.message })); }
+}
 function initSettings() {
+  const um = $('#updMode');
+  um.addEventListener('change', async () => {
+    um.disabled = true;
+    try {
+      const r = await api('/api/update', { action: 'mode', mode: um.value });
+      meta.update_mode = r.update_mode;
+      setText('updModeHint', t(r.update_mode === 'manual' ? 'upd.modeManualHint' : 'upd.modeAutoHint'));
+      renderUpdate(r);
+    } catch (e) { um.value = meta.update_mode || 'auto'; banner(t('upd.error', { err: e.message })); }
+    um.disabled = false;
+  });
+  $('#updCheck').addEventListener('click', () => updateAction({ action: 'check' }));
+  // Kurulum her zaman once yenilikleri gosterir; kurulum penceredeki dugmeyle baslar
+  $('#updInstall').addEventListener('click', openChanges);
+  $('#updNotes').addEventListener('click', openChanges);
+  $('#updDlgInstall').addEventListener('click', () => {
+    banner(t('upd.installAsk'), true);
+    updateAction({ action: 'install' });
+  });
+  $('#updDlgCancel').addEventListener('click', () => {
+    if ((meta.update || {}).state === 'scheduled') updateAction({ action: 'cancel' });
+    $('#updDlg').close();
+  });
+  // Esc pencereyi yalnizca kapatir; zamanlanmis kurulum iptal edilmez (iptal: "Bu sefer kurma")
   const auto = $('#autostart');
   auto.addEventListener('change', async () => {
     auto.disabled = true;
@@ -1164,7 +1355,7 @@ function renderSettings() {
     for (const s of meta.layouts) {
       const lab = el('label'), inp = el('input');
       inp.type = 'radio'; inp.name = 'keys'; inp.value = s.id; inp.checked = v.keys === s.id;
-      inp.addEventListener('change', () => { v.keys = s.id; save(); });
+      inp.addEventListener('change', () => { closePicker(); v.keys = s.id; renderStops(); save(); });
       lab.append(inp, el('span', '', s.label));
       seg.append(lab);
     }
@@ -1191,7 +1382,9 @@ function renderStops() {
   if (!ul) return;
   const m = modeMeta(cfg.mode), pal = cfg.modes[m.id].palette, solo = m.pal === 'one', fixed = m.pal === 'slots';
   ul.textContent = '';
+  const used = fixed ? (meta.slotsUsed[cfg.modes[m.id].keys] || []) : null;
   (solo ? pal.slice(0, 1) : pal).forEach((hx, i) => {
+    if (used && !used.includes(i)) return;  // bu tus duzeninde kullanilmayan yuva
     const li = el('li'), b = el('button', 'stop' + (solo ? ' solo' : ''));
     b.type = 'button';
     b.setAttribute('aria-label', fixed ? t('kb.slotAria', { name: meta.slots[i], hex: hx }) : t('kb.stopAria', { i: i + 1, hex: hx }));
@@ -1368,6 +1561,59 @@ function initPresets() {
   });
 }
 
+/* ---------- Asus ROG/TUF (asus_rog.py) ---------- */
+// Motor her ozelligi DSTS ile sinar; burada yalnizca desteklenenler gosterilir, digerleri hic cizilmez.
+function asusSupport() {
+  const a = meta.asus;
+  if (!a || $('#asusBox')) return;
+  const intro = document.querySelector('[data-i18n="fan.intro"]');
+  if (intro) { intro.dataset.i18n = 'fan.introAsus'; intro.textContent = t('fan.introAsus'); }
+  if (!a.fan_curve) {  // fan egrisi yok: egri ve fan denetimi gizli, devir okumasi kalir
+    const curve = $('#curve'), fs = document.querySelector('#v-fan fieldset.field');
+    if (curve) curve.closest('.tile').hidden = true;
+    if (fs) fs.hidden = true;
+    const g = $('#guardTxt');
+    if (g) g.before(el('p', 'hint', t('asus.noCurve')));
+  }
+  if (!a.battery && !(a.gpu_modes || []).length) return;
+  const box = el('div', 'tile form');
+  box.id = 'asusBox';
+  box.append(el('span', 'lbl', t('asus.title')));
+  if (a.battery) {
+    const [lo, hi] = a.battery_range || [40, 100];
+    const top = el('div', 'field-top'), lbl = el('label', 'lbl', t('asus.battery')), out = el('output');
+    lbl.htmlFor = 'asusBat';
+    top.append(lbl, out);
+    const r = el('input');
+    Object.assign(r, { type: 'range', id: 'asusBat', min: lo, max: hi, step: 5 });
+    setRange(r, a.battery_limit || hi, out);
+    r.addEventListener('input', () => setRange(r, +r.value, out));
+    r.addEventListener('change', () => api('/api/asus', { battery: +r.value })
+      .then(j => { setRange(r, j.battery_limit, out); banner(t('asus.batterySet', { v: j.battery_limit }), true); })
+      .catch(e => banner(t('asus.fail', { err: e.message }))));
+    box.append(top, r, el('p', 'hint', t('asus.batteryHint')));
+  }
+  if ((a.gpu_modes || []).length) {
+    const fs = el('fieldset', 'field'), seg = el('div', 'seg auto');
+    fs.append(el('legend', 'lbl', t('asus.gpu')));
+    const paint = st => { for (const i of seg.querySelectorAll('input')) i.checked = !!st && i.value === st.mode; };
+    for (const m of a.gpu_modes) {
+      const lab = el('label'), inp = el('input');
+      Object.assign(inp, { type: 'radio', name: 'asusGpu', value: m });
+      lab.append(inp, el('span', '', t('asus.gpu.' + m)));
+      seg.append(lab);
+      inp.addEventListener('change', () => api('/api/asus', { gpu: m })
+        .then(j => { if (j.asus) a.gpu = j.asus.gpu; paint(a.gpu); banner(t(j.reboot ? 'asus.gpu.reboot' : 'asus.gpu.done'), !j.reboot); })
+        .catch(e => { paint(a.gpu); banner(t('asus.fail', { err: e.message })); }));
+    }
+    paint(a.gpu);
+    fs.append(seg, el('p', 'hint', t('asus.gpuHint')));
+    box.append(fs);
+  }
+  const page = $('#v-fan .page');
+  if (page) page.append(box);
+}
+
 /* ---------- bu bilgisayarda olmayan ozellikler ---------- */
 // Clevo/Monster gomulu denetleyicisi yoksa fan ve klavye isigi sayfalari denetim gostermez, nedenini soyler.
 // Motor da o denetleyiciye hicbir komut gondermez (donanim.NullDCHU).
@@ -1379,6 +1625,7 @@ function applySupport() {
       if (e) { e.dataset.i18n = to; e.textContent = t(to); }
     }
   }
+  if (meta.ec_kind === 'asus') asusSupport();
   const off = [];
   if (!meta.ec) off.push(['fan', 'unsup.fan'], ['klavye', 'unsup.kb']);
   else if (meta.kb === false) off.push(['klavye', 'unsup.kbAw']);
@@ -1413,6 +1660,7 @@ async function init() {
   catch (e) { banner(NO_LINK); return; }
   meta = st; cfg = st.config; cc = st.cc;
   if (st.notices && st.notices.length) banner(st.notices.map(n => n.text).join(' · '));
+  else if (st.update && st.update.can_install && ['available', 'ready'].includes(st.update.state)) banner(t('upd.banner', { v: st.update.latest }), true);
   $('#device').textContent = st.device || '';
   try {
     const h = (await api('/api/sensors')).hist || {};
