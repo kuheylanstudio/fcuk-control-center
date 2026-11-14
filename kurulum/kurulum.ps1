@@ -431,7 +431,13 @@ try {
         -not (Test-Path -LiteralPath $t) -or (Get-Item -LiteralPath $t).Length -ne $_.Length })
     if ($bad.Count) { throw "$($bad.Count) dosya doğru kopyalanmadı (ilk: $($bad[0].Name))" }
     Ok ("Kopyalandı ve doğrulandı: {0} dosya" -f $files.Count)
-    if ($clevo -and -not (Test-Path (Join-Path $Dest '_internal\lib\InsydeDCHU.dll'))) { Warn 'InsydeDCHU.dll pakette yok: fan / güç modu / klavye ışığı çalışmaz' }
+    if ($clevo -and -not (Test-Path (Join-Path $Dest '_internal\lib\InsydeDCHU.dll'))) {
+        # Herkese açık setup.exe üretici DLL'ini içermez: uygulama onu Windows sürücü deposundan yükler
+        $ds = @(Get-ChildItem (Join-Path $env:SystemRoot 'System32\DriverStore\FileRepository') -Directory -Filter 'acpibridge*' -ErrorAction SilentlyContinue |
+            ForEach-Object { Join-Path $_.FullName 'InsydeDCHU.dll' } | Where-Object { Test-Path $_ })
+        if ($ds.Count) { Ok "InsydeDCHU.dll sürücü deposundan kullanılacak: $(Split-Path $ds[0] -Parent | Split-Path -Leaf)" }
+        else { Warn 'InsydeDCHU.dll bulunamadı (pakette de sürücü deposunda da yok): fan / güç modu / klavye ışığı çalışmaz. AcpiBridge sürücüsünü kurun, bkz. lib\README.md' }
+    }
 
     Step 'Windows açılış görevleri kuruluyor (motor yönetici, tepsi normal yetki)'
     # Sonuc, kullanicinin yazabildigi bir dosyadan degil surecin cikis kodundan okunur

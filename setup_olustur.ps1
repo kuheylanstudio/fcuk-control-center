@@ -4,6 +4,10 @@
 # 1) Uygulama PyInstaller ile dist\FCUKControlCenter\ olarak derlenir (kur.ps1 ile aynı ayarlar).
 # 2) kurulum\setup.py tek dosyalık, yönetici isteyen setup.exe'ye derlenir; uygulama klasörü ve
 #    kurulum\kurulum.ps1 içine gömülür. Hiçbir şey kurulmaz; kurmak için setup.exe'yi çalıştırın.
+#
+#   -Dagitim  herkese açık indirme için derler: üreticiye ait DLL pakete GİRMEZ. Uygulama InsydeDCHU.dll'i
+#             Clevo / Monster dizüstüde Windows sürücü deposundan yükler. Çıktı: dist\FCUK-Control-Center-Setup.exe
+param([switch]$Dagitim)
 $ErrorActionPreference = 'Stop'
 $src   = Split-Path -Parent $MyInvocation.MyCommand.Path
 $build = Join-Path $src 'build'
@@ -13,7 +17,15 @@ Set-Location $src
 
 $ver = [regex]::Match((Get-Content (Join-Path $src 'control_center.py') -Raw -Encoding UTF8), '(?m)^VERSION\s*=\s*"([^"]+)"').Groups[1].Value
 if (-not $ver) { throw 'control_center.py içinde VERSION bulunamadı' }
-if (-not (Test-Path (Join-Path $src 'lib\InsydeDCHU.dll'))) {
+$lib = Join-Path $src 'lib'
+if ($Dagitim) {
+    # Dağıtım paketinde yalnızca lib\README.md bulunur; üretici DLL'leri kopyalanmaz
+    $lib = Join-Path $build 'lib_dagitim'
+    if (Test-Path $lib) { Remove-Item $lib -Recurse -Force }
+    New-Item -ItemType Directory -Force $lib | Out-Null
+    Copy-Item (Join-Path $src 'lib\README.md') $lib
+    Write-Host '== Dağıtım derlemesi: üretici DLL''i pakete girmeyecek (sürücü deposundan yüklenir)'
+} elseif (-not (Test-Path (Join-Path $src 'lib\InsydeDCHU.dll'))) {
     Write-Host '== lib\InsydeDCHU.dll yok: bu bilgisayarda aranıyor (lib\dll_topla.ps1)'
     & (Join-Path $src 'lib\dll_topla.ps1')
     if (-not (Test-Path (Join-Path $src 'lib\InsydeDCHU.dll'))) {
@@ -28,7 +40,7 @@ if ($LASTEXITCODE -ne 0) { throw 'simge üretilemedi' }
 
 Write-Host "== Uygulama derleniyor (sürüm $ver)"
 python -m PyInstaller --noconfirm --clean --onedir --windowed --name FCUKControlCenter `
-    --icon $ico --add-data "$src\ui;ui" --add-data "$src\lib;lib" `
+    --icon $ico --add-data "$src\ui;ui" --add-data "$lib;lib" `
     --distpath $dist --workpath (Join-Path $build 'pyi') --specpath $build `
     control_center.py
 if ($LASTEXITCODE -ne 0) { throw 'PyInstaller (uygulama) başarısız' }
@@ -45,4 +57,11 @@ python -m PyInstaller --noconfirm --clean --onefile --windowed --uac-admin --nam
 if ($LASTEXITCODE -ne 0) { throw 'PyInstaller (setup) başarısız' }
 
 $out = Join-Path $dist 'setup.exe'
+if ($Dagitim) {
+    $dll = @(Get-ChildItem $app -Recurse -File | Where-Object { $_.Name -in 'InsydeDCHU.dll', 'GetProductdll.dll' })
+    if ($dll.Count) { throw "Dağıtım paketinde üretici DLL'i var: $($dll[0].FullName)" }
+    $pub = Join-Path $dist 'FCUK-Control-Center-Setup.exe'
+    Move-Item $out $pub -Force
+    $out = $pub
+}
 Write-Host ("Hazır: {0} ({1:N1} MB, sürüm {2})" -f $out, ((Get-Item $out).Length / 1MB), $ver)
