@@ -6,6 +6,7 @@
 İşin kendisini kurulum.ps1 yapar; bu dosya yalnızca pencere ve satır satır ilerleme gösterir.
   setup.exe              pencereli kurulum (önce eski Control Center taraması gösterilir)
   setup.exe /S           sessiz kurulum, çıkış kodu: 0 tamam, 2 uyarılı tamam, 1 hata
+  setup.exe /S /restore  sessiz kurulum, önce sistem geri yükleme noktası oluşturur
 """
 import os
 import queue
@@ -18,6 +19,7 @@ SCRIPT = os.path.join(BUNDLE, "kurulum.ps1")
 PAYLOAD = os.path.join(BUNDLE, "payload")
 NO_WINDOW = 0x08000000
 TITLE = "FCUK Control Center"
+LOG = os.path.join(os.environ.get("ProgramData", r"C:\ProgramData"), "FCUK Control Center", "kurulum.log")
 EXE = os.path.join(os.environ.get("ProgramFiles", r"C:\Program Files"), "FCUK Control Center", "FCUKControlCenter.exe")
 
 
@@ -29,7 +31,7 @@ def version():
         return ""
 
 
-def run_script(mode, on_line, launch=True):
+def run_script(mode, on_line, launch=True, restore=False):
     """kurulum.ps1'i çalıştırır, her çıktı satırını (tür, metin) olarak on_line'a verir. Çıkış kodunu döndürür."""
     cmd = ["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", SCRIPT,
            "-Mode", mode, "-Version", version()]
@@ -37,6 +39,8 @@ def run_script(mode, on_line, launch=True):
         cmd += ["-Payload", PAYLOAD]
         if not launch:
             cmd.append("-NoLaunch")
+        if restore:
+            cmd.append("-RestorePoint")
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                          creationflags=NO_WINDOW, cwd=BUNDLE)
     for raw in p.stdout:
@@ -61,8 +65,8 @@ def open_app():
         subprocess.Popen(["explorer.exe", EXE], creationflags=NO_WINDOW)
 
 
-def silent():
-    return run_script("Install", lambda k, m: None)
+def silent(restore=False):
+    return run_script("Install", lambda k, m: None, restore=restore)
 
 
 # ----------------------------------------------------------------------------- pencere
@@ -95,7 +99,8 @@ def gui():
     tk.Label(head, bg=BG, fg=TEXT2, font=(FONT, 10), justify="left", anchor="w", wraplength=720, text=(
         "Kurulum eski Control Center'ı yedek alarak kaldırır ve FCUK Control Center'ı kurar. Üreticinin kaldırıcısı "
         "çalıştırılmaz, çünkü o kaldırıcı AcpiBridge sürücülerini de siler. Sürücüler ve CCDCHUService korunur: önce "
-        "geri yükleme noktası oluşturulur ve sürücüler dışa aktarılır, sonunda her şey doğrulanır.")).pack(fill="x", pady=(10, 0))
+        "sürücüler dışa aktarılır, sonunda her şey doğrulanır. İsterseniz önce sistem geri yükleme noktası da "
+        "oluşturulur (aşağıdaki kutu; birkaç dakika sürebilir).")).pack(fill="x", pady=(10, 0))
 
     box = tk.Frame(root, bg=LINE, padx=1, pady=1)
     box.pack(fill="both", expand=True, padx=24, pady=8)
@@ -124,6 +129,10 @@ def gui():
     launch = tk.BooleanVar(value=True)
     chk = tk.Checkbutton(foot, text="Bitince aç", variable=launch, bg=BG, fg=TEXT2, selectcolor=SURFACE2,
                          activebackground=BG, activeforeground=TEXT, font=(FONT, 10), highlightthickness=0, bd=0)
+    restore = tk.BooleanVar(value=False)
+    chk_rp = tk.Checkbutton(foot, text="Geri yükleme noktası oluştur", variable=restore, bg=BG, fg=TEXT2,
+                            selectcolor=SURFACE2, activebackground=BG, activeforeground=TEXT, font=(FONT, 10),
+                            highlightthickness=0, bd=0)
 
     def button(text, cmd, primary=False):
         return tk.Button(foot, text=text, command=cmd, font=(FONT, 10, "bold" if primary else "normal"), relief="flat",
@@ -132,7 +141,7 @@ def gui():
                          activeforeground=BG if primary else "#ffffff", disabledforeground=TEXT3)
 
     q = queue.Queue()
-    st = {"busy": False, "rc": 1}
+    st = {"busy": False, "rc": 1, "errors": []}
 
     def put(kind, msg):
         q.put(("line", kind, msg))
@@ -143,6 +152,8 @@ def gui():
                 item = q.get_nowait()
                 if item[0] == "line":
                     _, kind, msg = item
+                    if kind == "HATA":
+                        st["errors"].append(msg)
                     txt.configure(state="normal")
                     txt.insert("end", PREFIX[kind] + msg + "\n", kind)
                     txt.see("end")
@@ -172,10 +183,12 @@ def gui():
         elif rc == 2:
             status.configure(text="Kurulum tamamlandı, uyarılar var (sarı satırlar).", fg=WARN)
         else:
-            status.configure(text="Kurulum tamamlanamadı (kırmızı satırlar). Kayıt: ProgramData\\FCUK Control Center\\kurulum.log",
-                             fg=BAD)
+            why = st["errors"][-1] if st["errors"] else "ayrıntı kayıt dosyasında"
+            status.configure(text="Kurulum tamamlanamadı: %s" % why, fg=BAD, wraplength=420, justify="left")
+            logbtn.pack(side="right", padx=(0, 8))
         go.configure(text="Kapat", state="normal", command=finish)
         cancel.pack_forget()
+        chk_rp.pack_forget()
         if rc == 1:
             chk.pack_forget()
 
@@ -190,6 +203,8 @@ def gui():
         st["busy"] = True
         go.configure(state="disabled")
         cancel.configure(state="disabled")
+        chk_rp.configure(state="disabled")
+        st["errors"] = []
         txt.configure(state="normal")
         txt.delete("1.0", "end")
         txt.configure(state="disabled")
@@ -199,7 +214,7 @@ def gui():
 
         def work():
             try:
-                rc = run_script("Install", put)
+                rc = run_script("Install", put, restore=restore.get())
             except Exception as e:  # powershell bulunamadı vb.
                 put("HATA", str(e))
                 rc = 1
@@ -211,12 +226,18 @@ def gui():
             return  # kurulum yarıda kesilmez
         root.destroy()
 
+    def open_log():
+        if os.path.exists(LOG):
+            subprocess.Popen(["notepad.exe", LOG], creationflags=NO_WINDOW)
+
     cancel = button("İptal", on_close)
+    logbtn = button("Kaydı aç", open_log)
     go = button("Kur", start_install, primary=True)
     go.configure(state="disabled")
     go.pack(side="right")
     cancel.pack(side="right", padx=(0, 8))
     chk.pack(side="right", padx=(0, 16))
+    chk_rp.pack(side="right", padx=(0, 12))
     root.protocol("WM_DELETE_WINDOW", on_close)
 
     put("ADIM", "Bu bilgisayarda bulunanlar")
@@ -238,7 +259,7 @@ def gui():
 def main():
     args = [a.lower() for a in sys.argv[1:]]
     if "/s" in args or "--sessiz" in args or "/silent" in args:
-        sys.exit(silent())
+        sys.exit(silent(restore="/restore" in args))
     gui()
 
 

@@ -6,6 +6,7 @@
 #
 #   -Mode Report     hiçbir şeyi değiştirmez; bulunan eski Control Center bileşenlerini listeler
 #   -Mode Install    -Payload <derlenmiş uygulama klasörü>: eski Control Center'ı kaldırır, uygulamayı kurar
+#                    -RestorePoint ile önce sistem geri yükleme noktası oluşturur
 #   -Mode Uninstall  FCUK Control Center'ı kaldırır (Uygulamalar listesindeki "Kaldır" bunu çağırır)
 #
 # ÖNEMLİ: Monster/Clevo Control Center'ın kendi kaldırıcısı (InstallShield + RemoveAPP.exe) ÇALIŞTIRILMAZ.
@@ -17,7 +18,8 @@ param(
     [ValidateSet('Install', 'Uninstall', 'Report')][string]$Mode = 'Report',
     [string]$Payload,
     [string]$Version = '',
-    [switch]$NoLaunch
+    [switch]$NoLaunch,
+    [switch]$RestorePoint   # sistem geri yükleme noktası (isteğe bağlı; kurulum penceresindeki kutu)
 )
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -377,11 +379,13 @@ try {
     $cs = Get-CimInstance Win32_ComputerSystem
     Info ("Bilgisayar: $($cs.Manufacturer) $($cs.Model)")
 
-    Step 'Sistem geri yükleme noktası oluşturuluyor'
-    try {
-        Checkpoint-Computer -Description "$AppTitle kurulumundan once" -RestorePointType MODIFY_SETTINGS -ErrorAction Stop -WarningVariable cw -WarningAction SilentlyContinue
-        if ($cw) { Info "Geri yükleme noktası atlandı: $("$cw".Trim()) Kurulum yine de yedek alarak devam ediyor." } else { Ok 'Geri yükleme noktası oluşturuldu' }
-    } catch { Info "Geri yükleme noktası oluşturulamadı ($($_.Exception.Message.Trim())). Kurulum yine de yedek alarak devam ediyor." }
+    if ($RestorePoint) {
+        Step 'Sistem geri yükleme noktası oluşturuluyor'
+        try {
+            Checkpoint-Computer -Description "$AppTitle kurulumundan once" -RestorePointType MODIFY_SETTINGS -ErrorAction Stop -WarningVariable cw -WarningAction SilentlyContinue
+            if ($cw) { Info "Geri yükleme noktası atlandı: $("$cw".Trim()) Kurulum yine de yedek alarak devam ediyor." } else { Ok 'Geri yükleme noktası oluşturuldu' }
+        } catch { Info "Geri yükleme noktası oluşturulamadı ($($_.Exception.Message.Trim())). Kurulum yine de yedek alarak devam ediyor." }
+    } else { Info 'Geri yükleme noktası istenmedi (sürücüler ve eski bileşenler yine yedeklenir)' }
 
     Step 'AcpiBridge sürücüleri yedekleniyor'
     $drivers = @(Get-DriverState)

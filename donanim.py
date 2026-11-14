@@ -202,25 +202,36 @@ class DCHU:
     available = True
 
     def __init__(self):
-        path = next((p for p in DLL_CANDIDATES if os.path.exists(p)), None)
-        if not path:
-            raise RuntimeError(ceviri.t("err.dll"))
-        self.path = path
+        # Surumler farkli islev kumesi tasir (ornek: surucu deposundaki 1.0.0.1'de SetDCHU_DataEx yok). Yalnizca
+        # kullanilan islevler baglanir; bir aday yuklenemez ya da eksikse siradakine gecilir.
+        errors = []
+        for path in (p for p in DLL_CANDIDATES if os.path.exists(p)):
+            try:
+                d = self._bind(path)
+            except (OSError, AttributeError) as exc:
+                errors.append("%s: %s" % (path, exc))
+                continue
+            self.path = path
+            self.dll = d
+            break
+        else:
+            raise RuntimeError(ceviri.t("err.dll") + ("" if not errors else " (" + "; ".join(errors) + ")"))
+        self.lock = threading.Lock()
+        self._fan_default = None
+
+    @staticmethod
+    def _bind(path):
         os.add_dll_directory(os.path.dirname(path))
         d = ctypes.WinDLL(path)
         d.SetDCHU_Data.argtypes = [c_int, ctypes.POINTER(c_ubyte), c_int]
         d.SetDCHU_Data.restype = c_int
-        d.SetDCHU_DataEx.argtypes = [c_int, ctypes.POINTER(c_ubyte), c_int, ctypes.POINTER(c_ubyte)]
-        d.SetDCHU_DataEx.restype = c_int
         d.GetDCHU_Data_Buffer.argtypes = [c_int, ctypes.POINTER(c_ubyte)]
         d.GetDCHU_Data_Buffer.restype = c_int
         d.GetDCHU_Data_Integer.argtypes = [c_int, ctypes.POINTER(c_int)]
         d.GetDCHU_Data_Integer.restype = c_int
         d.ReadAppSettings.argtypes = [c_int, c_int, c_int, ctypes.POINTER(c_ubyte)]
         d.WriteAppSettings.argtypes = [c_int, c_int, c_int, ctypes.POINTER(c_ubyte)]
-        self.dll = d
-        self.lock = threading.Lock()
-        self._fan_default = None
+        return d
 
     # ------------------------------------------------------------------ ham erisim
     def get_int(self, cmd):
