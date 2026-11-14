@@ -448,6 +448,15 @@ def open_dchu():
                     return NullDCHU(msg, clevo=False, message=msg)
         except Exception:
             pass
+        # Lenovo IdeaPad: yalnizca uretici LENOVO ve model adinda IdeaPad varsa (ideapad.py). GameZone guc modu ve
+        # EnergyDrv pil modu yalnizca okuyarak sinanir; hicbiri yoksa None doner ve komut gitmez.
+        try:
+            import ideapad
+            dev = ideapad.open_ideapad()
+            if dev is not None:
+                return dev
+        except Exception:
+            pass
         if err:  # Alienware/Dell ama arayuz acilamadi (cogu zaman yonetici yetkisi yok)
             msg = ceviri.t("err.awOpen", err=err)
             return NullDCHU(msg, clevo=False, message=msg)

@@ -338,7 +338,9 @@ class Manager:
                 threading.Thread(target=self.apply, args=(target, why), daemon=True).start()
         self._last_ac = ac
         p = BY_ID.get(self.applied)
-        if not p or p["fan"][0] != "curve" or not getattr(self.dchu, "available", True):
+        # Ozel egri yoksa (IdeaPad, egrisiz Asus) fanlar zaten bellenimde: bekcinin geri alacagi bir sey yok
+        if not p or p["fan"][0] != "curve" or not getattr(self.dchu, "available", True) \
+                or not getattr(self.dchu, "fan_control", True):
             return
         # Profil uygulanirken (kilit dolu) bekci dokunmaz: apply() sonunda bekci durumunu zaten sifirlar.
         if not self.lock.acquire(blocking=False):

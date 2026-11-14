@@ -37,6 +37,7 @@ def version():
 MARKA = {
     "alienware": ("Alienware / Dell G", "Alienware Command Center"),
     "asus": ("Asus ROG / TUF", "Armoury Crate"),
+    "ideapad": ("Lenovo IdeaPad", "Lenovo Vantage"),
     "lenovo": ("Lenovo Legion / LOQ", "Lenovo Vantage / Legion Zone"),
     "msi": ("MSI", "MSI Center"),
     "hp": ("HP Omen / Victus", "OMEN Gaming Hub"),

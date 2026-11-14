@@ -145,6 +145,11 @@ $Markalar = [ordered]@{
                    Uygulama = 'Alienware Command Center|AWCC|Alienware Update'; Kur = $null }
     asus      = @{ Ad = 'Asus ROG / TUF';         Sinif = 'AsusAtkWmi_WMNB';       Uretici = '^\s*ASUSTeK';       Model = $null
                    Uygulama = 'Armoury Crate|ArmouryCrate|ASUS Optimization|ROG Live'; Kur = $null }
+    # IdeaPad: arayüzler (GameZone WMI ya da \\.\EnergyDrv) modele göre değişir ve uygulama bunları kendisi yalnızca
+    # okuyarak sınar; kurulum burada yalnızca bilgi verir, IdeaPad için hiçbir kurulum adımı donanıma dokunmaz.
+    ideapad   = @{ Ad = 'Lenovo IdeaPad';         Sinif = $null;                   Uretici = '^\s*LENOVO\s*$';   Model = 'IdeaPad'
+                   SadeceModel = $true; Arayuz = 'Lenovo GameZone WMI / Energy Management sürücüsü'
+                   Uygulama = 'Lenovo Vantage|ImControllerService|Lenovo Hotkeys|Energy Management'; Kur = $null }
     lenovo    = @{ Ad = 'Lenovo Legion';          Sinif = 'LENOVO_GAMEZONE_DATA';  Uretici = '^\s*LENOVO\s*$';   Model = 'Legion'
                    Uygulama = 'Lenovo Vantage|Legion Zone|Lenovo Legion|ImControllerService|Lenovo Hotkeys'; Kur = $null }
     msi       = @{ Ad = 'MSI';                    Sinif = 'MSI_ACPI';              Uretici = 'Micro-Star|^MSI';   Model = $null
@@ -172,10 +177,11 @@ function Get-Cihaz {
     $model = "$($cs.Model) $($cs.SystemFamily) $($csp.Version) $($csp.Name)"
     foreach ($k in $Markalar.Keys) {
         $m = $Markalar[$k]
-        if (-not $m.Sinif) { continue }
+        if (-not $m.Sinif -and -not $m.SadeceModel) { continue }
         if ($m.Uretici -and $uretici -notmatch $m.Uretici) { continue }
         if ($m.Model -and $model -notmatch $m.Model) { continue }
-        if (Test-WmiSinif $m.Sinif) { return $k }
+        if ($m.SadeceModel -and $model -match 'Legion|LOQ') { continue }  # IdeaPad adı geçen Legion/LOQ değil
+        if (-not $m.Sinif -or (Test-WmiSinif $m.Sinif)) { return $k }
     }
     return 'diger'
 }
@@ -204,7 +210,8 @@ function Show-Marka([string]$kind) {
         Info 'Bu bilgisayarda olmayan (arayüzde "kullanılamaz" görünür, hiçbir komut gönderilmez): fan eğrisi, denetleyici güç modu, klavye RGB, Fn tuşları'
         return
     }
-    Info "Cihaz: $($m.Ad) (denetleyici arayüzü: root\wmi $($m.Sinif))"
+    $arayuz = if ($m.Sinif) { "root\wmi $($m.Sinif)" } else { $m.Arayuz }
+    Info "Cihaz: $($m.Ad) (denetleyici arayüzü: $arayuz)"
     Info 'Yalnızca bu cihaza ait adımlar uygulanır: Monster/Clevo bileşenleri kurulmaz, hiçbir üretici yazılımı kaldırılmaz'
     $apps = @(Get-UreticiUygulamasi $kind)
     foreach ($a in $apps) { Info "Üretici yazılımı (DOKUNULMAYACAK): $a" }

@@ -1614,6 +1614,42 @@ function asusSupport() {
   if (page) page.append(box);
 }
 
+/* ---------- Lenovo IdeaPad (ideapad.py) ---------- */
+// Fanlari her zaman bellenim calistirir: egri ve fan denetimi gizli. Guc modunu profiller ayarlar (Fn+Q ile ayni).
+function lenovoSupport() {
+  const a = meta.lenovo;
+  if (!a || $('#lenovoBox')) return;
+  const intro = document.querySelector('[data-i18n="fan.intro"]');
+  if (intro) { intro.dataset.i18n = 'fan.introLenovo'; intro.textContent = t('fan.introLenovo'); }
+  const curve = $('#curve'), fs = document.querySelector('#v-fan fieldset.field');
+  if (curve) curve.closest('.tile').hidden = true;
+  if (fs) fs.hidden = true;
+  if (!a.fan_rpm) { const tl = document.querySelector('#v-fan .form .tiles'); if (tl) tl.hidden = true; }
+  const box = el('div', 'tile form');
+  box.id = 'lenovoBox';
+  box.append(el('span', 'lbl', a.model || t('lenovo.title')));
+  box.append(el('p', 'hint', t((a.power_modes || []).length ? 'lenovo.power' : 'lenovo.noPower')));
+  if (a.battery) {
+    const fsb = el('fieldset', 'field'), seg = el('div', 'seg auto');
+    fsb.append(el('legend', 'lbl', t('lenovo.battery')));
+    const paint = m => { for (const i of seg.querySelectorAll('input')) i.checked = i.value === m; };
+    for (const m of a.battery_modes || []) {
+      const lab = el('label'), inp = el('input');
+      Object.assign(inp, { type: 'radio', name: 'lenovoBat', value: m });
+      lab.append(inp, el('span', '', t('lenovo.bat.' + m)));
+      seg.append(lab);
+      inp.addEventListener('change', () => api('/api/lenovo', { battery: m })
+        .then(j => { a.battery_mode = j.battery_mode; paint(a.battery_mode); banner(t('lenovo.batterySet', { v: t('lenovo.bat.' + j.battery_mode) }), true); })
+        .catch(e => { paint(a.battery_mode); banner(t('lenovo.fail', { err: e.message })); }));
+    }
+    paint(a.battery_mode);
+    fsb.append(seg, el('p', 'hint', t('lenovo.batteryHint')));
+    box.append(fsb);
+  }
+  const page = $('#v-fan .page');
+  if (page) page.append(box);
+}
+
 /* ---------- bu bilgisayarda olmayan ozellikler ---------- */
 // Clevo/Monster gomulu denetleyicisi yoksa fan ve klavye isigi sayfalari denetim gostermez, nedenini soyler.
 // Motor da o denetleyiciye hicbir komut gondermez (donanim.NullDCHU).
@@ -1626,6 +1662,7 @@ function applySupport() {
     }
   }
   if (meta.ec_kind === 'asus') asusSupport();
+  if (meta.ec_kind === 'ideapad') lenovoSupport();
   const off = [];
   if (!meta.ec) off.push(['fan', 'unsup.fan'], ['klavye', 'unsup.kb']);
   else if (meta.kb === false) off.push(['klavye', 'unsup.kbAw']);

@@ -9,9 +9,9 @@ bilgisayarlarda da donanım tespiti, canlı izleme, NVIDIA ve işlemci ayarları
 > *The source code of this project was written with Anthropic's Claude Opus 5.5 AI model.*
 
 <p align="center">
-  <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v2.1.0/FCUK-Control-Center-Setup-2.1.0.exe"><img alt="İndir: FCUK-Control-Center-Setup-2.1.0.exe" src="https://img.shields.io/badge/%C4%B0ndir-FCUK--Control--Center--Setup--2.1.0.exe-2ea44f?style=for-the-badge&logo=windows&logoColor=white"></a>
+  <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v2.2.0/FCUK-Control-Center-Setup-2.2.0.exe"><img alt="İndir: FCUK-Control-Center-Setup-2.2.0.exe" src="https://img.shields.io/badge/%C4%B0ndir-FCUK--Control--Center--Setup--2.2.0.exe-2ea44f?style=for-the-badge&logo=windows&logoColor=white"></a>
   <br>
-  <a href="https://www.virustotal.com/gui/file/618441dcfe30efc3c18559caaa8caffa1c929b44db658d7c1bee7dbb7763e7ef"><img alt="VirusTotal tarama sonucu" src="https://img.shields.io/badge/VirusTotal-tarama%20sonucu-394EFF?logo=virustotal&logoColor=white"></a>
+  <a href="https://www.virustotal.com/gui/file/a0ac3f90991897a5025cfe3502bb98c6ec2ad4aafc386a002e65505516dc3220"><img alt="VirusTotal tarama sonucu" src="https://img.shields.io/badge/VirusTotal-tarama%20sonucu-394EFF?logo=virustotal&logoColor=white"></a>
   <br>
   <sub>Windows 10/11 (64 bit) · <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/latest">tüm sürümler ve SHA-256</a> · <a href="#güvenlik-ve-doğrulama">güvenlik ve doğrulama</a></sub>
 </p>
@@ -24,7 +24,7 @@ bilgisayarlarda da donanım tespiti, canlı izleme, NVIDIA ve işlemci ayarları
 | **Canlı izleme** | İşlemci sıcaklığı/gücü/yükü, çekirdek başına MHz, ekran kartı sıcaklığı/gücü/saati/VRAM/PCIe/kısıtlama nedeni, tümleşik grafik yükü, disk başına okuma/yazma hızı, bellek, ağ, pil | Her bilgisayar |
 | **NVIDIA** | Güç yönetimi modu, düşük gecikme, V-Sync, en yüksek kare hızı, doku filtreleme, iş parçacıklı optimizasyon, tercih edilen grafik işlemcisi (Optimus), elle saat sınırı. Ayarlar NVIDIA Denetim Masası'nın kullandığı aynı sürücü profiline yazılır | NVIDIA kart; yazmak için yönetici modu |
 | **İşlemci** | İşlemci modeline göre yalnızca etkili olan ayarlar: turbo modu, EPP (Speed Shift), P ve E çekirdek frekans tavanları (melez Intel), işlemci durumu sınırları, çekirdek zamanlayıcı politikası, çekirdek park etme | Her bilgisayar (Windows güç planı) |
-| **Performans profilleri** | Beş profil: Tam Sessiz → Ultra Performans; her biri gömülü denetleyici güç modu, fan eğrisi, işlemci, ekran kartı ve ekran yenileme hızını birlikte ayarlar. Cihazda olmayan adımlar atlanır ve raporda gösterilir | Clevo / Monster, Alienware, Asus |
+| **Performans profilleri** | Beş profil: Tam Sessiz → Ultra Performans; her biri gömülü denetleyici güç modu, fan eğrisi, işlemci, ekran kartı ve ekran yenileme hızını birlikte ayarlar. Cihazda olmayan adımlar atlanır ve raporda gösterilir | Clevo / Monster, Alienware, Asus, Lenovo IdeaPad (güç modu) |
 | **Fanlar** | Özel fan eğrisi, fan devri ve sıcaklık okuması | Clevo / Monster, Alienware, Asus (modele göre) |
 | **Klavye RGB** | 9 ışık modu: sabit, nefes alma, renk geçişi, gökkuşağı, nabız, ses/müzik, sistem durumu, ekran rengi ve **oyun tepkisi** | Clevo / Monster, Alienware (AlienFX), Asus (Aura) |
 | **Oyun tepkisi** | Klavye cana göre yeşilden kırmızıya döner, can %35'in altındayken kalp atışı gibi yanıp söner; ateş, yetenek, kill ve ölümde parlar. **League of Legends** (Riot'un resmi canlı oyun verisi) ve **Counter-Strike 2** (resmi Game State Integration). Oyun belleğine dokunulmaz | Klavye RGB olan cihaz |
@@ -41,9 +41,10 @@ bilgisayarlarda da donanım tespiti, canlı izleme, NVIDIA ve işlemci ayarları
 | **Monster / Clevo** | Tam destek: üreticinin Control Center'ının yerini alır |
 | **Alienware / Dell G** (16 Aurora, 16X Aurora ve AWCC'li modeller) | Güç modu (Sessiz, Dengeli, Performans/G-mode), "Özel" profilde fan eğrisi, sıcaklık ve fan devri, AlienFX klavye ışığı (tek renk). Fn tuşu ya da Alienware Command Center profili değiştirirse uygulama bunu algılar ve gerçek modu gösterir |
 | **Asus ROG / TUF** | Güç modu (sessiz, dengeli, turbo), 8 noktalı fan eğrisi, fan devri, klavye arka ışığı ve Aura RGB, şarj sınırı, ekran kartı modu. Her özellik önce sınanır; modelde olmayan özelliğe komut gönderilmez |
+| **Lenovo IdeaPad** (Intel ve Ryzen) | Modelin sunduğu Lenovo arayüzüne göre: güç modu (Sessiz, Dengeli, Performans; Fn+Q ile aynı, GameZone WMI), pil modu (normal, koruma modu, hızlı şarj; Energy Management sürücüsü), işlemci/kart sıcaklığı ve fan devri. Fanları her zaman bellenim çalıştırır (özel fan eğrisi yok); klavye ışığı Fn+Boşluk ile kalır. Güç modunu sunmayan modellerde profiller yine Windows güç modunu ayarlar |
 | **Diğer bilgisayarlar** | Donanım, canlı izleme, NVIDIA, işlemci, ses ve ekran. Fan ve klavye sayfaları "Bu bilgisayarda kullanılamaz" der |
 
-Alienware ve Asus desteği gerçek cihazda henüz denenmedi; sorun görürseniz lütfen bildirin. Clevo dışındaki
+Alienware, Asus ve Lenovo IdeaPad desteği gerçek cihazda henüz denenmedi; sorun görürseniz lütfen bildirin. Clevo dışındaki
 bilgisayarlarda uygulama denetleyiciye, fanlara, klavyeye ve Fn tuşlarına yalnızca desteklenen cihaz gerçekten
 varsa dokunur. Armoury Crate, Alienware Command Center, Vantage, MSI Center ve Omen gibi üretici uygulamaları
 kaldırılmaz; birlikte çalışır. Aynı ayarı ikisi birden değiştirirse son değiştirenin ayarı geçerli olur.
@@ -55,19 +56,19 @@ yazmayı gerektirir. Uygulama hiçbir çekirdek sürücüsü kurmaz.
 
 ### setup.exe (önerilen)
 
-1. **[FCUK-Control-Center-Setup-2.1.0.exe](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v2.1.0/FCUK-Control-Center-Setup-2.1.0.exe)** dosyasını indirin.
+1. **[FCUK-Control-Center-Setup-2.2.0.exe](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v2.2.0/FCUK-Control-Center-Setup-2.2.0.exe)** dosyasını indirin.
 2. Çift tıklayın ve yönetici iznini onaylayın. Kurulum penceresi her adımı gösterir; bitince uygulama açılır.
 3. Windows "Bilgisayarınız korundu" (SmartScreen) derse: **Ek bilgi → Yine de çalıştır**. Ayrıntı:
    [Güvenlik ve doğrulama](#güvenlik-ve-doğrulama).
 
 ### Güvenlik ve doğrulama
 
-- **VirusTotal:** [2.1.0 kurulum dosyasının tarama raporu](https://www.virustotal.com/gui/file/618441dcfe30efc3c18559caaa8caffa1c929b44db658d7c1bee7dbb7763e7ef)
+- **VirusTotal:** [2.2.0 kurulum dosyasının tarama raporu](https://www.virustotal.com/gui/file/a0ac3f90991897a5025cfe3502bb98c6ec2ad4aafc386a002e65505516dc3220)
   (yukarıdaki rozet de aynı rapora gider). Yeni sürümler yayımlandığında GitHub Actions ile VirusTotal'a
   yüklenir; rapor bağlantısı sürüm notlarının sonuna eklenir. PyInstaller ile paketlenen programları birkaç
   antivirüs motoru bazen yanlışlıkla işaretler (genel "Trojan/Wacatac" vb. adlarla); kaynak kodun tamamı bu depodadır.
 - **SHA-256:** indirdiğiniz dosyanın [sürüm sayfasındaki](https://github.com/kuheylanstudio/fcuk-control-center/releases/latest)
-  özetle aynı olduğunu denetleyin: `Get-FileHash FCUK-Control-Center-Setup-2.1.0.exe`
+  özetle aynı olduğunu denetleyin: `Get-FileHash FCUK-Control-Center-Setup-2.2.0.exe`
 - **Kod imzası:** kurulum programı kod imzalı değildir; SmartScreen uyarısı bu yüzdendir.
 
 İndirilen kurulum programı üreticiye ait DLL'i **içermez**. Clevo / Monster dizüstülerde uygulama `InsydeDCHU.dll`'i
@@ -128,7 +129,7 @@ powershell -ExecutionPolicy Bypass -File setup_olustur.ps1   # çıktı: dist\se
 
 Bu şekilde derlenen setup.exe üreticiye ait DLL'i içerir; kendi bilgisayarınız için kullanın, herkese açık
 dağıtmayın. Dağıtılabilir (DLL'siz) paket için: `setup_olustur.ps1 -Dagitim` (çıktı:
-`dist\FCUK-Control-Center-Setup-2.1.0.exe`). İndirme düğmesindeki dosya budur.
+`dist\FCUK-Control-Center-Setup-2.2.0.exe`). İndirme düğmesindeki dosya budur.
 
 ### Kaynaktan
 

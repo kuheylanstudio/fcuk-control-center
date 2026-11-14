@@ -38,7 +38,7 @@ import nvidia
 import profiller
 from ceviri import t
 
-VERSION = "2.1.0"
+VERSION = "2.2.0"
 PORT = 47815
 HOSTS = ("127.0.0.1:%d" % PORT, "localhost:%d" % PORT)
 BASE = "http://127.0.0.1:%d" % PORT
@@ -519,12 +519,13 @@ def state():
         "autostart": bool(App.cfg.get("autostart")),
         "dll": App.dchu.path,
         "ec": App.dchu.available,
-        "ec_kind": App.dchu.kind,  # "clevo" | "alienware" | "" (denetleyici yok)
+        "ec_kind": App.dchu.kind,  # "clevo" | "alienware" | "asus" | "ideapad" | "" (denetleyici yok)
         "kb": bool(getattr(App.dchu, "kb_available", App.dchu.available)),  # klavye isigi ayrica olabilir/olmayabilir
         "kb_reason": getattr(App.dchu, "kb_reason", ""),
         "ec_clevo": bool(getattr(App.dchu, "clevo", True)),  # aygit var, yalnizca kitaplik yok
         "ec_reason": getattr(App.dchu, "reason", ""),
         "asus": App.dchu.features() if App.dchu.kind == "asus" else None,  # yalnizca desteklenen Asus ozellikleri
+        "lenovo": App.dchu.features() if App.dchu.kind == "ideapad" else None,  # Lenovo IdeaPad (ideapad.py)
         "cpu": App.inventory.data.get("cpu"),
         "nvidia": bool(App.sensors.gpu_name),
         "igpu_name": App.sensors.igpu_name,
@@ -766,6 +767,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(dict(App.dchu.handle(body), ok=True))
             except (hw.Unsupported, ValueError) as exc:
                 return self._json({"error": str(exc), "asus": App.dchu.features()}, 400)
+        if path == "/api/lenovo":  # IdeaPad pil modu (ideapad.IdeaPad.handle)
+            if App.dchu.kind != "ideapad":
+                return self._json({"error": t("lenovo.unsupported")}, 400)
+            try:
+                return self._json(dict(App.dchu.handle(body), ok=True))
+            except (hw.Unsupported, ValueError, OSError) as exc:
+                return self._json({"error": str(exc), "lenovo": App.dchu.features()}, 400)
         if path == "/api/audio":
             which = body.get("which")
             if which not in ("speaker", "mic"):
