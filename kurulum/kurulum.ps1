@@ -27,15 +27,18 @@ $script:StdOut = New-Object System.IO.StreamWriter([Console]::OpenStandardOutput
 $script:StdOut.AutoFlush = $true
 
 $AppTitle  = 'FCUK Control Center'
-$Dest      = Join-Path $env:ProgramFiles 'Kendi Control Center'
-$Exe       = Join-Path $Dest 'KendiControlCenter.exe'
+$Dest      = Join-Path $env:ProgramFiles 'FCUK Control Center'
+$Exe       = Join-Path $Dest 'FCUKControlCenter.exe'
+$OldDest   = Join-Path $env:ProgramFiles 'Kendi Control Center'   # onceki surumlerin kurulum klasoru
 $Data      = Join-Path $env:ProgramData 'FCUK Control Center'
 $Stamp     = Get-Date -Format 'yyyyMMdd-HHmmss'
 $Backup    = Join-Path $Data "yedek\$Stamp"
 $LogFile   = Join-Path $Data 'kurulum.log'
 $Veri      = Join-Path $Dest 'veri'   # yonetici motorun ayar ve gunlugu (standart kullaniciya salt okunur)
 $UninstKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\FCUKControlCenter'
-$Tasks     = @('KendiControlCenter', 'KendiControlCenter Tepsi')
+$Tasks     = @('FCUK Control Center', 'FCUK Control Center Tepsi')
+$OldTasks  = @('KendiControlCenter', 'KendiControlCenter Tepsi')   # onceki surumlerin gorev adlari
+$ExeNames  = @('FCUKControlCenter', 'KendiControlCenter')
 $Api       = 'http://127.0.0.1:47815'
 $OldDir    = Join-Path ${env:ProgramFiles(x86)} 'ControlCenter'
 $OldGuid   = '{52CF73F1-9FE1-4917-AE56-55BF319988EC}'
@@ -176,12 +179,12 @@ function Get-DriverState {
 # ---------------------------------------------------------------------------- FCUK süreçleri
 function Stop-Fcuk {
     if (Invoke-Api '/api/quit' 'POST' 3) { Info 'Çalışan FCUK Control Center motoru kapatıldı'; Start-Sleep -Seconds 3 }
-    foreach ($t in $Tasks) { & schtasks.exe /end /tn $t 2>$null | Out-Null }
+    foreach ($t in $Tasks + $OldTasks) { & schtasks.exe /end /tn $t 2>$null | Out-Null }
     $global:LASTEXITCODE = 0
     Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
-        $_.Name -eq 'KendiControlCenter.exe' -or ($_.Name -match '^pythonw?\.exe$' -and "$($_.CommandLine)" -match 'control_center\.py')
+        ($ExeNames | ForEach-Object { "$_.exe" }) -contains $_.Name -or ($_.Name -match '^pythonw?\.exe$' -and "$($_.CommandLine)" -match 'control_center\.py')
     } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
-    for ($i = 0; $i -lt 20 -and (Get-Process KendiControlCenter -ErrorAction SilentlyContinue); $i++) { Start-Sleep -Milliseconds 250 }
+    for ($i = 0; $i -lt 20 -and (Get-Process $ExeNames -ErrorAction SilentlyContinue); $i++) { Start-Sleep -Milliseconds 250 }
 }
 function Remove-Shortcuts {
     foreach ($d in [Environment]::GetFolderPath('Programs'), [Environment]::GetFolderPath('Desktop'),
@@ -340,7 +343,7 @@ if ($Mode -eq 'Uninstall') {
     if ($wsh.Popup("$AppTitle kaldırılsın mı?`n`nAyarlarınız $Data\ayarlar altına yedeklenir.", 0, $AppTitle, 4 + 32) -ne 6) { exit 0 }
     Step 'FCUK Control Center kapatılıyor'
     Stop-Fcuk
-    foreach ($t in $Tasks) { & schtasks.exe /delete /tn $t /f 2>$null | Out-Null }
+    foreach ($t in $Tasks + $OldTasks) { & schtasks.exe /delete /tn $t /f 2>$null | Out-Null }
     $global:LASTEXITCODE = 0
     Ok 'Açılış görevleri silindi'
     Step 'Eski Control Center engelleri kaldırılıyor'
@@ -361,7 +364,7 @@ if ($Mode -eq 'Uninstall') {
 
 # ---------------------------------------------------------------------------- Install
 try {
-    if (-not $Payload -or -not (Test-Path (Join-Path $Payload 'KendiControlCenter.exe'))) { throw "Kurulum paketi bozuk: $Payload" }
+    if (-not $Payload -or -not (Test-Path (Join-Path $Payload 'FCUKControlCenter.exe'))) { throw "Kurulum paketi bozuk: $Payload" }
     if (-not [Environment]::Is64BitOperatingSystem) { throw '64 bit Windows gerekli' }
     $clevo = Get-Clevo
     $cs = Get-CimInstance Win32_ComputerSystem
@@ -394,6 +397,16 @@ try {
     Step 'Çalışan FCUK Control Center kapatılıyor'
     Stop-Fcuk
     Ok 'Kapatıldı'
+
+    # Onceki surumler "Kendi Control Center" adiyla kuruluyordu: ayarlar tasinir, eski gorevler ve klasor silinir
+    foreach ($t in $OldTasks) { & schtasks.exe /delete /tn $t /f 2>$null | Out-Null }
+    $global:LASTEXITCODE = 0
+    if (Test-Path $OldDest) {
+        $oldVeri = Join-Path $OldDest 'veri'
+        if ((Test-Path $oldVeri) -and -not (Test-Path $Veri)) { [void](Copy-Tree $oldVeri $Veri) }
+        Remove-Item $OldDest -Recurse -Force -ErrorAction SilentlyContinue
+        if (Test-Path $OldDest) { Warn "Eski klasör tamamen silinemedi: $OldDest" } else { Ok "Önceki sürüm taşındı ve silindi: $OldDest" }
+    }
 
     Remove-OldCC $inv $clevo
     Restore-Drivers $drivers
@@ -461,7 +474,7 @@ try {
         } elseif ($st) { Ok "Arayüz durumu okundu: $($st.device)" }
         $tray = $null
         for ($i = 0; $i -lt 20 -and -not $tray; $i++) {
-            $tray = Get-CimInstance Win32_Process -Filter "Name='KendiControlCenter.exe'" | Where-Object { "$($_.CommandLine)" -match '--tray' }
+            $tray = Get-CimInstance Win32_Process -Filter "Name='FCUKControlCenter.exe'" | Where-Object { "$($_.CommandLine)" -match '--tray' }
             if (-not $tray) { Start-Sleep -Milliseconds 500 }
         }
         if ($tray) { Ok 'Tepsi simgesi ve Fn tuşu dinleyicisi çalışıyor' } else { Warn 'Tepsi süreci görülmedi' }

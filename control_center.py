@@ -47,7 +47,8 @@ HERE = getattr(sys, "_MEIPASS", None) or os.path.dirname(os.path.abspath(__file_
 APP_DIR = os.path.dirname(sys.executable) if FROZEN else HERE
 SCRIPT = sys.executable if FROZEN else os.path.abspath(__file__)
 UI_PATH = os.path.join(HERE, "ui", "index.html")
-TASK = "KendiControlCenter"
+TASK = "FCUK Control Center"
+OLD_TASKS = ("KendiControlCenter", "KendiControlCenter Tepsi")  # onceki surumlerin gorev adlari
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 PAL_KIND = {"sabit": "one", "nefes": "steps", "gecis": "loop", "gokkusagi": None,
             "nabiz": "steps", "ses": "range", "sistem": "range", "ekran": None}
@@ -342,8 +343,8 @@ def register_task(name, xml):
 def install_task():
     """Yonetici olarak calisir (UAC ile): iki gorev kurar. Donus: cikis kodu (0 basarili). Hata ayrintisi
     crash.log'a yazilir (yonetici veri klasoru, kullaniciya salt okunur).
-    KendiControlCenter        : motor, yonetici, oturum acilisinda hemen (Run kaydi gibi gecikmez), cokunce yeniden.
-    KendiControlCenter Tepsi  : tepsi simgesi, NORMAL yetki (UIPI), oturum acilisinda.
+    FCUK Control Center       : motor, yonetici, oturum acilisinda hemen (Run kaydi gibi gecikmez), cokunce yeniden.
+    FCUK Control Center Tepsi : tepsi simgesi, NORMAL yetki (UIPI), oturum acilisinda.
     Kurulum acilis tetikleyicilerini HER ZAMAN acar; 'Windows ile baslat' kapatilirsa motor onlari kapatir
     ve acilista ayari gorevin gercek durumundan okur."""
     if not trusted_install():
@@ -358,6 +359,8 @@ def install_task():
         rc, out = register_task(name, xml)
         if rc != 0:
             errors.append("%s: %s" % (name, out or "kod %d" % rc))
+    for name in OLD_TASKS:  # onceki surumlerin gorevleri
+        hw.run(["schtasks", "/delete", "/tn", name, "/f"])
     try:
         remove_run_entry()  # acilis artik gorevlerle
     except OSError:
@@ -424,7 +427,7 @@ def remove_run_entry():
     import winreg
     key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE)
     try:
-        for name in ("KlavyeRGB", TASK):  # eski klavye uygulamasi ve Run ile acilis
+        for name in ("KlavyeRGB", "KendiControlCenter", TASK):  # eski klavye uygulamasi ve Run ile acilis
             try:
                 winreg.DeleteValue(key, name)
             except FileNotFoundError:
@@ -529,7 +532,7 @@ _peer_warned = []
 
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
-    server_version = "KendiControlCenter"
+    server_version = "FCUKControlCenter"
     timeout = 15  # veri gondermeden bekleyen baglanti is parcacigini sonsuza dek tutmasin
     _peer_ok = None  # baglanti basina bir kez denetlenir
 
@@ -1029,7 +1032,7 @@ def supervise():
         crashes = [t for t in crashes if now - t < 600] + [now]
         if len(crashes) > 5:
             safe = fans_to_factory()
-            alert("Kendi Control Center motoru 10 dakikada %d kez çöktü ve durduruldu.\n\n"
+            alert("FCUK Control Center motoru 10 dakikada %d kez çöktü ve durduruldu.\n\n"
                   "Klavye ışığı, performans profilleri ve ısı koruması şu an ÇALIŞMIYOR. %s\n\n"
                   "Ayrıntı: %s" % (len(crashes),
                                    "Fanlar güvenlik için denetleyicinin kendi tablosuna alındı." if safe else
@@ -1040,7 +1043,7 @@ def supervise():
 
 def saved_lang():
     """Kayitli dil ayari ("auto" ya da kod). Dosyaya dokunmaz: bozuk dosyayi serve() raporlar."""
-    for path in (core.CONFIG_PATH, core.USER_CONFIG_PATH, core.OLD_CONFIG_PATH):
+    for path in (core.CONFIG_PATH, core.USER_CONFIG_PATH, core.PREV_CONFIG_PATH, core.OLD_CONFIG_PATH):
         try:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -1112,7 +1115,7 @@ def main():
     except Exception as exc:
         _log_exception(type(exc), exc, exc.__traceback__)
         if "--engine" not in sys.argv:  # bekcinin alt sureci degilse: bekci zaten vazgecince bildirir
-            alert("Kendi Control Center beklenmeyen bir hatayla durdu:\n%s: %s\n\nAyrıntı: %s"
+            alert("FCUK Control Center beklenmeyen bir hatayla durdu:\n%s: %s\n\nAyrıntı: %s"
                   % (type(exc).__name__, exc, crash_log_path()))
         return 1
 

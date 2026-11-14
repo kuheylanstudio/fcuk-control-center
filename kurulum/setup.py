@@ -18,7 +18,7 @@ SCRIPT = os.path.join(BUNDLE, "kurulum.ps1")
 PAYLOAD = os.path.join(BUNDLE, "payload")
 NO_WINDOW = 0x08000000
 TITLE = "FCUK Control Center"
-EXE = os.path.join(os.environ.get("ProgramFiles", r"C:\Program Files"), "Kendi Control Center", "KendiControlCenter.exe")
+EXE = os.path.join(os.environ.get("ProgramFiles", r"C:\Program Files"), "FCUK Control Center", "FCUKControlCenter.exe")
 
 
 def version():

@@ -1,14 +1,14 @@
 ﻿# FCUK Control Center: dağıtılabilir kurulum programını (dist\setup.exe) derler.
 # Bu dosya Anthropic'in Claude Opus 5.5 yapay zeka modeliyle yazılmıştır. MIT lisansı, bkz. LICENSE.
 #   powershell -ExecutionPolicy Bypass -File setup_olustur.ps1
-# 1) Uygulama PyInstaller ile dist\KendiControlCenter\ olarak derlenir (kur.ps1 ile aynı ayarlar).
+# 1) Uygulama PyInstaller ile dist\FCUKControlCenter\ olarak derlenir (kur.ps1 ile aynı ayarlar).
 # 2) kurulum\setup.py tek dosyalık, yönetici isteyen setup.exe'ye derlenir; uygulama klasörü ve
 #    kurulum\kurulum.ps1 içine gömülür. Hiçbir şey kurulmaz; kurmak için setup.exe'yi çalıştırın.
 $ErrorActionPreference = 'Stop'
 $src   = Split-Path -Parent $MyInvocation.MyCommand.Path
 $build = Join-Path $src 'build'
 $dist  = Join-Path $src 'dist'
-$app   = Join-Path $dist 'KendiControlCenter'
+$app   = Join-Path $dist 'FCUKControlCenter'
 Set-Location $src
 
 $ver = [regex]::Match((Get-Content (Join-Path $src 'control_center.py') -Raw -Encoding UTF8), '(?m)^VERSION\s*=\s*"([^"]+)"').Groups[1].Value
@@ -27,7 +27,7 @@ python -c "import sys; sys.path.insert(0, r'$src'); import tepsi; tepsi.make_app
 if ($LASTEXITCODE -ne 0) { throw 'simge üretilemedi' }
 
 Write-Host "== Uygulama derleniyor (sürüm $ver)"
-python -m PyInstaller --noconfirm --clean --onedir --windowed --name KendiControlCenter `
+python -m PyInstaller --noconfirm --clean --onedir --windowed --name FCUKControlCenter `
     --icon $ico --add-data "$src\ui;ui" --add-data "$src\lib;lib" `
     --distpath $dist --workpath (Join-Path $build 'pyi') --specpath $build `
     control_center.py

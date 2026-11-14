@@ -327,7 +327,7 @@ class Tray:
         for n in (self.state or {}).get("notices") or []:
             if isinstance(n, dict) and isinstance(n.get("id"), int) and n["id"] > self.notice_seen:
                 self.notice_seen = n["id"]
-                self.notify("Kendi Control Center uyarısı", str(n.get("text", "")))
+                self.notify("FCUK Control Center uyarısı", str(n.get("text", "")))
 
     # -- menu
     def menu(self):

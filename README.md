@@ -27,7 +27,7 @@ yazmayı gerektirir. Uygulama hiçbir çekirdek sürücüsü kurmaz.
 
 ### setup.exe (önerilen)
 
-`setup.exe` uygulamayı `C:\Program Files\Kendi Control Center` klasörüne kurar ve Monster / Clevo Control Center'ın
+`setup.exe` uygulamayı `C:\Program Files\FCUK Control Center` klasörüne kurar ve Monster / Clevo Control Center'ın
 yerine geçer:
 
 - **Üreticinin kaldırıcısı çalıştırılmaz.** O kaldırıcı (InstallShield + `RemoveAPP.exe`) AcpiBridge sürücülerini de

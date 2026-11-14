@@ -21,12 +21,13 @@ c_int = ctypes.c_int
 import ceviri
 import donanim
 
-APP_NAME = "KendiControlCenter"
+APP_NAME = "FCUKControlCenter"
 _APPDATA = os.environ.get("APPDATA", os.path.expanduser("~"))
 USER_DIR = os.path.join(_APPDATA, APP_NAME)
 USER_CONFIG_PATH = os.path.join(USER_DIR, "config.json")
 CONFIG_DIR = USER_DIR      # yonetici motorda set_data_dir() ile Program Files altindaki veri klasorune doner
 CONFIG_PATH = USER_CONFIG_PATH
+PREV_CONFIG_PATH = os.path.join(_APPDATA, "KendiControlCenter", "config.json")  # onceki surumun ayarlari tasinir
 OLD_CONFIG_PATH = os.path.join(_APPDATA, "KlavyeRGB", "config.json")  # eski Klavye RGB ayarlari tasinir
 
 # (kimlik, ad, palet kullanir mi, hiz etiketi, aciklama)
@@ -404,7 +405,7 @@ def read_config():
     alanlarin dogrulanmasi cagiranin isidir (control_center.sanitize_loaded).
     Okunamayan/bozuk dosya config.bozuk.json adiyla kenara alinir ki sonraki kayit onu ezmesin."""
     paths = []
-    for p in (CONFIG_PATH, USER_CONFIG_PATH, OLD_CONFIG_PATH):  # yonetici motor ilk acilista kullanicininkini tasir
+    for p in (CONFIG_PATH, USER_CONFIG_PATH, PREV_CONFIG_PATH, OLD_CONFIG_PATH):  # yonetici motor ilk acilista kullanicininkini tasir
         if p not in paths:
             paths.append(p)
     for path in paths:

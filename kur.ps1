@@ -1,15 +1,15 @@
 ﻿# FCUK Control Center: exe'yi derler ve kurar. Kod degistikten sonra yeniden calistirmak yeterli.
 # Claude Opus 5.5 (Anthropic) ile yazildi. MIT lisansi, bkz. LICENSE.
 #   powershell -ExecutionPolicy Bypass -File kur.ps1
-# 1) (normal kullanici) PyInstaller ile dist\KendiControlCenter\ derlenir.
-# 2) (yonetici, tek UAC) eski motor durdurulur, C:\Program Files\Kendi Control Center'a kopyalanir,
+# 1) (normal kullanici) PyInstaller ile dist\FCUKControlCenter\ derlenir.
+# 2) (yonetici, tek UAC) eski motor durdurulur, C:\Program Files\FCUK Control Center'a kopyalanir,
 #    yonetici gorevi exe'ye yonlendirilir, Baslat menusu ve masaustu kisayollari olusturulur.
 param([switch]$Install)
 $ErrorActionPreference = "Stop"
 $src  = Split-Path -Parent $MyInvocation.MyCommand.Path
-$dist = Join-Path $src "dist\KendiControlCenter"
-$dest = Join-Path $env:ProgramFiles "Kendi Control Center"
-$exe  = Join-Path $dest "KendiControlCenter.exe"
+$dist = Join-Path $src "dist\FCUKControlCenter"
+$dest = Join-Path $env:ProgramFiles "FCUK Control Center"
+$exe  = Join-Path $dest "FCUKControlCenter.exe"
 # Yonetici bolumu kullanicinin yazabildigi %APPDATA%'ya YAZMAZ (oradaki bir baglanti/junction yonetici yazmasini
 # baska bir dosyaya yonlendirebilir). Gunluk ve motor ayarlari kurulum klasorundeki veri\ altinda (salt okunur).
 $veri = Join-Path $dest "veri"
@@ -21,7 +21,7 @@ if (-not $Install) {
     $ico = Join-Path $build "uygulama.ico"
     python -c "import sys; sys.path.insert(0, r'$src'); import tepsi; tepsi.make_app_icon(r'$ico')"
     if ($LASTEXITCODE -ne 0) { throw "simge uretilemedi" }
-    python -m PyInstaller --noconfirm --clean --onedir --windowed --name KendiControlCenter `
+    python -m PyInstaller --noconfirm --clean --onedir --windowed --name FCUKControlCenter `
         --icon $ico --add-data "$src\ui;ui" --add-data "$src\lib;lib" `
         --distpath (Join-Path $src "dist") --workpath (Join-Path $build "pyi") --specpath $build `
         control_center.py
@@ -42,13 +42,18 @@ try {
     try { Invoke-RestMethod -Method Post -Uri http://127.0.0.1:47815/api/quit -Body '{}' -ContentType application/json -TimeoutSec 3 | Out-Null } catch {}
     Start-Sleep 3
     Get-CimInstance Win32_Process | Where-Object {
-        ($_.Name -match '^pythonw?\.exe$' -and $_.CommandLine -match 'control_center\.py') -or $_.Name -eq 'KendiControlCenter.exe'
+        ($_.Name -match '^pythonw?\.exe$' -and $_.CommandLine -match 'control_center\.py') -or $_.Name -in 'FCUKControlCenter.exe', 'KendiControlCenter.exe'
     } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; Log "durduruldu: $($_.ProcessId) $($_.Name)" }
     Start-Sleep 1
 
     robocopy $dist $dest /MIR /XD $veri /NFL /NDL /NJH /NJS /NP | Out-Null   # veri\ (ayarlar, gunluk) korunur
     if ($LASTEXITCODE -ge 8) { throw "kopyalama basarisiz (robocopy $LASTEXITCODE)" }
     Log "kopyalandi: $dest"
+    $eski = Join-Path $env:ProgramFiles "Kendi Control Center"   # onceki surumun klasoru
+    if (Test-Path $eski) {
+        if ((Test-Path "$eski\veri") -and -not (Test-Path "$veri\config.json")) { robocopy "$eski\veri" $veri /E /NFL /NDL /NJH /NJS /NP | Out-Null }
+        Remove-Item $eski -Recurse -Force -ErrorAction SilentlyContinue; Log "onceki surum silindi: $eski"
+    }
 
     # Sonuc cikis kodundan okunur (eskiden kullanicinin yazabildigi task_result.txt'den)
     $p = Start-Process $exe -ArgumentList "--install-task" -Wait -PassThru
@@ -117,8 +122,8 @@ try {
         Log "kisayol: $lnk"
     }
     # simdi baslat (acilista gorevler kendiliginden baslatir)
-    schtasks /run /tn "KendiControlCenter" | Out-Null
-    schtasks /run /tn "KendiControlCenter Tepsi" | Out-Null
+    schtasks /run /tn "FCUK Control Center" | Out-Null
+    schtasks /run /tn "FCUK Control Center Tepsi" | Out-Null
     Log "TAMAM"
 } catch {
     Log "HATA: $($_.Exception.Message)"
