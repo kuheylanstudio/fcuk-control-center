@@ -11,7 +11,7 @@ bilgisayarlarda da donanım tespiti, canlı izleme, NVIDIA ve işlemci ayarları
 <p align="center">
   <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.0.0/FCUK-Control-Center-Setup-3.0.0.exe"><img alt="İndir: FCUK-Control-Center-Setup-3.0.0.exe" src="https://img.shields.io/badge/%C4%B0ndir-FCUK--Control--Center--Setup--3.0.0.exe-2ea44f?style=for-the-badge&logo=windows&logoColor=white"></a>
   <br>
-  <a href="https://www.virustotal.com/gui/file/455e7b60eb2f50fef8b17031d8b5cbdab18507bf68f8005f76ac929f2478f1ac"><img alt="VirusTotal tarama sonucu" src="https://img.shields.io/badge/VirusTotal-tarama%20sonucu-394EFF?logo=virustotal&logoColor=white"></a>
+  <a href="https://www.virustotal.com/gui/file/e9bac8f92a8abd61cd668a30ee91b5aee0aefd68af78c83d974dff2d13ddcb7e"><img alt="VirusTotal tarama sonucu" src="https://img.shields.io/badge/VirusTotal-tarama%20sonucu-394EFF?logo=virustotal&logoColor=white"></a>
   <br>
   <sub>Windows 10/11 (64 bit) · <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/latest">tüm sürümler ve SHA-256</a> · <a href="#güvenlik-ve-doğrulama">güvenlik ve doğrulama</a></sub>
 </p>
@@ -78,7 +78,7 @@ yazmayı gerektirir. Uygulama hiçbir çekirdek sürücüsü kurmaz.
 
 ### Güvenlik ve doğrulama
 
-- **VirusTotal:** [3.0.0 kurulum dosyasının tarama raporu](https://www.virustotal.com/gui/file/455e7b60eb2f50fef8b17031d8b5cbdab18507bf68f8005f76ac929f2478f1ac)
+- **VirusTotal:** [3.0.0 kurulum dosyasının tarama raporu](https://www.virustotal.com/gui/file/e9bac8f92a8abd61cd668a30ee91b5aee0aefd68af78c83d974dff2d13ddcb7e)
   (yukarıdaki rozet de aynı rapora gider). Yeni sürümler yayımlandığında GitHub Actions ile VirusTotal'a
   yüklenir; rapor bağlantısı sürüm notlarının sonuna eklenir. PyInstaller ile paketlenen programları birkaç
   antivirüs motoru bazen yanlışlıkla işaretler (genel "Trojan/Wacatac" vb. adlarla); kaynak kodun tamamı bu depodadır.
