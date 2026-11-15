@@ -9,9 +9,9 @@ bilgisayarlarda da donanım tespiti, canlı izleme, NVIDIA ve işlemci ayarları
 > *The source code of this project was written with Anthropic's Claude Opus 5.5 AI model.*
 
 <p align="center">
-  <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v2.6.0/FCUK-Control-Center-Setup-2.6.0.exe"><img alt="İndir: FCUK-Control-Center-Setup-2.6.0.exe" src="https://img.shields.io/badge/%C4%B0ndir-FCUK--Control--Center--Setup--2.6.0.exe-2ea44f?style=for-the-badge&logo=windows&logoColor=white"></a>
+  <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v2.7.0/FCUK-Control-Center-Setup-2.7.0.exe"><img alt="İndir: FCUK-Control-Center-Setup-2.7.0.exe" src="https://img.shields.io/badge/%C4%B0ndir-FCUK--Control--Center--Setup--2.7.0.exe-2ea44f?style=for-the-badge&logo=windows&logoColor=white"></a>
   <br>
-  <a href="https://www.virustotal.com/gui/file/2be5162cf66c0e0f674c0da78f5dde7589a129d0423fe693e9013b568a720b04"><img alt="VirusTotal tarama sonucu" src="https://img.shields.io/badge/VirusTotal-tarama%20sonucu-394EFF?logo=virustotal&logoColor=white"></a>
+  <a href="https://www.virustotal.com/gui/file/1c888ffbc3218abf6c751222cc02ce29000674af2566a3eb4a147bb41bdd5e97"><img alt="VirusTotal tarama sonucu" src="https://img.shields.io/badge/VirusTotal-tarama%20sonucu-394EFF?logo=virustotal&logoColor=white"></a>
   <br>
   <sub>Windows 10/11 (64 bit) · <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/latest">tüm sürümler ve SHA-256</a> · <a href="#güvenlik-ve-doğrulama">güvenlik ve doğrulama</a></sub>
 </p>
@@ -70,19 +70,19 @@ yazmayı gerektirir. Uygulama hiçbir çekirdek sürücüsü kurmaz.
 
 ### setup.exe (önerilen)
 
-1. **[FCUK-Control-Center-Setup-2.6.0.exe](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v2.6.0/FCUK-Control-Center-Setup-2.6.0.exe)** dosyasını indirin.
+1. **[FCUK-Control-Center-Setup-2.7.0.exe](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v2.7.0/FCUK-Control-Center-Setup-2.7.0.exe)** dosyasını indirin.
 2. Çift tıklayın ve yönetici iznini onaylayın. Kurulum penceresi her adımı gösterir; bitince uygulama açılır.
 3. Windows "Bilgisayarınız korundu" (SmartScreen) derse: **Ek bilgi → Yine de çalıştır**. Ayrıntı:
    [Güvenlik ve doğrulama](#güvenlik-ve-doğrulama).
 
 ### Güvenlik ve doğrulama
 
-- **VirusTotal:** [2.5.0 kurulum dosyasının tarama raporu](https://www.virustotal.com/gui/file/2be5162cf66c0e0f674c0da78f5dde7589a129d0423fe693e9013b568a720b04)
+- **VirusTotal:** [2.7.0 kurulum dosyasının tarama raporu](https://www.virustotal.com/gui/file/1c888ffbc3218abf6c751222cc02ce29000674af2566a3eb4a147bb41bdd5e97)
   (yukarıdaki rozet de aynı rapora gider). Yeni sürümler yayımlandığında GitHub Actions ile VirusTotal'a
   yüklenir; rapor bağlantısı sürüm notlarının sonuna eklenir. PyInstaller ile paketlenen programları birkaç
   antivirüs motoru bazen yanlışlıkla işaretler (genel "Trojan/Wacatac" vb. adlarla); kaynak kodun tamamı bu depodadır.
 - **SHA-256:** indirdiğiniz dosyanın [sürüm sayfasındaki](https://github.com/kuheylanstudio/fcuk-control-center/releases/latest)
-  özetle aynı olduğunu denetleyin: `Get-FileHash FCUK-Control-Center-Setup-2.6.0.exe`
+  özetle aynı olduğunu denetleyin: `Get-FileHash FCUK-Control-Center-Setup-2.7.0.exe`
 - **Kod imzası:** kurulum programı şu an kod imzalı değildir; SmartScreen uyarısı bu yüzdendir. Derleme betiği
   imzalamaya hazırdır (bkz. [Kod imzalama](#kod-imzalama)); imzalı bir sürüm yayımlandıktan sonra güncelleyici
   yalnızca aynı yayıncının imzasını taşıyan kurulum dosyalarını kurar.
@@ -145,7 +145,7 @@ powershell -ExecutionPolicy Bypass -File setup_olustur.ps1   # çıktı: dist\se
 
 Bu şekilde derlenen setup.exe üreticiye ait DLL'i içerir; kendi bilgisayarınız için kullanın, herkese açık
 dağıtmayın. Dağıtılabilir (DLL'siz) paket için: `setup_olustur.ps1 -Dagitim` (çıktı:
-`dist\FCUK-Control-Center-Setup-2.6.0.exe`). İndirme düğmesindeki dosya budur.
+`dist\FCUK-Control-Center-Setup-2.7.0.exe`). İndirme düğmesindeki dosya budur.
 
 #### Kod imzalama
 
