@@ -3,12 +3,15 @@
 # Bu dosya Anthropic'in Claude Opus 5.5 yapay zeka modeliyle yazilmistir. MIT lisansi, bkz. LICENSE.
 """asus_rog birim testleri: sahte ATK tasimasi, sahte WMI ve sahte HID ile (donanima hicbir komut gitmez).
 
-Calistirma:  python -m unittest test_asus_rog -v
+Calistirma:  python -m unittest tests.test_asus_rog -v
 """
 import os
 import tempfile
 import unittest
 from unittest import mock
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import asus_rog as ar
 import donanim as hw
@@ -483,7 +486,7 @@ class TestOpenDchu(unittest.TestCase):
     def test_control_center_gates_clevo_code_on_kind(self):
         """Fn olaylari (0x46) ve Monster Fn engeli (engelle.py) yalnizca kind == 'clevo' iken calisir."""
         import re
-        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "control_center.py"), encoding="utf-8") as f:
+        with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "control_center.py"), encoding="utf-8") as f:
             src = f.read()
         self.assertRegex(src, r'if (?:App\.dchu\.available and )?(?:App\.dchu\.kind|getattr\(App\.dchu, "kind", "clevo"\)) == "clevo":\s*\n\s*try:\s*\n\s*App\.dchu\.set_wmi\(0x46')
         self.assertRegex(src, r'(?:App\.dchu\.kind|getattr\(App\.dchu, "kind", "clevo"\)) == "clevo".*\n\s*threading\.Thread\(target=fn_block_loop')

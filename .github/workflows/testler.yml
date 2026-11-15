@@ -1,0 +1,30 @@
+# Her push ve pull request'te birim testleri (donanima dokunmaz: sahte WMI / HID / EC) ve ceviri denetimi.
+name: Testler
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Bagimliliklar
+        run: python -m pip install psutil
+
+      - name: Ceviri denetimi
+        run: python tools/ceviri_denetle.py
+
+      - name: Birim testleri
+        run: python -m unittest discover -s tests -v

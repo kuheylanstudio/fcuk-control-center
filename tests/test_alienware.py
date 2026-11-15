@@ -4,10 +4,14 @@
 """Alienware arka ucu testleri: gercek donanim olmadan, sahte AWCC WMI ve sahte AlienFX HID ile.
 
 Sahte aygit bir Alienware 16X Aurora'yi taklit eder: 2 fan (0x32 CPU, 0x33 GPU), 2 sensor (0x01 CPU,
-0x06 GPU), USTT profilleri ve G-mode. Calistirma: python -m unittest test_alienware -v
+0x06 GPU), USTT profilleri ve G-mode. Calistirma: python -m unittest tests.test_alienware -v
 """
 import time
 import unittest
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import alienware as aw
 import donanim

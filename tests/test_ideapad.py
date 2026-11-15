@@ -3,10 +3,14 @@
 # Bu dosya Anthropic'in Claude Opus 5.5 yapay zeka modeliyle yazilmistir. MIT lisansi, bkz. LICENSE.
 """ideapad birim testleri: sahte WMI ve sahte EnergyDrv ile (donanima hicbir komut gitmez).
 
-Calistirma:  python -m unittest test_ideapad -v
+Calistirma:  python -m unittest tests.test_ideapad -v
 """
 import unittest
 from unittest import mock
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import donanim as hw
 import ideapad as ip
