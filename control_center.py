@@ -36,6 +36,7 @@ import envanter
 import guncelleme
 import kayit
 import islemci
+import kare
 import klavye_rgb as core
 import nvidia
 import profiller
@@ -121,6 +122,7 @@ NOT_TRUSTED_MSG = ("Yönetici modu yalnızca setup.exe (ya da kur.ps1) ile Progr
 
 class App:
     cfg = None
+    fps = None  # oyun ici gosterge FPS'i (kare.FpsCounter; ETW, yalnizca istenince calisir)
     dchu = None
     engine = None
     sensors = None
@@ -265,8 +267,8 @@ def sanitize_cc(raw):
     out["hotkeys"] = bool(raw.get("hotkeys", True))
     out["log_csv"] = bool(raw.get("log_csv", False))
     out["overlay"] = bool(raw.get("overlay", False))
-    if raw.get("overlay_corner") in profiller.OVERLAY_CORNERS:
-        out["overlay_corner"] = raw["overlay_corner"]
+    out["overlay_items"] = list(profiller.OVERLAY_DEFAULT)
+    profiller.clean_overlay(raw, out)
     # Profilden once etkin olan guc plani (ureticinin kendi plani olabilir): "Fabrika" ona geri doner
     prev = raw.get("prev_scheme")
     if isinstance(prev, str) and re.fullmatch(r"[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}", prev):
@@ -793,7 +795,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(App.audio.get())
         if path == "/api/tray":  # tepsi simgesi 2 sn'de bir yoklar: hafif tutuldu
             s, mgr = App.sensors.snapshot, App.manager
-            return self._json({
+            return self._json(dict(tray_hud(s, mgr), **{
                 "profile": mgr.applied, "guard": mgr.guard, "lang": ceviri.lang(),
                 "profiles": [{"id": p["id"], "name": profiller.name(p["id"]), "ac_only": bool(p.get("ac_only")),
                               "level": p.get("level") or profiller.LEVEL.get(p["id"], 3)}
@@ -805,7 +807,7 @@ class Handler(BaseHTTPRequestHandler):
                 "gpu_power": s.get("gpu_power"), "cpu_rpm": s.get("cpu_rpm"), "gpu_rpm": s.get("gpu_rpm"),
                 "hotkeys": mgr.cfg.get("hotkeys", True), "overlay": mgr.cfg.get("overlay", False),
                 "overlay_corner": mgr.cfg.get("overlay_corner", "tl"), "app": mgr.app,
-                "ac": (s.get("battery") or {}).get("ac", True), "notices": list(App.notices)})
+                "ac": (s.get("battery") or {}).get("ac", True), "notices": list(App.notices)}))
         if path == "/api/now":  # yalnizca son olcum (gecmissiz): ek sayfalar saniyede bir okur
             return self._json(App.sensors.snapshot)
         if path == "/api/history":  # Gecmis sayfasi: son N dakika (en fazla 60), ozet, gunluk dosyalar
@@ -922,8 +924,7 @@ class Handler(BaseHTTPRequestHandler):
             for k in ("apps_on", "hotkeys", "overlay", "log_csv"):  # acik/kapali ayarlar
                 if k in body:
                     mgr.cfg[k] = bool(body[k])
-            if body.get("overlay_corner") in profiller.OVERLAY_CORNERS:
-                mgr.cfg["overlay_corner"] = body["overlay_corner"]
+            profiller.clean_overlay(body, mgr.cfg)
             save()
             return self._json({"ok": True, "cc": mgr.status()})
         if path == "/api/custom":  # ozel profiller: tum liste birden gelir (en fazla 3)
@@ -1155,8 +1156,41 @@ class Server(ThreadingHTTPServer):
         pass
 
 
+def tray_hud(s, mgr):
+    """Oyun ici gostergenin ek olcumleri ve ayarlari. FPS oturumu yalnizca gosterge acik ve FPS / kare suresi
+    seciliyken calisir; aksi halde burada kapatilir (tepsi saniyede bir yoklar)."""
+    cfg = mgr.cfg
+    items = cfg.get("overlay_items") or list(profiller.OVERLAY_DEFAULT)
+    want = bool(cfg.get("overlay")) and ("fps" in items or "frametime" in items)
+    fps, fps_state = None, "off"
+    try:
+        if App.fps is None and want:
+            App.fps = kare.FpsCounter()
+        if App.fps is not None:
+            App.fps.ensure(want)
+        if want:
+            fps, fps_state = App.fps.read()
+    except Exception as exc:
+        fps_state = "error"
+        log("fps: %r" % exc)
+    bat = s.get("battery") or {}
+    return {"overlay_items": items, "overlay_layout": cfg.get("overlay_layout", "row"),
+            "overlay_size": cfg.get("overlay_size", "m"), "overlay_opacity": cfg.get("overlay_opacity", 90),
+            "fps": None if fps is None else round(fps, 1), "fps_state": fps_state,
+            "cpu_mhz": s.get("cpu_mhz"), "cpu_load": s.get("cpu_load"), "gpu_load": s.get("gpu_load"),
+            "gpu_clock": s.get("gpu_clock"), "gpu_mem_clock": s.get("gpu_mem_clock"),
+            "gpu_vram_used": s.get("gpu_vram_used"), "gpu_vram_total": s.get("gpu_vram_total"),
+            "ram_used": s.get("ram_used"), "ram_total": s.get("ram_total"),
+            "battery_pct": bat.get("percent"), "battery_ac": bat.get("ac", True)}
+
+
 def shutdown():
     time.sleep(0.2)
+    try:
+        if App.fps is not None:
+            App.fps.shutdown()
+    except Exception:
+        pass
     try:
         App.engine.running = False
         App.sensors.running = False

@@ -192,9 +192,35 @@ def name(pid):
     if p and p.get("custom"):
         return p["name"]
     return t("prof." + pid)
+# Oyun ici gosterge (HUD): secilebilir degerler. Sira = gostergede cizilis sirasi.
+OVERLAY_ITEMS = ("cpu_temp", "cpu_power", "cpu_clock", "cpu_load",
+                 "gpu_temp", "gpu_power", "gpu_clock", "gpu_mem_clock", "gpu_load", "gpu_vram",
+                 "fps", "frametime", "profile", "fan", "ram", "battery", "time")
+OVERLAY_DEFAULT = ["cpu_temp", "cpu_power", "gpu_temp", "gpu_power", "profile"]
+OVERLAY_CORNERS = ("tl", "tc", "tr", "bl", "br")
+OVERLAY_LAYOUTS = ("row", "panel")
+OVERLAY_SIZES = ("s", "m", "l", "xl")
 DEFAULTS = {"profile": "", "on_battery": "", "on_ac": "", "refresh": True, "apps": [], "apps_on": True,
-            "hotkeys": True, "overlay": False, "overlay_corner": "tl", "log_csv": False, "custom": []}
-OVERLAY_CORNERS = ("tl", "tr", "bl", "br")
+            "hotkeys": True, "overlay": False, "overlay_corner": "tl", "overlay_items": list(OVERLAY_DEFAULT),
+            "overlay_layout": "row", "overlay_size": "m", "overlay_opacity": 90, "log_csv": False, "custom": []}
+
+
+def clean_overlay(raw, out):
+    """Gosterge ayarlarini raw'dan dogrulayip out'a yazar (yalnizca gelen ve gecerli olanlar)."""
+    if raw.get("overlay_corner") in OVERLAY_CORNERS:
+        out["overlay_corner"] = raw["overlay_corner"]
+    if raw.get("overlay_layout") in OVERLAY_LAYOUTS:
+        out["overlay_layout"] = raw["overlay_layout"]
+    if raw.get("overlay_size") in OVERLAY_SIZES:
+        out["overlay_size"] = raw["overlay_size"]
+    op = raw.get("overlay_opacity")
+    if isinstance(op, (int, float)) and not isinstance(op, bool):
+        out["overlay_opacity"] = int(min(100, max(40, op)))
+    items = raw.get("overlay_items")
+    if isinstance(items, list):
+        want = {x for x in items if isinstance(x, str)}
+        out["overlay_items"] = [k for k in OVERLAY_ITEMS if k in want] or list(OVERLAY_DEFAULT)
+    return out
 
 # ----------------------------------------------------------------------------- uygulamaya gore profil
 # Kural: {"exe": "valorant.exe", "profile": "ultra"}. Listede ilk eslesen kazanir (oncelik = sira).

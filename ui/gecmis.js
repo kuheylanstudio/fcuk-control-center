@@ -43,19 +43,11 @@ css.textContent = `
 document.head.append(css);
 
 /* ---------- menu dugmesi ve sayfa ---------- */
-const rail = $('.rail'), anchor = $('.rail .nav[data-view="ayarlar"]'), shell = $('.shell');
-if (!rail || !shell) return;
+// "Izleme" kategorisinde bir sekme olarak ana betigin gezinmesine (window.ccNav) eklenir.
+if (!$('.shell') || !window.ccNav) return;
 const ID = 'gecmis';
-const nav = E('button', 'nav'); nav.type = 'button'; nav.dataset.view = ID;
-nav.append(E('span', '', T('nav.gecmis')), E('small', '', T('nav.gecmis.sub')));
-nav.addEventListener('click', () => {
-  document.querySelectorAll('.nav').forEach(b => b.setAttribute('aria-current', b.dataset.view === ID ? 'page' : 'false'));
-  document.querySelectorAll('.view').forEach(v => { v.hidden = v.id !== 'v-' + ID; });
-  try { localStorage.setItem('cc.view', ID); } catch (e) { /* depolama yok */ }
-});
-rail.insertBefore(nav, anchor || rail.querySelector('.foot'));
-const view = E('section', 'view'); view.id = 'v-' + ID; view.hidden = true; view.setAttribute('aria-label', T('nav.gecmis'));
-const page = E('div', 'page'); view.append(page); shell.append(view);
+const page = window.ccNav.add(ID, 'nav.gecmis');
+const view = page.parentElement;
 
 let minutes = 60, data = null, bat = null, built = false, hover = null;
 // [olcum, renk belirteci, kesikli, etiket]

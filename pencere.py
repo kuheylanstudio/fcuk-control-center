@@ -52,11 +52,13 @@ class Api:
     """Sayfanin (window.pywebview.api) cagirabildigi tek yuzey: yalnizca bu uc islem."""
 
     def __init__(self):
-        self.window = None
+        # "_" ile baslar: pywebview, js_api nesnesinin acik ozniteliklerini ozyinelemeli tarar (window dahil:
+        # WinForms/WebView2 nesnelerine baska is parcacigindan dokunur) ve ilk acilista arayuzu dondurur.
+        self._window = None
 
     def kapat(self):
-        if self.window is not None:
-            self.window.destroy()
+        if self._window is not None:
+            self._window.destroy()
 
     def guncelleme_penceresi_var(self):
         """Bagimsiz guncelleme penceresi (kurulum/setup.py) ekranda mi? Sayfa, kendi penceresini ancak bu
@@ -72,14 +74,14 @@ class Api:
         """Metni kullanicinin sectigi yere kaydeder (Windows "Farkli kaydet" penceresi). Yol ya da None doner.
         Yalnizca .csv / .txt; pencere sureci normal kullanici yetkisiyle calisir."""
         import webview
-        if self.window is None or not isinstance(metin, str) or not isinstance(ad, str):
+        if self._window is None or not isinstance(metin, str) or not isinstance(ad, str):
             return None
         ad = os.path.basename(ad) or "kayit.csv"
         ext = os.path.splitext(ad)[1].lower()
         if ext not in (".csv", ".txt"):
             return None
         turler = ("CSV (*.csv)",) if ext == ".csv" else ("Metin (*.txt)",)
-        sec = self.window.create_file_dialog(webview.SAVE_DIALOG, save_filename=ad, file_types=turler)
+        sec = self._window.create_file_dialog(webview.SAVE_DIALOG, save_filename=ad, file_types=turler)
         if not sec:
             return None
         yol = sec if isinstance(sec, str) else sec[0]
@@ -113,7 +115,7 @@ def run(url, storage, icon=None):
     import webview  # gec yukleme: --window disindaki modlar pythonnet'i yuklemez
     api = Api()
     w, h, x, y = fit_size()
-    api.window = webview.create_window(TITLE, url, width=w, height=h, x=x, y=y,
+    api._window = webview.create_window(TITLE, url, width=w, height=h, x=x, y=y,
                                        min_size=(min(MIN_SIZE[0], w), min(MIN_SIZE[1], h)),
                                        js_api=api, background_color="#0a0c0f")
     os.makedirs(storage, exist_ok=True)

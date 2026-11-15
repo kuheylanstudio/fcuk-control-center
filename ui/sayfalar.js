@@ -45,25 +45,12 @@ css.textContent = `
 document.head.append(css);
 
 /* ---------- menu ve sayfalar ---------- */
+// Sekmeler ana betigin gezinmesine (window.ccNav) eklenir: Donanim "Izleme", Islemci ve NVIDIA "Performans" altinda.
 const PAGES = [['donanim', 'nav.donanim'], ['islemci', 'nav.islemci'], ['nvidia', 'nav.nvidia']];
-const rail = $('.rail'), anchor = $('.rail .nav[data-view="ayarlar"]'), shell = $('.shell');
-if (!rail || !shell) return;
+const shell = $('.shell');
+if (!shell || !window.ccNav) return;
 const views = {};
-for (const [id, key] of PAGES) {
-  const b = E('button', 'nav'); b.type = 'button'; b.dataset.view = id;
-  b.append(E('span', '', T(key)), E('small', '', T(key + '.sub')));
-  b.addEventListener('click', () => open(id));
-  rail.insertBefore(b, anchor || rail.querySelector('.foot'));
-  const v = E('section', 'view'); v.id = 'v-' + id; v.hidden = true; v.setAttribute('aria-label', T(key));
-  const page = E('div', 'page'); v.append(page);
-  shell.append(v);
-  views[id] = page;
-}
-function open(id) {  // ana betigin show() islevinin karsiligi
-  document.querySelectorAll('.nav').forEach(b => b.setAttribute('aria-current', b.dataset.view === id ? 'page' : 'false'));
-  document.querySelectorAll('.view').forEach(v => { v.hidden = v.id !== 'v-' + id; });
-  try { localStorage.setItem('cc.view', id); } catch (e) { /* depolama yok */ }
-}
+for (const [id, key] of PAGES) views[id] = window.ccNav.add(id, key);
 const visible = () => PAGES.map(p => p[0]).find(id => !document.getElementById('v-' + id).hidden);
 
 let hw = null, nv = null, cpu = null, now = {};

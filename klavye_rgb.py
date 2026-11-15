@@ -483,12 +483,101 @@ class GameFx:
                 src.tick(time.monotonic())
 
 
+# ----------------------------------------------------------------------------- yazma seyreltme
+# Clevo'da her renk yazmasi surucude ACPI/EC isidir (DeviceIoControl 0x322400): bolge basina ~16 ms bekleme,
+# ~5 ms islemci; 3 bolgeli klavyede kare basina 3 yazma gider. Aygit arama ve acma bunun yaninda bedava (~0,2 ms),
+# bu yuzden tutamaci acik tutmak ya da kitapligi atlayip surucuye dogrudan yazmak yuku azaltmaz: tek care az yazmak.
+# 15.11.2026 olcumu: Gokkusagi'nda her kare yazilinca motor tek cekirdegin %55'ini, Sabit'te %8,7'sini kullandi.
+# Bu yuzden renk 30 FPS hesaplanir ama klavyeye yalnizca gozun ayirt edecegi degisim yazilir.
+STEP = 8            # en buyuk kanal farki bu kadarsa hemen yazilir: nabiz, nefes, ses gibi hizli efektler 30 FPS kalir
+SLOW_GAP = 0.2      # daha kucuk degisimler en gec bu arayla yazilir: yavas kayma (Gokkusagi) 5-8 kare/sn
+GAME_STEP = 16      # tam ekran uygulama (oyun, video) ondeyken yavas animasyonlar daha seyrek yazilir
+GAME_GAP = 0.5
+RESEND = 2.0        # degisim olmasa da renk bu arayla yeniden yazilir (uyku / Fn tusu sonrasi geri gelsin)
+REACTIVE = ("oyun", "ses", "ekran")  # olaya, sese ya da ekrana tepki veren modlar oyun sirasinda seyreltilmez
+STATIC = ("sabit", "bolgeler")       # zamanla degismeyen modlar: dongu ayar degisene dek uyur
+# Gokkusagi yazma butcesi: hiz ne olursa olsun saniyede en fazla RAINBOW_FPS kare yazilir. %100 hiz bu butceyle
+# hala akici gorunen en hizli turdur (12 sn'de tam tur: yazma basina en fazla ~16/255 renk adimi).
+RAINBOW_FPS = 8
+RAINBOW_SLOW, RAINBOW_FAST = 40.0, 12.0  # hiz 0 ve hiz 100'de bir tam turun suresi (sn)
+
+
+def rainbow_period(speed):
+    return period(speed, RAINBOW_SLOW, RAINBOW_FAST)
+
+
+def color_delta(a, b):
+    """Iki renk ya da bolge renkleri demeti arasindaki en buyuk kanal farki (0-255). Bicim farkliysa 255."""
+    if a is None or b is None or len(a) != len(b):
+        return 255
+    if not a:
+        return 0
+    nested_a, nested_b = isinstance(a[0], tuple), isinstance(b[0], tuple)
+    if nested_a != nested_b:
+        return 255
+    if nested_a:
+        return max(color_delta(x, y) for x, y in zip(a, b))
+    return max(abs(x - y) for x, y in zip(a, b))
+
+
+def should_send(key, sent, since, fullscreen=False, reactive=False, instant=False, min_gap=0.0):
+    """Bu karede klavyeye yazilsin mi? key: yeni renk, sent: son yazilan, since: son yazmadan beri gecen sn.
+    instant: renk yalnizca kullanici degistirince degisir (Sabit): her degisim hemen yazilir.
+    min_gap: iki yazma arasindaki en kisa sure (Gokkusagi butcesi); buyuk degisim de bunu bekler."""
+    if sent is None or since >= RESEND:
+        return True
+    d = color_delta(key, sent)
+    if d == 0:
+        return False
+    if instant:
+        return True
+    slow_down = fullscreen and not reactive
+    if since < min_gap * (2 if slow_down else 1):  # oyun ondeyken butce yariya iner
+        return False
+    step, gap = (GAME_STEP, GAME_GAP) if slow_down else (STEP, SLOW_GAP)
+    return d >= step or since >= gap
+
+
+def fullscreen_app():
+    """Tam ekran bir uygulama (oyun, video, sunum) onde mi? SHQueryUserNotificationState: 2 tam ekran uygulama,
+    3 Direct3D tam ekran, 4 sunum kipi. Okunamazsa False (seyreltme normal duzeyde kalir)."""
+    try:
+        st = c_int(0)
+        if ctypes.windll.shell32.SHQueryUserNotificationState(ctypes.byref(st)) != 0:
+            return False
+        return st.value in (2, 3, 4)
+    except (OSError, AttributeError):
+        return False
+
+
+class _PowerThrottling(ctypes.Structure):
+    _fields_ = [("Version", ctypes.c_ulong), ("ControlMask", ctypes.c_ulong), ("StateMask", ctypes.c_ulong)]
+
+
+def efficiency_thread():
+    """Cagiran is parcacigini Windows 11 verimlilik (EcoQoS) kipine alir: verimli cekirdeklerde, dusuk saatte
+    calisir, oyunun basarim cekirdeklerini serbest birakir. Oncelik bilerek dusurulmez: bu is parcacigi denetleyici
+    kilidini tutar; dusuk oncelik tam yuk altinda isi bekcisinin sicaklik okumasini geciktirebilirdi.
+    Desteklenmeyen Windows'ta sessizce False doner."""
+    try:
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)  # ozel kopya: ortak windll.kernel32 imzalari degismez
+        fn = k32.SetThreadInformation
+        fn.argtypes = [c_void_p, c_int, c_void_p, ctypes.c_ulong]
+        fn.restype = ctypes.c_int
+        k32.GetCurrentThread.restype = c_void_p
+        st = _PowerThrottling(1, 1, 1)  # THREAD_POWER_THROTTLING_CURRENT_VERSION, EXECUTION_SPEED acik
+        return bool(fn(k32.GetCurrentThread(), 3, ctypes.byref(st), ctypes.sizeof(st)))  # 3: ThreadPowerThrottling
+    except (OSError, AttributeError):
+        return False
+
+
 # ----------------------------------------------------------------------------- motor
 class Engine(threading.Thread):
     FPS = 30
 
     def __init__(self, kb):
         super().__init__(daemon=True)
+        self._wake = threading.Event()  # ayar degisince uyuyan donguyu hemen uyandirir
         self.kb = kb
         # (mod, palet[(r,g,b)..], hiz 0..100, kaynak, parlaklik 0..1) - arayuz tek seferde degistirir
         self.settings = ("sabit", ((255, 255, 255),), 50, "cpu_temp", 1.0)
@@ -499,7 +588,18 @@ class Engine(threading.Thread):
         self.warn = ""  # kalici olmayan uyari (ornegin oyun penceresi tanimlanamadi)
         self.running = True
 
+    @property
+    def settings(self):
+        return self._settings
+
+    @settings.setter
+    def settings(self, value):
+        self._settings = value
+        self._wake.set()  # Sabit gibi uyuyan modda yeni ayar beklemeden uygulanir
+
     def run(self):
+        efficiency_thread()
+        fullscreen, fs_at = False, -10.0
         audio = screen = game = None
         sysinfo = SystemInfo()
         phase = 0.0
@@ -542,7 +642,7 @@ class Engine(threading.Thread):
                     col = sample(pal, phase, True)
                     self.info = ""
                 elif mode == "gokkusagi":
-                    phase += dt / period(speed, 40.0, 2.0)
+                    phase += dt / rainbow_period(speed)
                     r, g, b = colorsys.hsv_to_rgb(phase % 1.0, 1.0, 1.0)
                     col = (r * 255, g * 255, b * 255)
                     self.info = ""
@@ -604,7 +704,10 @@ class Engine(threading.Thread):
                 self.warn = warn
                 key = out if zones is None else tuple(
                     tuple(int(clamp(c * bright / 255.0) * 255 + 0.5) for c in z) for z in zones)
-                if key != sent or now - sent_at > 1.0:  # uyku/Fn tusu sonrasi rengi geri getirmek icin tekrar yolla
+                if now - fs_at > 2.0:  # tam ekran durumu 2 sn'de bir sorulur (ucuz bir kabuk cagrisi)
+                    fs_at, fullscreen = now, fullscreen_app()
+                gap = 1.0 / RAINBOW_FPS if mode == "gokkusagi" else 0.0
+                if should_send(key, sent, now - sent_at, fullscreen, mode in REACTIVE, mode in STATIC, gap):
                     if zones is None:
                         self.kb.set_color(*out)
                     else:
@@ -614,10 +717,12 @@ class Engine(threading.Thread):
             except Exception as exc:  # motor hic durmasin
                 self.error = "%s: %s" % (type(exc).__name__, exc)
                 time.sleep(0.5)
-            # Klavye isigi yoksa yalnizca arayuzun vurgu rengi icin saniyede 2 kare (islemciyi yormaz)
-            spare = 1.0 / (self.FPS if kb_ok else 2) - (time.monotonic() - now)
+            # Klavye isigi yoksa ya da renk zamanla degismiyorsa saniyede 2 kare: yeni ayar _wake ile hemen uyandirir.
+            fps = self.FPS if kb_ok and mode not in STATIC else 2
+            spare = 1.0 / fps - (time.monotonic() - now)
             if spare > 0:
-                time.sleep(spare)
+                self._wake.wait(spare)
+            self._wake.clear()
 
 
 # ----------------------------------------------------------------------------- ayarlar

@@ -1,4 +1,4 @@
-# Klavye RGB - Tasarım Sistemi
+# FCUK Control Center - Tasarım Sistemi (v3)
 
 Bu belge arayüzün tek kaynağıdır. `ui/index.html` içindeki her renk, ölçü ve süre buradaki bir belirteçten gelir.
 
@@ -55,3 +55,33 @@ Her etkileşimli bileşenin beş durumu vardır: varsayılan, üzerine gelme, od
 - **Bölmeli seçim** (`.seg`): seçili olanın kenarı `--live-ink`.
 - **Gösterge** (`.meter`): ölçülen 0-1 değeri, `transform: scaleX` ile.
 - **Kayıtlı mod satırı** (`.preset`): palet şeridi, ad, mod adı; silme iki tıkla.
+
+## Yerleşim ve gezinme (v3)
+
+Özellik sayısı arttıkça tek sütunlu uzun menü yerine iki katmanlı gezinme kullanılır. Yeni sayfa eklerken menüye yeni satır değil, uygun kategoriye yeni sekme eklenir.
+
+- **Ray** (`.rail`, 96 px): beş kategori, ikon + kısa etiket. Seçili kategoride solda 2 px `--live-ink` çizgi, ikon `--live-ink` ve hafif `--live` ışıması. Ayarlar rayın dibinde.
+- **Başlık çubuğu** (`.bar`): kategori adı ve o kategorinin sekmeleri (`.nav`). Seçili sekmenin altında 2 px `--live-ink` çizgi. Kategoride tek sayfa varsa sekmeler gizlenir (`.bar.solo`).
+- **Durum çubuğu** (`.status`): her sayfada cihaz, sürüm, canlı CPU/GPU sıcaklığı, güç, fan devri ve profil/ısı koruması/yetki çipleri. Sayfalarda bu ölçümler tekrarlanmaz.
+- **Kategoriler** (`CATS`, `ui/index.html`):
+
+| Kategori | Sekmeler |
+|---|---|
+| İzleme | Canlı, Geçmiş, Donanım |
+| Performans | Profiller, Otomasyon, Fanlar, İşlemci, NVIDIA, MSI (yalnızca MSI'da) |
+| Klavye | (tek sayfa) |
+| Ses ve ekran | (tek sayfa) |
+| Ayarlar | Genel, Güncellemeler, Destek |
+
+- Ek betikler (`sayfalar.js`, `gecmis.js`) sayfalarını `window.ccNav.add(id, anahtar)` ile ekler; sekme sırası `CATS` sırasıdır.
+- Sayfa başlığı (`.page-head h2`) yalnızca ekran okuyucu içindir; görünen başlık sekmedir. Giriş paragrafı en fazla 86ch.
+
+### Ayar satırı
+
+Ayarlar ve Otomasyon gibi denetim ağırlıklı sayfalarda kart ızgarası yerine gruplar kullanılır:
+
+- **Grup** (`.group`): ince kenarlı yüzey; üstte `.group-head` (etiket + isteğe bağlı eylem).
+- **Satır** (`.setting`): solda başlık (`.st-t`, 15 px) ve açıklama (`.hint`), sağda tek denetim (anahtar, seçim, düğme). Satırlar arasında 1 px `--line`.
+- **Serbest alan** (`.pad`): liste, günlük ya da düğme sırası gibi satıra sığmayan içerik.
+- İki sütunlu düzen `.cols` (1.35fr / 1fr), 1100 px altında tek sütun.
+

@@ -311,7 +311,9 @@ class Tray:
             return
         s = self.state
         if s and s.get("overlay"):
-            self.overlay.show(gosterge.segments(s, self._name(s.get("profile"))), s.get("overlay_corner", "tl"))
+            self.overlay.show(gosterge.build(s, s.get("overlay_items"), self._name(s.get("profile"))),
+                              s.get("overlay_corner", "tl"), s.get("overlay_layout", "row"),
+                              s.get("overlay_size", "m"), s.get("overlay_opacity", 90))
         elif self.overlay.visible:
             self.overlay.hide()
 
@@ -600,9 +602,26 @@ class Tray:
                 u32.DestroyIcon(h)
 
 
+def dpi_aware():
+    """Gosterge, OSD ve simge DPI'ya gore keskin cizilsin (yoksa Windows bitmap olarak buyutur: bulanik)."""
+    try:
+        if ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4)):  # per-monitor v2
+            return
+    except (AttributeError, OSError):
+        pass
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)
+    except (AttributeError, OSError):
+        try:
+            ctypes.windll.user32.SetProcessDPIAware()
+        except (AttributeError, OSError):
+            pass
+
+
 def run(base, open_window, start_engine):
     """Tek ornek: ikinci --tray sessizce cikar. Simge kapanana dek doner."""
     mutex = k32.CreateMutexW(None, False, "Local\\KendiControlCenterTray")
+    dpi_aware()
     if ctypes.get_last_error() == ERROR_ALREADY_EXISTS:
         return
     try:

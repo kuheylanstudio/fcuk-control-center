@@ -36,7 +36,8 @@ bilgisayarlarda da donanım tespiti, canlı izleme, NVIDIA ve işlemci ayarları
 | **Ses ve ekran** | Hoparlör / mikrofon seviyesi, yenileme hızı | Her bilgisayar |
 | **Uygulamaya göre profil** | Seçtiğiniz program (ör. `game.exe`) açılınca istediğiniz profil uygulanır, kapanınca önceki profile dönülür. Listeye açık pencerelerden ya da exe adıyla eklenir | Profil desteği olan cihaz |
 | **Özel profiller** | Hazır bir profili temel alan en fazla 3 kendi profiliniz: işlemci / ekran kartı sınırları, turbo, fan eğrisi (başlangıç ve tam devir noktaları), yenileme hızı | Profil desteği olan cihaz |
-| **Kısayollar ve oyun içi gösterge** | Ctrl+Alt+P sonraki profil, Ctrl+Alt+O oyun içi gösterge (sıcaklık, güç, fan, profil; tıklamayı engellemez, köşe seçilebilir). Oyuna dokunulmaz, FPS gösterilmez | Her bilgisayar |
+| **Oyun içi gösterge** | Kendi kategorisinde: gösterilecek değerler tek tek seçilir (işlemci/ekran kartı sıcaklık, W, MHz, yük, VRAM, FPS, kare süresi, plan, fan, RAM, pil, saat). Varsayılan: işlemci ve kart sıcaklığı + W + kullanılan plan. Şerit/panel düzeni, 4 boyut, opaklık, canlı önizleme. FPS oyuna dokunmadan Windows ETW olaylarından (DirectX 9–12, yönetici modu). Ctrl+Alt+O ile aç/kapat | Her bilgisayar |
+| **Kısayollar** | Ctrl+Alt+P sonraki profil, Ctrl+Alt+O oyun içi gösterge | Her bilgisayar |
 | **Geçmiş** | Son 1 saatin sıcaklık / güç / fan grafikleri, kısılma (thermal / power) bölgeleri, profil değişim işaretleri, CSV dışa aktarma; isteğe bağlı günlük CSV kaydı (7 gün saklanır) | Her bilgisayar |
 | **Pil sağlığı geçmişi** | Tam şarj kapasitesinin tasarım kapasitesine oranı günlük kaydedilir; 30 gün sonra yıllık kayıp tahmini | Pilli bilgisayar |
 | **Tanılama** | Sorun bildirmek için tek tıkla rapor (sürüm, model, BIOS, özellik desteği, günlük); kullanıcı ve bilgisayar adı çıkarılır, hiçbir yere gönderilmez. Son hatalar Ayarlar'da görünür | Her bilgisayar |
@@ -241,6 +242,7 @@ islemci.py         modele göre işlemci ayarları (Windows güç planı)
 profiller.py       beş performans profili, özel profiller, ısı koruması, fiş/pil ve uygulama kuralları
 kayit.py           sensör geçmişi (bellekte 1 saat, isteğe bağlı günlük CSV), kısılma türü, pil sağlığı geçmişi
 gosterge.py        oyun içi gösterge (katmanlı, tıklamayı geçiren, en üstte pencere)
+kare.py            FPS ölçümü (ETW: DXGI/D3D9 Present olayları; oyuna dokunmaz)
 tanilama.py        tanılama raporu ve son hatalar (kişisel bilgiden arındırılmış)
 klavye_rgb.py      klavye ışık motoru
 oyun.py            oyun tepkisi kaynakları: tuş basımları, LoL canlı oyun verisi, CS2 Game State Integration
