@@ -405,13 +405,13 @@ input[type=number]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
 .hud-prev .hg + .hg::before{content:"";position:absolute;left:calc(-11px * var(--hs));top:-2px;bottom:-2px;width:1px;background:#283039}
 .hud-prev .ht{font-size:calc(11px * var(--hs));font-weight:700;letter-spacing:.02em;margin-right:calc(-4px * var(--hs))}
 .hud-prev .hc{display:inline-flex;align-items:baseline;gap:calc(3px * var(--hs))}
-.hud-prev .hc b{font-size:calc(17px * var(--hs));font-weight:600;font-variant-numeric:tabular-nums}
+.hud-prev .hc b{display:inline-block;text-align:right;font-size:calc(17px * var(--hs));font-weight:600;font-variant-numeric:tabular-nums}
 .hud-prev .hc small{font-size:calc(11px * var(--hs));font-weight:500;color:#a9b1be}
 .hud-prev .dim b{color:#70788a}
 .hud-prev.panel{display:grid;grid-template-columns:auto;gap:0;padding:calc(4px * var(--hs)) calc(12px * var(--hs))}
 .hud-prev.panel .hg{padding:calc(6px * var(--hs)) 0}
 .hud-prev.panel .hg + .hg::before{left:0;right:0;top:0;bottom:auto;width:auto;height:1px}
-.hud-prev.panel .ht{min-width:calc(46px * var(--hs))}
+.hud-prev.panel .ht{margin-right:calc(3px * var(--hs))}
 .hud-note{display:flex;gap:8px;align-items:flex-start;margin:0 var(--s-4) var(--s-4);font-size:var(--fs-2);color:var(--text-2)}
 .hud-note i{flex:none;width:8px;height:8px;margin-top:5px;border-radius:50%;background:var(--text-3)}
 .hud-note.ok i{background:#76d672}.hud-note.warn i{background:var(--warn)}
@@ -1652,38 +1652,39 @@ function hudGroups(s, items, plan) {
   const n = (v, d = 0) => v == null ? null : Number(v).toLocaleString(LOCALE, { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: false });
   const pair = (u, tot, div) => u == null || !tot ? null : n(u / div, 1) + '/' + n(tot / div, 0);
   const heat = (v, warn, hot) => v == null ? '#fff' : v >= hot ? '#ff6b6b' : v >= warn ? '#ffb84d' : '#fff';
-  const c = (v, u, col) => ({ v: v == null ? '–' : v, u, col: v == null ? null : col || '#fff' });
+  // tm: gosterge.py ile ayni deger kalibi; onizlemede deger bu genislikte bir yuvaya saga hizali yazilir
+  const c = (v, u, col, tm) => ({ v: v == null ? '–' : v, u, tm, col: v == null ? null : col || '#fff' });
   const g = key => gpuOn ? s[key] : null;
   const fps = [];
-  if (k.has('fps')) fps.push(c(n(s.fps), 'FPS'));
-  if (k.has('frametime')) fps.push(c(s.fps ? n(1000 / s.fps, 1) : null, 'ms'));
+  if (k.has('fps')) fps.push(c(n(s.fps), 'FPS', null, '8888'));
+  if (k.has('frametime')) fps.push(c(s.fps ? n(1000 / s.fps, 1) : null, 'ms', null, n(888.8, 1)));
   if (fps.length) out.push({ id: 'fps', tag: t('hud.fps'), cells: fps });
   const cpu = [];
-  if (k.has('cpu_temp')) cpu.push(c(n(s.cpu_temp), '°C', heat(s.cpu_temp, 85, 95)));
-  if (k.has('cpu_power')) cpu.push(c(n(s.cpu_power), 'W'));
-  if (k.has('cpu_clock')) cpu.push(c(n(s.cpu_mhz || null), 'MHz'));
-  if (k.has('cpu_load')) cpu.push(c(n(s.cpu_load), '%'));
+  if (k.has('cpu_temp')) cpu.push(c(n(s.cpu_temp), '°C', heat(s.cpu_temp, 85, 95), '888'));
+  if (k.has('cpu_power')) cpu.push(c(n(s.cpu_power), 'W', null, '888'));
+  if (k.has('cpu_clock')) cpu.push(c(n(s.cpu_mhz || null), 'MHz', null, '8888'));
+  if (k.has('cpu_load')) cpu.push(c(n(s.cpu_load), '%', null, '888'));
   if (cpu.length) out.push({ id: 'cpu', tag: t('hud.cpu'), cells: cpu });
   const gpu = [];
-  if (k.has('gpu_temp')) gpu.push(c(n(g('gpu_temp')), '°C', heat(g('gpu_temp'), 80, 87)));
-  if (k.has('gpu_power')) gpu.push(c(n(g('gpu_power')), 'W'));
-  if (k.has('gpu_clock')) gpu.push(c(n(g('gpu_clock')), 'MHz'));
-  if (k.has('gpu_mem_clock')) gpu.push(c(n(g('gpu_mem_clock')), 'MHz'));
-  if (k.has('gpu_load')) gpu.push(c(n(g('gpu_load')), '%'));
-  if (k.has('gpu_vram')) gpu.push(c(pair(g('gpu_vram_used'), s.gpu_vram_total, 1024), 'GB'));
+  if (k.has('gpu_temp')) gpu.push(c(n(g('gpu_temp')), '°C', heat(g('gpu_temp'), 80, 87), '888'));
+  if (k.has('gpu_power')) gpu.push(c(n(g('gpu_power')), 'W', null, '888'));
+  if (k.has('gpu_clock')) gpu.push(c(n(g('gpu_clock')), 'MHz', null, '8888'));
+  if (k.has('gpu_mem_clock')) gpu.push(c(n(g('gpu_mem_clock')), 'MHz', null, '88888'));
+  if (k.has('gpu_load')) gpu.push(c(n(g('gpu_load')), '%', null, '888'));
+  if (k.has('gpu_vram')) gpu.push(c(pair(g('gpu_vram_used'), s.gpu_vram_total, 1024), 'GB', null, n(88.8, 1) + '/88'));
   if (gpu.length) out.push({ id: 'gpu', tag: t('hud.gpu'), cells: gpu });
   if (k.has('fan')) {
     const rpm = [s.cpu_rpm, s.gpu_rpm].filter(v => v != null);
-    out.push({ id: 'sys', tag: t('hud.fan'), cells: [c(rpm.length ? rpm.map(v => n(v)).join('/') : null, 'RPM')] });
+    out.push({ id: 'sys', tag: t('hud.fan'), cells: [c(rpm.length ? rpm.map(v => n(v)).join('/') : null, 'RPM', null, '8888/8888')] });
   }
-  if (k.has('ram')) out.push({ id: 'sys', tag: t('hud.ram'), cells: [c(pair(s.ram_used, s.ram_total, 1), 'GB')] });
+  if (k.has('ram')) out.push({ id: 'sys', tag: t('hud.ram'), cells: [c(pair(s.ram_used, s.ram_total, 1), 'GB', null, n(88.8, 1) + '/88')] });
   if (k.has('battery')) {
     const low = s.battery_pct != null && s.battery_pct <= 15 && s.battery_ac === false;
-    out.push({ id: 'sys', tag: t('hud.battery'), cells: [c(n(s.battery_pct), '%', low ? '#ff6b6b' : null)] });
+    out.push({ id: 'sys', tag: t('hud.battery'), cells: [c(n(s.battery_pct), '%', low ? '#ff6b6b' : null, '888')] });
   }
   if (k.has('time')) {
     const d = new Date();
-    out.push({ id: 'sys', tag: t('hud.time'), cells: [c(String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'), '')] });
+    out.push({ id: 'sys', tag: t('hud.time'), cells: [c(String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'), '', null, '88:88')] });
   }
   if (k.has('profile')) out.push({ id: 'plan', tag: t('hud.plan'), cells: [c(plan || null, '', HUD_ACC.plan)] });
   return out;
@@ -1697,20 +1698,39 @@ function renderHudPreview() {
   box.dataset.c = r.corner;
   box.style.setProperty('--hs', HUD_SIZE[r.size] || 1);
   box.style.opacity = r.opacity / 100;
+  const slots = [], tags = [];
   for (const g of hudGroups(s, r.items, cc.profile ? profName(cc.profile) : '')) {
     const gd = el('div', 'hg');
     const tag = el('span', 'ht', g.tag.toLocaleUpperCase(LOCALE));
     tag.style.color = HUD_ACC[g.id];
     gd.append(tag);
+    tags.push(tag);
     for (const x of g.cells) {
       const cd = el('span', 'hc' + (x.col ? '' : ' dim'));
-      const b = el('b', null, x.v);
+      const b = el('b', null, x.tm || x.v);
+      slots.push([b, x]);
       if (x.col) b.style.color = x.col;
       cd.append(b);
       if (x.u) cd.append(el('small', null, x.u));
       gd.append(cd);
     }
     box.append(gd);
+  }
+  // HUD gibi: once kaliplar olculur (tek yerlesim), sonra gercek deger o genislikte saga hizali yazilir;
+  // panelde etiket sutunu en genis etiket kadar, boylece tum degerler ayni hizadan baslar.
+  const widths = slots.map(([b]) => b.offsetWidth);
+  const tagW = r.layout === 'panel' ? Math.max(0, ...tags.map(x => x.offsetWidth)) : 0;
+  slots.forEach(([b, x], i) => {
+    if (x.tm && widths[i]) b.style.minWidth = widths[i] + 'px';
+    b.textContent = x.v;
+  });
+  if (tagW) tags.forEach(x => { x.style.minWidth = tagW + 'px'; });
+  // Onizleme alani ekrandan dar: gosterge sigmiyorsa oranini bozmadan kucult (gercek gosterge etkilenmez)
+  box.style.transform = '';
+  const avail = box.parentElement.clientWidth - 24, bw = box.offsetWidth;
+  if (avail > 0 && bw > avail) {
+    box.style.transformOrigin = r.corner === 'tc' ? 'top center' : (r.corner.endsWith('r') ? 'right' : 'left') + (r.corner[0] === 'b' ? ' bottom' : ' top');
+    box.style.transform = `scale(${(avail / bw).toFixed(3)})`;
   }
   const chip = $('#hudOnChip');
   chip.textContent = t(r.on ? 'hud.on' : 'hud.off');
