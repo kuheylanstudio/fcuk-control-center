@@ -3,7 +3,8 @@
 # Bu dosya Anthropic'in Claude Opus 5.5 yapay zeka modeliyle yazilmistir. MIT lisansi, bkz. LICENSE.
 """Oyun ici gosterge (HUD): ekranin bir kosesinde her zaman ustte, tiklamayi geciren, odak calmayan pencere.
 
-    CPU  72 °C  45 W │ GPU  65 °C  95 W │ PLAN  ULTRA            (serit duzeni, varsayilan degerler)
+    CPU  72 °C  45 W │ GPU  65 °C  95 W │ PLAN  Ultra            (serit duzeni, varsayilan degerler)
+    FPS secilirse en basta durur: FPS  144 FPS  6,9 ms │ CPU ...
 
 Kullanici Oyun ici gosterge sayfasinda hangi degerlerin gorunecegini (profiller.OVERLAY_ITEMS), duzeni (serit /
 panel), boyutu ve saydamligi secer. Tepsi sureci (normal yetki) olusturur ve saniyede bir gunceller;
@@ -76,6 +77,16 @@ def build(s, keys, profile_name=""):
     def cell(v, unit, tmpl, color=C_VALUE):
         return (DASH, unit, C_DIM, tmpl) if v is None else (v, unit, color, tmpl)
 
+    # Oyunda en cok bakilan: kare hizi ve kare suresi en basta
+    fps = []
+    f = s.get("fps")
+    if "fps" in keys:
+        fps.append(cell(_n(f), "FPS", "8888"))
+    if "frametime" in keys:
+        fps.append(cell(_n(1000.0 / f, 1) if f else None, "ms", "888.8"))
+    if fps:
+        out.append(("fps", t("hud.fps"), fps))
+
     cpu = []
     if "cpu_temp" in keys:
         cpu.append(cell(_n(s.get("cpu_temp")), "°C", "888", level_color(s.get("cpu_temp"), 85, 95)))
@@ -105,15 +116,6 @@ def build(s, keys, profile_name=""):
         gpu.append(cell(_pair(g("gpu_vram_used"), s.get("gpu_vram_total"), 1024.0), "GB", "88.8/88"))
     if gpu:
         out.append(("gpu", t("hud.gpu"), gpu))
-
-    fps = []
-    f = s.get("fps")
-    if "fps" in keys:
-        fps.append(cell(_n(f), "FPS", "8888"))
-    if "frametime" in keys:
-        fps.append(cell(_n(1000.0 / f, 1) if f else None, "ms", "888.8"))
-    if fps:
-        out.append(("fps", t("hud.fps"), fps))
 
     if "fan" in keys:
         rpm = [v for v in (s.get("cpu_rpm"), s.get("gpu_rpm")) if v is not None]
@@ -209,25 +211,30 @@ class Overlay:
         u32.ReleaseDC(self.hwnd, hdc)
         ops, lines = [], []  # ops: (tur, grup, hucre, x, satir); tur: tag | val | unit
         if layout == "panel":
+            # Her satir kendi kaliplariyla dizilir; yalnizca ayni yapidaki satirlar (CPU / GPU gibi ayni birim ve
+            # kalip sirasi) sutun genisligini paylasir. Boylece genis bir satir (fan "4200/4100 RPM") digerlerini
+            # saga itmez; tum degerler etiket sutunundan hemen sonra, ayni hizadan baslar.
             tag_w = max(tags) if tags else 0
-            ncol = max(len(c) for _, _, c in self.groups)
-            col_slot = [max((m[i][0] for m in meas if i < len(m)), default=0) for i in range(ncol)]
-            col_unit = [max((m[i][1] for m in meas if i < len(m)), default=0) for i in range(ncol)]
             row_h = round(self.em["val"] * 1.65)
-            x0 = pad_x + (tag_w + tag_gap * 2 if tag_w else 0)
-
-            def step(i):
-                return col_slot[i] + (unit_gap + col_unit[i] if col_unit[i] else 0)
-            w = x0 + sum(step(i) for i in range(ncol)) + cell_gap * (ncol - 1) + pad_x
-            for r, (_, _, cells) in enumerate(self.groups):
+            x0 = pad_x + (tag_w + round(14 * s) if tag_w else 0)
+            shape = [tuple((u, tm) for _, u, _, tm in cells) for _, _, cells in self.groups]
+            widths = {}
+            for sh, m in zip(shape, meas):
+                cur = widths.setdefault(sh, [[0, 0] for _ in m])
+                for i, (slot, uw) in enumerate(m):
+                    cur[i][0], cur[i][1] = max(cur[i][0], slot), max(cur[i][1], uw)
+            right = x0
+            for r, sh in enumerate(shape):
                 ops.append(("tag", r, 0, pad_x, r))
                 x = x0
-                for i in range(len(cells)):
-                    ops.append(("val", r, i, x + col_slot[i], r))
-                    ops.append(("unit", r, i, x + col_slot[i] + unit_gap, r))
-                    x += step(i) + cell_gap
-                if r:
-                    lines.append((pad_x, pad_y + r * row_h, w - 2 * pad_x, 1))
+                for i, (slot, uw) in enumerate(widths[sh]):
+                    ops.append(("val", r, i, x + slot, r))
+                    ops.append(("unit", r, i, x + slot + unit_gap, r))
+                    x += slot + (unit_gap + uw if uw else 0) + cell_gap
+                right = max(right, x - cell_gap)
+            w = right + pad_x
+            for r in range(1, len(shape)):
+                lines.append((pad_x, pad_y + r * row_h, w - 2 * pad_x, 1))
             h = pad_y * 2 + row_h * len(self.groups)
             self.rows = [pad_y + r * row_h + row_h / 2 for r in range(len(self.groups))]
         else:

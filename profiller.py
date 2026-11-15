@@ -193,9 +193,9 @@ def name(pid):
         return p["name"]
     return t("prof." + pid)
 # Oyun ici gosterge (HUD): secilebilir degerler. Sira = gostergede cizilis sirasi.
-OVERLAY_ITEMS = ("cpu_temp", "cpu_power", "cpu_clock", "cpu_load",
+OVERLAY_ITEMS = ("fps", "frametime", "cpu_temp", "cpu_power", "cpu_clock", "cpu_load",
                  "gpu_temp", "gpu_power", "gpu_clock", "gpu_mem_clock", "gpu_load", "gpu_vram",
-                 "fps", "frametime", "profile", "fan", "ram", "battery", "time")
+                 "profile", "fan", "ram", "battery", "time")
 OVERLAY_DEFAULT = ["cpu_temp", "cpu_power", "gpu_temp", "gpu_power", "profile"]
 OVERLAY_CORNERS = ("tl", "tc", "tr", "bl", "br")
 OVERLAY_LAYOUTS = ("row", "panel")

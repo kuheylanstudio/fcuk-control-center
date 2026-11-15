@@ -33,16 +33,17 @@ class BuildTest(unittest.TestCase):
 
     def test_all_items_order_and_units(self):
         groups = gosterge.build(FULL, profiller.OVERLAY_ITEMS, "Ultra")
-        self.assertEqual([g[0] for g in groups], ["cpu", "gpu", "fps", "sys", "sys", "sys", "sys", "plan"])
-        self.assertEqual([c[1] for c in groups[0][2]], ["°C", "W", "MHz", "%"])
-        self.assertEqual(groups[0][2][2][0], ceviri.num(4820))
-        self.assertEqual([c[1] for c in groups[1][2]], ["°C", "W", "MHz", "MHz", "%", "GB"])
-        self.assertEqual(groups[2][2][0][0], "125")
-        self.assertEqual(groups[2][2][1][0], ceviri.num(8.0, 1))  # 1000/125 ms
+        self.assertEqual([g[0] for g in groups], ["fps", "cpu", "gpu", "sys", "sys", "sys", "sys", "plan"])
+        self.assertEqual(groups[0][2][0][0], "125")  # FPS ve kare suresi en basta
+        self.assertEqual(groups[0][2][1][0], ceviri.num(8.0, 1))  # 1000/125 ms
+        self.assertEqual([c[1] for c in groups[1][2]], ["°C", "W", "MHz", "%"])
+        self.assertEqual(groups[1][2][2][0], ceviri.num(4820))
+        self.assertEqual([c[1] for c in groups[2][2]], ["°C", "W", "MHz", "MHz", "%", "GB"])
         self.assertEqual(groups[5][2][0][2], gosterge.C_OFF)  # pilde %10: kirmizi
 
     def test_missing_values_keep_slot(self):
         groups = gosterge.build({"gpu_state": "sleep", "gpu_temp": 50}, ["cpu_temp", "gpu_temp", "fps"])
+        self.assertEqual([g[0] for g in groups], ["fps", "cpu", "gpu"])
         self.assertEqual(len(groups), 3)
         for g in groups:
             self.assertEqual(g[2][0][0], gosterge.DASH)
@@ -63,7 +64,7 @@ class BuildTest(unittest.TestCase):
 class CleanOverlayTest(unittest.TestCase):
     def test_items_filtered_and_ordered(self):
         out = profiller.clean_overlay({"overlay_items": ["fps", "bogus", "cpu_temp", 5]}, {})
-        self.assertEqual(out["overlay_items"], ["cpu_temp", "fps"])
+        self.assertEqual(out["overlay_items"], ["fps", "cpu_temp"])
 
     def test_empty_falls_back_to_default(self):
         out = profiller.clean_overlay({"overlay_items": []}, {})

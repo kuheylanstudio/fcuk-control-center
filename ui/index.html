@@ -1632,9 +1632,9 @@ function initHotkeys() {
 /* ---------- oyun ici gosterge (HUD): secimler motora (/api/rules), onizleme /api/tray ile canli ---------- */
 // Tepsideki gosterge (gosterge.py build) ile ayni gruplar, sira, renkler ve birimler.
 const HUD_GROUPS = {
+  game: ['fps', 'frametime'],
   cpu: ['cpu_temp', 'cpu_power', 'cpu_clock', 'cpu_load'],
   gpu: ['gpu_temp', 'gpu_power', 'gpu_clock', 'gpu_mem_clock', 'gpu_load', 'gpu_vram'],
-  game: ['fps', 'frametime'],
   sys: ['profile', 'fan', 'ram', 'battery', 'time'],
 };
 const HUD_DEFAULT = ['cpu_temp', 'cpu_power', 'gpu_temp', 'gpu_power', 'profile'];
@@ -1654,6 +1654,10 @@ function hudGroups(s, items, plan) {
   const heat = (v, warn, hot) => v == null ? '#fff' : v >= hot ? '#ff6b6b' : v >= warn ? '#ffb84d' : '#fff';
   const c = (v, u, col) => ({ v: v == null ? '–' : v, u, col: v == null ? null : col || '#fff' });
   const g = key => gpuOn ? s[key] : null;
+  const fps = [];
+  if (k.has('fps')) fps.push(c(n(s.fps), 'FPS'));
+  if (k.has('frametime')) fps.push(c(s.fps ? n(1000 / s.fps, 1) : null, 'ms'));
+  if (fps.length) out.push({ id: 'fps', tag: t('hud.fps'), cells: fps });
   const cpu = [];
   if (k.has('cpu_temp')) cpu.push(c(n(s.cpu_temp), '°C', heat(s.cpu_temp, 85, 95)));
   if (k.has('cpu_power')) cpu.push(c(n(s.cpu_power), 'W'));
@@ -1668,10 +1672,6 @@ function hudGroups(s, items, plan) {
   if (k.has('gpu_load')) gpu.push(c(n(g('gpu_load')), '%'));
   if (k.has('gpu_vram')) gpu.push(c(pair(g('gpu_vram_used'), s.gpu_vram_total, 1024), 'GB'));
   if (gpu.length) out.push({ id: 'gpu', tag: t('hud.gpu'), cells: gpu });
-  const fps = [];
-  if (k.has('fps')) fps.push(c(n(s.fps), 'FPS'));
-  if (k.has('frametime')) fps.push(c(s.fps ? n(1000 / s.fps, 1) : null, 'ms'));
-  if (fps.length) out.push({ id: 'fps', tag: t('hud.fps'), cells: fps });
   if (k.has('fan')) {
     const rpm = [s.cpu_rpm, s.gpu_rpm].filter(v => v != null);
     out.push({ id: 'sys', tag: t('hud.fan'), cells: [c(rpm.length ? rpm.map(v => n(v)).join('/') : null, 'RPM')] });
