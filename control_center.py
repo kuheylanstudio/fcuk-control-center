@@ -16,6 +16,7 @@ import base64
 import ctypes
 import json
 import os
+import platform
 import re
 import socket
 import subprocess
@@ -38,6 +39,7 @@ import islemci
 import klavye_rgb as core
 import nvidia
 import profiller
+import tanilama
 from ceviri import t
 
 VERSION = "2.6.0"
@@ -597,6 +599,40 @@ def state():
     }
 
 
+def diagnostics():
+    """Sorun bildirimi icin duz metin rapor (tanilama.py kisisel bilgiyi cikarir)."""
+    inv = App.inventory.data if App.inventory else {}
+    sysi = inv.get("system") or {}
+    cpu = inv.get("cpu") or {}
+    snap = App.sensors.snapshot if App.sensors else {}
+    mgr = App.manager
+    info = {
+        "surum": VERSION, "kaynak": "kurulu" if FROZEN else "kaynak kod",
+        "windows": "%s (derleme %s)" % (sysi.get("os") or "Windows %s" % platform.release(),
+                                         sysi.get("os_build") or platform.version().rsplit(".", 1)[-1]),
+        "uretici / model": " / ".join(x for x in (sysi.get("maker"), sysi.get("model")) if x),
+        "anakart": sysi.get("board"), "bios": " ".join(x for x in (sysi.get("bios"), sysi.get("bios_date")) if x),
+        "islemci": cpu.get("name"), "ekran kartlari": ", ".join(g.get("name", "") for g in inv.get("gpus") or []),
+        "arka uc": "%s (%s)" % (App.dchu.kind or "yok", getattr(App.dchu, "vendor", "") or "-"),
+        "denetleyici": "bagli" if App.dchu.available else "yok: %s" % (getattr(App.dchu, "reason", "") or "-"),
+        "yetenekler": ", ".join(k for k, v in caps().items() if v is True) or "-",
+        "yonetici": hw.is_admin(), "guvenilir kurulum": trusted_install(),
+        "dil": ceviri.lang(),
+        "profil": "%s%s" % (mgr.applied or "-", " (kural: %s)" % mgr.app if mgr.app else ""),
+        "isi korumasi": mgr.guard or "-",
+        "ozel profil / uygulama kurali": "%d / %d" % (len(mgr.cfg.get("custom") or []), len(mgr.cfg.get("apps") or [])),
+        "gelen olcumler": ", ".join(sorted(k for k, v in snap.items() if v not in (None, "", [], {}, 0)
+                                           and not isinstance(v, (dict, list)))) or "-",
+        "envanter": "hazir" if sysi else "henuz yuklenmedi",
+        "olcum hatasi": snap.get("sensor_error") or snap.get("dchu_error") or snap.get("pdh_error") or "-",
+    }
+    try:
+        sup = support()
+    except Exception:
+        sup = []
+    return tanilama.build(info, sup, tanilama.tail(crash_log_path()))
+
+
 def lenovo_state():
     """Lenovo Legion'a ozel ozellikler (ekran karti modu, pil); Lenovo degilse None."""
     if App.dchu.kind != "lenovo":
@@ -781,6 +817,10 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/history.csv":
             minutes = _int(self.query.get("min"), 1, 60, 60)
             return self._send(200, App.recorder.csv_text(minutes).encode("utf-8-sig"), "text/csv; charset=utf-8")
+        if path == "/api/diagnostics":  # Ayarlar > Tanilama: kaydet / kopyala
+            return self._json({"text": diagnostics()})
+        if path == "/api/errors":  # Ayarlar > Tanilama: gunlukteki son hatalar
+            return self._json({"lines": tanilama.errors(crash_log_path()), "path": tanilama.redact(crash_log_path())})
         if path == "/api/battery":
             return self._json(App.battery.payload())
         if path == "/api/apps":  # kural eklerken secim listesi: penceresi acik uygulamalar

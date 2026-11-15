@@ -900,5 +900,16 @@
   "cust.saveFail": "Kaydedilemedi: {err}",
   "prof.customTag": "Özel · temel: {base}",
   "prof.customDesc": "Sizin tanımladığınız profil. Güç modu ve zamanlayıcı temel profilden gelir; fan, turbo, EPP, tavanlar ve yenileme hızı sizin seçiminiz.",
-  "reason.edited": "Profil düzenlendi"
+  "reason.edited": "Profil düzenlendi",
+  "diag.title": "Tanılama ve sorun bildirimi",
+  "diag.hint": "Rapor sürümü, modeli, BIOS'u, hangi özelliklerin çalıştığını ve günlüğün son satırlarını içerir. Kullanıcı ve bilgisayar adı çıkarılır; rapor hiçbir yere gönderilmez.",
+  "diag.save": "Raporu kaydet",
+  "diag.copy": "Panoya kopyala",
+  "diag.issue": "GitHub'da bildir",
+  "diag.errors": "Son hatalar",
+  "diag.refresh": "Yenile",
+  "diag.noErrors": "Günlükte hata yok.",
+  "diag.saved": "Rapor kaydedildi: {path}",
+  "diag.copied": "Rapor panoya kopyalandı.",
+  "diag.fail": "Rapor oluşturulamadı: {err}"
 }

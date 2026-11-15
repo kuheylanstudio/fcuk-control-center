@@ -900,5 +900,16 @@
   "cust.saveFail": "Couldn't save: {err}",
   "prof.customTag": "Custom · based on {base}",
   "prof.customDesc": "A profile you defined. Power mode and scheduling come from the base profile; fan, turbo, EPP, caps and refresh rate are your choice.",
-  "reason.edited": "Profile edited"
+  "reason.edited": "Profile edited",
+  "diag.title": "Diagnostics and issue reporting",
+  "diag.hint": "The report contains the version, model, BIOS, which features work and the last log lines. User and computer names are removed; the report is never sent anywhere.",
+  "diag.save": "Save report",
+  "diag.copy": "Copy to clipboard",
+  "diag.issue": "Report on GitHub",
+  "diag.errors": "Recent errors",
+  "diag.refresh": "Refresh",
+  "diag.noErrors": "No errors in the log.",
+  "diag.saved": "Report saved: {path}",
+  "diag.copied": "Report copied to the clipboard.",
+  "diag.fail": "Could not create the report: {err}"
 }

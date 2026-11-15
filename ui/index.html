@@ -242,6 +242,8 @@ input[type=number]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
 .cust-grid label{display:grid;gap:4px;color:var(--text-3);font-size:var(--fs-1)}
 .cust-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
 .cust-err{color:var(--danger);font-size:var(--fs-2);min-height:1em}
+.diag-log{max-height:180px;overflow:auto;margin:0;padding:var(--s-2) var(--s-3);background:var(--bg);border:1px solid var(--line);border-radius:var(--r-2);color:var(--text-2);font:12px/1.5 Consolas,"Cascadia Mono",monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+.btn-row{display:flex;flex-wrap:wrap;gap:var(--s-2)}
 .grad{height:12px;border-radius:var(--r-1)}
 .stops{display:flex;flex-wrap:wrap;gap:var(--s-2)}
 .stops li{display:flex}
@@ -674,7 +676,18 @@ input[type=number]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
             <div class="frow"><label for="overlayCorner" data-i18n="ovl.corner">Konum</label><select id="overlayCorner">
               <option value="tl" data-i18n="ovl.tl">Sol üst</option><option value="tr" data-i18n="ovl.tr">Sağ üst</option>
               <option value="bl" data-i18n="ovl.bl">Sol alt</option><option value="br" data-i18n="ovl.br">Sağ alt</option></select></div>
-            <p class="hint" data-i18n="ovl.hint">İşlemci ve ekran kartı sıcaklığı/gücü, fan devri ve profil. Tam ekran (exclusive) oyunlarda görünmez; kenarlıksız pencere kipini kullanın. FPS gösterilmez: uygulama oyuna dokunmaz.</p>
+            <p class="hint" data-i18n="ovl.hint" id="ovlHint">İşlemci ve ekran kartı sıcaklığı/gücü, fan devri ve profil. Tam ekran (exclusive) oyunlarda görünmez; kenarlıksız pencere kipini kullanın. FPS gösterilmez: uygulama oyuna dokunmaz.</p>
+          </div>
+          <div class="tile form">
+            <span class="lbl" data-i18n="diag.title">Tanılama ve sorun bildirimi</span>
+            <p class="hint" data-i18n="diag.hint">Rapor sürümü, modeli, BIOS'u, hangi özelliklerin çalıştığını ve günlüğün son satırlarını içerir. Kullanıcı ve bilgisayar adı çıkarılır; rapor hiçbir yere gönderilmez.</p>
+            <div class="btn-row">
+              <button class="btn solid" id="diagSave" type="button" data-i18n="diag.save">Raporu kaydet</button>
+              <button class="btn" id="diagCopy" type="button" data-i18n="diag.copy">Panoya kopyala</button>
+              <a class="btn" id="diagIssue" href="https://github.com/kuheylanstudio/fcuk-control-center/issues/new" target="_blank" rel="noopener" data-i18n="diag.issue">GitHub'da bildir</a>
+            </div>
+            <div class="frow"><span class="lbl" data-i18n="diag.errors">Son hatalar</span><button class="btn" id="diagRefresh" type="button" data-i18n="diag.refresh">Yenile</button></div>
+            <pre class="diag-log" id="diagLog" tabindex="0"></pre>
           </div>
           <div class="tile form">
             <span class="lbl" data-i18n="upd.title">Güncellemeler</span>
@@ -1254,6 +1267,37 @@ function initCustom() {
     const nm = (profById(custEditing) || {}).name || '';
     if (await saveCustom(custPayload().filter(p => p.id !== custEditing), t('cust.deleted', { name: nm }))) $('#custDlg').close();
   });
+}
+/* ---------- tanilama ---------- */
+async function loadErrors() {
+  try {
+    const r = await api('/api/errors');
+    $('#diagLog').textContent = r.lines.length ? r.lines.join('\n') : t('diag.noErrors');
+  } catch (e) { $('#diagLog').textContent = e.message; }
+}
+async function saveText(name, text) {
+  if (window.pywebview && window.pywebview.api && window.pywebview.api.kaydet) return window.pywebview.api.kaydet(name, text);
+  const a = el('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' })); a.download = name;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  return name;
+}
+function initDiag() {
+  $('#diagSave').addEventListener('click', async () => {
+    try {
+      const r = await api('/api/diagnostics');
+      const path = await saveText('fcuk-tanilama.txt', r.text);
+      if (path) banner(t('diag.saved', { path }), true);
+    } catch (e) { banner(t('diag.fail', { err: e.message })); }
+  });
+  $('#diagCopy').addEventListener('click', async () => {
+    try {
+      const r = await api('/api/diagnostics');
+      await navigator.clipboard.writeText(r.text);
+      banner(t('diag.copied'), true);
+    } catch (e) { banner(t('diag.fail', { err: e.message })); }
+  });
+  $('#diagRefresh').addEventListener('click', loadErrors);
+  loadErrors();
 }
 function initHotkeys() {
   $('#hotkeys').addEventListener('change', e => saveApps({ hotkeys: e.target.checked }));
@@ -2262,6 +2306,7 @@ async function init() {
   initApps();
   initHotkeys();
   initCustom();
+  initDiag();
   initAudio();
   initMsi();
   initSettings();
