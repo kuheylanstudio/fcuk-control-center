@@ -34,6 +34,12 @@ bilgisayarlarda da donanım tespiti, canlı izleme, NVIDIA ve işlemci ayarları
 | **MSI'a özel** | Shift / fan modu, Cooler Boost, pil şarj sınırı | MSI (EC firmware'i tabloda olan modeller) |
 | **Pil şarj sınırı** | Şarjı %60-100 arasında bir değerde durdurur | Gigabyte, MSI (modele göre) |
 | **Ses ve ekran** | Hoparlör / mikrofon seviyesi, yenileme hızı | Her bilgisayar |
+| **Uygulamaya göre profil** | Seçtiğiniz program (ör. `game.exe`) açılınca istediğiniz profil uygulanır, kapanınca önceki profile dönülür. Listeye açık pencerelerden ya da exe adıyla eklenir | Profil desteği olan cihaz |
+| **Özel profiller** | Hazır bir profili temel alan en fazla 3 kendi profiliniz: işlemci / ekran kartı sınırları, turbo, fan eğrisi (başlangıç ve tam devir noktaları), yenileme hızı | Profil desteği olan cihaz |
+| **Kısayollar ve oyun içi gösterge** | Ctrl+Alt+P sonraki profil, Ctrl+Alt+O oyun içi gösterge (sıcaklık, güç, fan, profil; tıklamayı engellemez, köşe seçilebilir). Oyuna dokunulmaz, FPS gösterilmez | Her bilgisayar |
+| **Geçmiş** | Son 1 saatin sıcaklık / güç / fan grafikleri, kısılma (thermal / power) bölgeleri, profil değişim işaretleri, CSV dışa aktarma; isteğe bağlı günlük CSV kaydı (7 gün saklanır) | Her bilgisayar |
+| **Pil sağlığı geçmişi** | Tam şarj kapasitesinin tasarım kapasitesine oranı günlük kaydedilir; 30 gün sonra yıllık kayıp tahmini | Pilli bilgisayar |
+| **Tanılama** | Sorun bildirmek için tek tıkla rapor (sürüm, model, BIOS, özellik desteği, günlük); kullanıcı ve bilgisayar adı çıkarılır, hiçbir yere gönderilmez. Son hatalar Ayarlar'da görünür | Her bilgisayar |
 | **Güncellemeler** | GitHub'dan yeni sürümü denetler, indirir, SHA-256 ile doğrular ve kurar. Otomatik ya da elle seçilebilir; kurmadan önce yenilikler gösterilir | Her bilgisayar (setup.exe ile kurulmuş) |
 | **Dil** | 14 dil, Windows bölge ayarına göre otomatik | |
 
@@ -77,7 +83,9 @@ yazmayı gerektirir. Uygulama hiçbir çekirdek sürücüsü kurmaz.
   antivirüs motoru bazen yanlışlıkla işaretler (genel "Trojan/Wacatac" vb. adlarla); kaynak kodun tamamı bu depodadır.
 - **SHA-256:** indirdiğiniz dosyanın [sürüm sayfasındaki](https://github.com/kuheylanstudio/fcuk-control-center/releases/latest)
   özetle aynı olduğunu denetleyin: `Get-FileHash FCUK-Control-Center-Setup-2.6.0.exe`
-- **Kod imzası:** kurulum programı kod imzalı değildir; SmartScreen uyarısı bu yüzdendir.
+- **Kod imzası:** kurulum programı şu an kod imzalı değildir; SmartScreen uyarısı bu yüzdendir. Derleme betiği
+  imzalamaya hazırdır (bkz. [Kod imzalama](#kod-imzalama)); imzalı bir sürüm yayımlandıktan sonra güncelleyici
+  yalnızca aynı yayıncının imzasını taşıyan kurulum dosyalarını kurar.
 
 İndirilen kurulum programı üreticiye ait DLL'i **içermez**. Clevo / Monster dizüstülerde uygulama `InsydeDCHU.dll`'i
 Windows sürücü deposundaki AcpiBridge sürücüsünden kullanır; ayrıca bir şey yapmanız gerekmez.
@@ -138,6 +146,23 @@ powershell -ExecutionPolicy Bypass -File setup_olustur.ps1   # çıktı: dist\se
 Bu şekilde derlenen setup.exe üreticiye ait DLL'i içerir; kendi bilgisayarınız için kullanın, herkese açık
 dağıtmayın. Dağıtılabilir (DLL'siz) paket için: `setup_olustur.ps1 -Dagitim` (çıktı:
 `dist\FCUK-Control-Center-Setup-2.6.0.exe`). İndirme düğmesindeki dosya budur.
+
+#### Kod imzalama
+
+Bir kod imzalama sertifikanız varsa `setup_olustur.ps1` uygulama exe'sini (setup.exe'ye gömülmeden önce) ve
+setup.exe'yi `signtool` ile imzalar. Windows SDK gerekir; ortam değişkenlerinden biri tanımlı değilse imzasız derlenir.
+
+```powershell
+$env:FCUK_IMZA_PFX = 'C:\sertifika\imza.pfx'; $env:FCUK_IMZA_PAROLA = '...'   # .pfx dosyasıyla
+# ya da sertifika deposundaki / donanım anahtarındaki sertifikayla:
+$env:FCUK_IMZA_PARMAKIZI = '<SHA-1 parmak izi>'
+# isteğe bağlı: $env:FCUK_IMZA_ZAMAN = 'http://timestamp.digicert.com'
+powershell -ExecutionPolicy Bypass -File setup_olustur.ps1 -Dagitim
+```
+
+Sertifika ayarlıysa ama imzalama başarısız olursa derleme durur (yarı imzalı paket çıkmaz). Kurulu uygulama
+imzalıysa güncelleyici yeni kurulum dosyasının da geçerli imzalı ve aynı yayıncıya (sertifika konusu) ait olmasını
+şart koşar; değilse dosyayı kurmaz ve nedenini gösterir.
 
 ### Kaynaktan
 
@@ -210,7 +235,10 @@ ideapad.py         Lenovo IdeaPad arka ucu (GameZone WMI, Energy Management sür
 envanter.py        donanım envanteri (CIM), P/E çekirdek tespiti, NVMe SMART ve disk sıcaklığı (IOCTL)
 nvidia.py          NVIDIA sürücü ayarları (NVAPI DRS), kart bilgisi (NVML)
 islemci.py         modele göre işlemci ayarları (Windows güç planı)
-profiller.py       beş performans profili, ısı koruması, fiş/pil kuralları
+profiller.py       beş performans profili, özel profiller, ısı koruması, fiş/pil ve uygulama kuralları
+kayit.py           sensör geçmişi (bellekte 1 saat, isteğe bağlı günlük CSV), kısılma türü, pil sağlığı geçmişi
+gosterge.py        oyun içi gösterge (katmanlı, tıklamayı geçiren, en üstte pencere)
+tanilama.py        tanılama raporu ve son hatalar (kişisel bilgiden arındırılmış)
 klavye_rgb.py      klavye ışık motoru
 oyun.py            oyun tepkisi kaynakları: tuş basımları, LoL canlı oyun verisi, CS2 Game State Integration
 hp_omen.py         HP Omen / Victus arka ucu (HP BIOS WMI: termal mod, fan, sıcaklık, 4 bölgeli klavye)
@@ -222,13 +250,26 @@ gigabyte_aorus.py  Gigabyte/AORUS/AERO arka ucu (GB_WMIACPI fan, kip, sıcaklık
 wmi_yontem.py      ek paketsiz WMI yöntem çağrıları (COM, tek iş parçacığı)
 hid_rapor.py       ek paketsiz HID özellik raporu (hid.dll)
 engelle.py         eski Monster Fn programlarını tam yollarıyla engeller (IFEO yol filtresi)
-fntus.py, tepsi.py Fn tuşları, ekran bildirimi ve tepsi simgesi (ayrı, normal yetkili süreç)
-ceviri.py, ui/lang dil dosyaları
-ui/index.html      arayüz (pencere.py: pywebview/WebView2 penceresi; yedek: Edge --app)
+fntus.py, tepsi.py Fn tuşları, ekran bildirimi, tepsi simgesi, genel kısayollar (ayrı, normal yetkili süreç)
+ceviri.py, ui/lang dil dosyaları; tools/ceviri_denetle.py dil dosyası denetimi
+ui/index.html      arayüz (pencere.py: pywebview/WebView2 penceresi; yedek: Edge --app); ui/gecmis.js Geçmiş sayfası
 pencere.py         kendi başlık çubuğu ve görev çubuğu düğmesi olan, tek örnekli pencere süreci (--window)
 ```
 
 Geliştirme sırasında kurulu motoru atlayıp kodu doğrudan çalıştırmak için: `python control_center.py --dev`
+
+### Testler
+
+Testler donanıma dokunmaz (sahte WMI / HID / gömülü denetleyici). Her push'ta GitHub Actions'ta Windows üzerinde
+çalışır (`.github/workflows/testler.yml`).
+
+```powershell
+python -m unittest discover -s tests        # birim testleri
+python tools/ceviri_denetle.py              # dil dosyaları: eksik / fazla anahtar, yer tutucu, koddaki anahtarlar
+```
+
+Yeni bir arayüz metni eklerken önce `ui/lang/tr.json` ve `en.json`'a, sonra diğer dillere ekleyin; denetim eksik
+dili gösterir.
 
 ## MSI dizüstüler (deneysel, gerçek donanımda doğrulanmadı)
 
