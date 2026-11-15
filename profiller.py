@@ -100,7 +100,7 @@ def name(pid):
     """Profilin etkin dildeki adi (PROFILES'taki ad Turkce kaynaktir)."""
     return t("prof." + pid)
 DEFAULTS = {"profile": "", "on_battery": "", "on_ac": "", "refresh": True, "apps": [], "apps_on": True,
-            "hotkeys": True, "overlay": False, "overlay_corner": "tl"}
+            "hotkeys": True, "overlay": False, "overlay_corner": "tl", "log_csv": False}
 OVERLAY_CORNERS = ("tl", "tr", "bl", "br")
 
 # ----------------------------------------------------------------------------- uygulamaya gore profil

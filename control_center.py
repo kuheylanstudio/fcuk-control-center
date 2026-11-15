@@ -33,6 +33,7 @@ import destek
 import donanim as hw
 import envanter
 import guncelleme
+import kayit
 import islemci
 import klavye_rgb as core
 import nvidia
@@ -129,6 +130,8 @@ class App:
     device = ""
     restart_elevated = False
     inventory = None
+    recorder = None
+    battery = None
     nvapi = None
     nvcard = None  # NVML sabit bilgileri: karti uyandirdigi icin NVIDIA sayfasi ilk acilinca okunur
     notices = []  # kullaniciya gosterilecek uyarilar: [{"id", "text"}]; arayuz ve tepsi gosterir
@@ -255,6 +258,7 @@ def sanitize_cc(raw):
     out["apps"] = profiller.clean_apps(raw.get("apps"))
     out["apps_on"] = bool(raw.get("apps_on", True))
     out["hotkeys"] = bool(raw.get("hotkeys", True))
+    out["log_csv"] = bool(raw.get("log_csv", False))
     out["overlay"] = bool(raw.get("overlay", False))
     if raw.get("overlay_corner") in profiller.OVERLAY_CORNERS:
         out["overlay_corner"] = raw["overlay_corner"]
@@ -696,7 +700,9 @@ class Handler(BaseHTTPRequestHandler):
         if not self._allowed():
             return self._json({"error": "forbidden"}, 403)
         try:
-            return self._get(self.path.split("?")[0])
+            path, _, query = self.path.partition("?")
+            self.query = dict(p.split("=", 1) for p in query.split("&") if "=" in p)
+            return self._get(path)
         except Exception as exc:  # okuma sirasindaki hata baglantiyi yanitsiz koparmasin
             log("istek hatasi %s: %s" % (self.path, traceback.format_exc().replace("\n", " | ")))
             return self._json({"error": str(exc)}, 500)
@@ -708,12 +714,14 @@ class Handler(BaseHTTPRequestHandler):
                     html = f.read()
             except OSError:
                 return self._send(500, t("err.ui", path=UI_PATH).encode("utf-8"), "text/plain; charset=utf-8")
-            try:  # Donanim / NVIDIA / Islemci sayfalari ayri dosyada; menu dugmelerini ve sayfalari kendisi kurar
-                with open(os.path.join(HERE, "ui", "sayfalar.js"), encoding="utf-8") as f:
-                    extra = f.read().replace("</", "<\\/")
-                html = html.replace("</body>", "<script>\n%s\n</script>\n</body>" % extra, 1)
-            except OSError:
-                pass
+            # Donanim / NVIDIA / Islemci ve Gecmis sayfalari ayri dosyalarda; menu dugmelerini ve sayfalari kendileri kurar
+            for name in ("sayfalar.js", "gecmis.js"):
+                try:
+                    with open(os.path.join(HERE, "ui", name), encoding="utf-8") as f:
+                        extra = f.read().replace("</", "<\\/")
+                    html = html.replace("</body>", "<script>\n%s\n</script>\n</body>" % extra, 1)
+                except OSError:
+                    pass
             return self._send(200, localize(html).encode("utf-8"), "text/html; charset=utf-8")
         if path == "/api/ping":
             return self._json({"app": core.APP_NAME, "path": HERE, "admin": hw.is_admin(), "version": VERSION})
@@ -739,6 +747,17 @@ class Handler(BaseHTTPRequestHandler):
                 "ac": (s.get("battery") or {}).get("ac", True), "notices": list(App.notices)})
         if path == "/api/now":  # yalnizca son olcum (gecmissiz): ek sayfalar saniyede bir okur
             return self._json(App.sensors.snapshot)
+        if path == "/api/history":  # Gecmis sayfasi: son N dakika (en fazla 60), ozet, gunluk dosyalar
+            minutes = _int(self.query.get("min"), 1, 60, 60)
+            rec = App.recorder
+            return self._json({"series": rec.series(minutes), "summary": rec.summary(minutes),
+                               "files": rec.files(), "folder": rec.folder,
+                               "log_csv": App.manager.cfg.get("log_csv", False)})
+        if path == "/api/history.csv":
+            minutes = _int(self.query.get("min"), 1, 60, 60)
+            return self._send(200, App.recorder.csv_text(minutes).encode("utf-8-sig"), "text/csv; charset=utf-8")
+        if path == "/api/battery":
+            return self._json(App.battery.payload())
         if path == "/api/apps":  # kural eklerken secim listesi: penceresi acik uygulamalar
             return self._json({"apps": profiller.window_apps()})
         if path == "/api/hardware":
@@ -835,7 +854,7 @@ class Handler(BaseHTTPRequestHandler):
                 mgr.cfg["refresh"] = bool(body["refresh"])
             if "apps" in body:  # uygulamaya gore profil: tum liste birden gelir (sira = oncelik)
                 mgr.cfg["apps"] = profiller.clean_apps(body["apps"])
-            for k in ("apps_on", "hotkeys", "overlay"):  # acik/kapali ayarlar
+            for k in ("apps_on", "hotkeys", "overlay", "log_csv"):  # acik/kapali ayarlar
                 if k in body:
                     mgr.cfg[k] = bool(body[k])
             if body.get("overlay_corner") in profiller.OVERLAY_CORNERS:
@@ -1079,6 +1098,8 @@ def shutdown():
         # (Clevo'da egri denetleyicide calisir, shutdown yoktur.)
         if hasattr(App.dchu, "shutdown"):
             App.dchu.shutdown()
+        if getattr(App, "recorder", None):
+            App.recorder.flush()
         save()
     finally:  # kayit basarisiz olsa da sunucu kapanmali
         App.server.shutdown()
@@ -1239,6 +1260,12 @@ def serve():
     App.sensors.disk_ids = lambda: App.inventory.disk_ids
     App.manager = profiller.Manager(App.dchu, App.sensors, cc, save, notice)
     App.engine = core.Engine(App.dchu)
+    App.recorder = kayit.Recorder(os.path.join(data_dir(), "kayit"),
+                                  lambda: App.manager.cfg.get("log_csv", False),
+                                  lambda: (App.manager.applied, App.manager.app))
+    App.sensors.listeners.append(App.recorder.tick)
+    App.battery = kayit.BatteryLog(os.path.join(data_dir(), "pil.json"))
+    threading.Thread(target=App.battery.loop, args=(log,), daemon=True).start()
     App.engine.settings = core.snapshot(App.cfg)
     App.engine.start()
     App.sensors.start()

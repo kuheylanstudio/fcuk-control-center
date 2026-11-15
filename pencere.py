@@ -48,7 +48,7 @@ def single_instance():
 
 
 class Api:
-    """Sayfanin (window.pywebview.api) cagirabildigi tek yuzey: yalnizca bu iki islem."""
+    """Sayfanin (window.pywebview.api) cagirabildigi tek yuzey: yalnizca bu uc islem."""
 
     def __init__(self):
         self.window = None
@@ -61,6 +61,27 @@ class Api:
         """Dis baglanti: yalnizca https, varsayilan tarayicida (pencere icinde acilmaz)."""
         if isinstance(url, str) and url.startswith("https://"):
             webbrowser.open(url)
+
+    def kaydet(self, ad, metin):
+        """Metni kullanicinin sectigi yere kaydeder (Windows "Farkli kaydet" penceresi). Yol ya da None doner.
+        Yalnizca .csv / .txt; pencere sureci normal kullanici yetkisiyle calisir."""
+        import webview
+        if self.window is None or not isinstance(metin, str) or not isinstance(ad, str):
+            return None
+        ad = os.path.basename(ad) or "kayit.csv"
+        ext = os.path.splitext(ad)[1].lower()
+        if ext not in (".csv", ".txt"):
+            return None
+        turler = ("CSV (*.csv)",) if ext == ".csv" else ("Metin (*.txt)",)
+        sec = self.window.create_file_dialog(webview.SAVE_DIALOG, save_filename=ad, file_types=turler)
+        if not sec:
+            return None
+        yol = sec if isinstance(sec, str) else sec[0]
+        if not yol.lower().endswith(ext):
+            yol += ext
+        with open(yol, "w", encoding="utf-8-sig", newline="") as f:
+            f.write(metin)
+        return yol
 
 
 def fit_size():
