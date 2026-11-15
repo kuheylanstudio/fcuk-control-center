@@ -232,6 +232,16 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
 .apps .btn{padding:6px 9px}
 .apps .empty{display:block;color:var(--text-3);border-style:dashed}
 .app-add{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:var(--s-2);align-items:center}
+input[type=number]{width:100%;padding:7px 8px;border:1px solid var(--line-strong);border-radius:var(--r-2);background:var(--bg);color:var(--text);font:500 var(--fs-3)/1.2 var(--f-body);font-variant-numeric:tabular-nums}
+input[type=number]:hover{border-color:var(--text-3)}
+input[type=number]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
+.cust-dlg .body{display:grid;gap:var(--s-3);padding:var(--s-4) var(--s-5);overflow:auto}
+.cust-dlg footer{display:flex;justify-content:flex-end;gap:var(--s-2);padding:var(--s-3) var(--s-5);border-top:1px solid var(--line)}
+.cust-dlg footer .grow{flex:1}
+.cust-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s-2)}
+.cust-grid label{display:grid;gap:4px;color:var(--text-3);font-size:var(--fs-1)}
+.cust-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.cust-err{color:var(--danger);font-size:var(--fs-2);min-height:1em}
 .grad{height:12px;border-radius:var(--r-1)}
 .stops{display:flex;flex-wrap:wrap;gap:var(--s-2)}
 .stops li{display:flex}
@@ -473,6 +483,13 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
             <button class="btn solid" id="appAdd" type="button" data-i18n="apps.add">Ekle</button>
           </div>
         </div>
+        <!-- Ozel profiller: hazir bir profili temel alir, fan / islemci / ekran karti / ekran alanlarini degistirir -->
+        <div class="tile form" id="custTile">
+          <div class="frow"><span class="lbl" data-i18n="cust.title">Özel profiller</span>
+            <button class="btn" id="custNew" type="button" data-i18n="cust.new">Yeni profil</button></div>
+          <span class="hint" data-i18n="cust.hint">En fazla üç profil. Hazır bir profili temel alır; fan eğrisini, turbo ve EPP'yi, çekirdek ve ekran kartı tavanlarını siz belirlersiniz. Isı koruması özel eğrilerde de çalışır.</span>
+          <ul class="apps" id="custList"></ul>
+        </div>
         <!-- Lenovo Legion: yalnizca bu modelde olan ozellikler (renderLenovo doldurur) -->
         <div class="tile form" id="lenovoTile" hidden>
           <span class="lbl" data-i18n="lenovo.title">Lenovo Legion</span>
@@ -706,6 +723,50 @@ input[type=text]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
   </div>
 </div>
 <div class="banner closed" id="banner" role="status"></div>
+<dialog class="upd-dlg cust-dlg" id="custDlg" aria-labelledby="custDlgTitle">
+  <header><h2 id="custDlgTitle" data-i18n="cust.edit">Özel profil</h2></header>
+  <form class="body" id="custForm" method="dialog">
+    <div class="frow"><label for="custName" data-i18n="cust.name">Ad</label><input type="text" id="custName" maxlength="24" required></div>
+    <div class="frow"><label for="custBase" data-i18n="cust.base">Temel profil</label><select id="custBase"></select></div>
+    <span class="hint" data-i18n="cust.baseHint">Denetleyici güç modu, çekirdek zamanlayıcı ve PCIe tasarrufu temel profilden gelir.</span>
+    <div class="frow"><label for="custFan" data-i18n="cust.fan">Fan</label><select id="custFan">
+      <option value="curve" data-i18n="cust.fanCurve">Özel eğri</option><option value="auto" data-i18n="cust.fanAuto">Denetleyici tablosu</option><option value="max" data-i18n="cust.fanMax">Her zaman en yüksek</option></select></div>
+    <div id="custCurve">
+      <span class="lbl" data-i18n="cust.curveCpu">İşlemci fan eğrisi</span>
+      <div class="cust-grid">
+        <label><span data-i18n="cust.t2">Başlangıç °C</span><input type="number" id="cC0" min="40" max="90"></label>
+        <label><span data-i18n="cust.d2">Başlangıç %</span><input type="number" id="cC1" min="0" max="100"></label>
+        <label><span data-i18n="cust.t3">Tam devir °C</span><input type="number" id="cC2" min="45" max="95"></label>
+        <label><span data-i18n="cust.d3">Tam devir %</span><input type="number" id="cC3" min="30" max="100"></label>
+      </div>
+      <label class="switch"><input type="checkbox" id="custSame"><span class="track" aria-hidden="true"></span><span data-i18n="cust.same">Ekran kartı fanı için aynı eğri</span></label>
+      <div class="cust-grid" id="custGpuCurve">
+        <label><span data-i18n="cust.t2">Başlangıç °C</span><input type="number" id="cG0" min="40" max="90"></label>
+        <label><span data-i18n="cust.d2">Başlangıç %</span><input type="number" id="cG1" min="0" max="100"></label>
+        <label><span data-i18n="cust.t3">Tam devir °C</span><input type="number" id="cG2" min="45" max="95"></label>
+        <label><span data-i18n="cust.d3">Tam devir %</span><input type="number" id="cG3" min="30" max="100"></label>
+      </div>
+    </div>
+    <div class="frow"><label for="custBoost" data-i18n="cust.boost">Turbo</label><select id="custBoost"></select></div>
+    <div class="frow"><label for="custEpp"><span data-i18n="cust.epp">EPP (0 hız, 100 tasarruf)</span> <b id="custEppOut"></b></label><input type="range" id="custEpp" min="0" max="100" step="5" style="max-width:220px"></div>
+    <div class="cust-grid three">
+      <label><span data-i18n="cust.fmaxP">P çekirdek tavanı MHz</span><input type="number" id="custFp" min="0" max="6500" step="100"></label>
+      <label><span data-i18n="cust.fmaxE">E çekirdek tavanı MHz</span><input type="number" id="custFe" min="0" max="6500" step="100"></label>
+      <label><span data-i18n="cust.gpuMax">Ekran kartı tavanı MHz</span><input type="number" id="custGpu" min="0" max="4000" step="50"></label>
+    </div>
+    <span class="hint" data-i18n="cust.zeroHint">0 = sınır yok. Ekran kartı tavanı yönetici modu ister.</span>
+    <div class="frow"><label for="custHz" data-i18n="cust.refresh">Ekran yenileme hızı</label><select id="custHz">
+      <option value="max" data-i18n="val.dispMax">En yüksek</option><option value="min" data-i18n="val.disp60">60 Hz</option></select></div>
+    <p class="cust-err" id="custErr" role="alert"></p>
+  </form>
+  <footer>
+    <button class="btn danger" id="custDel" type="button" data-i18n="cust.delete">Sil</button>
+    <span class="grow"></span>
+    <button class="btn" id="custCancel" type="button" data-i18n="cust.cancel">İptal</button>
+    <button class="btn solid" id="custSave" type="button" data-i18n="cust.save">Kaydet</button>
+  </footer>
+</dialog>
+
 <dialog class="upd-dlg" id="updDlg" aria-labelledby="updDlgTitle">
   <header>
     <h2 id="updDlgTitle"></h2>
@@ -967,13 +1028,13 @@ function renderProfiles() {
   for (const p of meta.profiles) {
     const b = el('button', 'pbtn');
     b.type = 'button'; b.dataset.id = p.id;
-    b.append(lvl(LEVEL[p.id] || 3), el('b', '', p.name), el('span', '', p.tag));
+    b.append(lvl(LEVEL[p.id] || p.level || 3), el('b', '', p.name), el('span', '', p.tag));
     b.addEventListener('click', () => applyProfile(p.id));
     q.append(b);
 
     const c = el('article', 'card'); c.dataset.id = p.id;
     const head = el('div', 'tile-top');
-    head.append(el('h3', '', p.name), lvl(LEVEL[p.id] || 3));
+    head.append(el('h3', '', p.name), lvl(LEVEL[p.id] || p.level || 3));
     const dl = el('dl', 'rows');
     for (const [k, v] of p.rows) dl.append(el('dt', '', k), el('dd', '', v));
     const foot = el('div', 'card-foot');
@@ -996,6 +1057,7 @@ function renderProfiles() {
   paintProfile();
 }
 function paintProfile() {
+  renderCustom();
   const id = cc ? cc.profile : '';
   document.querySelectorAll('.pbtn').forEach(b => b.setAttribute('aria-pressed', b.dataset.id === id ? 'true' : 'false'));
   document.querySelectorAll('.card').forEach(c => c.setAttribute('aria-current', c.dataset.id === id ? 'true' : 'false'));
@@ -1088,6 +1150,110 @@ async function suggestApps() {
     const dl = $('#appSuggest'); dl.textContent = '';
     for (const a of r.apps || []) dl.append(new Option(a));
   } catch (e) { /* oneri listesi istege bagli */ }
+}
+/* ---------- ozel profiller ---------- */
+const customs = () => ((meta && meta.profiles) || []).filter(p => p.custom);
+let custEditing = null;
+function renderCustom() {
+  const ul = $('#custList'); if (!ul) return;
+  ul.textContent = '';
+  const list = customs();
+  $('#custNew').disabled = list.length >= 3;
+  if (!list.length) { ul.append(el('li', 'empty', t('cust.empty'))); return; }
+  for (const p of list) {
+    const li = el('li', cc && cc.profile === p.id ? 'on' : '');
+    li.style.gridTemplateColumns = 'minmax(0,1fr) auto auto auto';
+    const nm = el('span', 'exe', p.name); nm.title = p.tag;
+    const ap = el('button', 'btn solid', t('perf.apply')); ap.type = 'button'; ap.addEventListener('click', () => applyProfile(p.id));
+    const ed = el('button', 'btn', t('cust.editBtn')); ed.type = 'button'; ed.addEventListener('click', () => openCustom(p));
+    const lv = lvl(p.level || 3);
+    li.append(nm, lv, ed, ap);
+    ul.append(li);
+  }
+}
+function custSpec(sp) {
+  const fan = sp.fan;
+  $('#custFan').value = typeof fan === 'string' ? fan : 'curve';
+  const cpu = typeof fan === 'object' ? fan.cpu : [60, 35, 80, 70], gpu = typeof fan === 'object' ? fan.gpu : cpu;
+  cpu.forEach((v, i) => { $('#cC' + i).value = v; });
+  gpu.forEach((v, i) => { $('#cG' + i).value = v; });
+  $('#custSame').checked = cpu.join() === gpu.join();
+  $('#custBoost').value = String(sp.boost);
+  $('#custEpp').value = sp.epp;
+  $('#custFp').value = sp.fmax_p || 0; $('#custFe').value = sp.fmax_e || 0; $('#custGpu').value = sp.gpu_max || 0;
+  $('#custHz').value = sp.refresh || 'max';
+  custSync();
+}
+function custSync() {
+  const curve = $('#custFan').value === 'curve';
+  $('#custCurve').hidden = !curve;
+  $('#custGpuCurve').hidden = $('#custSame').checked;
+  setRange($('#custEpp'), +$('#custEpp').value, $('#custEppOut'));
+}
+function openCustom(p) {
+  custEditing = p ? p.id : null;
+  const bs = $('#custBase'); bs.textContent = '';
+  for (const b of meta.profiles.filter(x => !x.custom)) bs.append(new Option(b.name, b.id));
+  const bo = $('#custBoost'); bo.textContent = '';
+  for (let i = 0; i <= 4; i++) bo.append(new Option(t('boost.' + i), String(i)));
+  $('#custName').value = p ? p.name : t('cust.defaultName', { n: customs().length + 1 });
+  bs.value = p ? p.spec.base : 'sessiz_oyun';
+  custSpec(p ? p.spec : (profById(bs.value) || meta.profiles[0]).spec);
+  $('#custDel').hidden = !p;
+  $('#custErr').textContent = '';
+  $('#custDlg').showModal();
+  $('#custName').focus();
+}
+function custCollect() {
+  const n = id => Number($(id).value);
+  const curve = pre => [0, 1, 2, 3].map(i => n('#' + pre + i));
+  const fanMode = $('#custFan').value;
+  const fan = fanMode !== 'curve' ? fanMode : { cpu: curve('cC'), gpu: $('#custSame').checked ? curve('cC') : curve('cG') };
+  if (fanMode === 'curve') {
+    for (const c of [fan.cpu, fan.gpu]) {
+      if (c.some(v => !Number.isFinite(v)) || c[0] >= c[2] || c[1] > c[3]) return { error: t('cust.badCurve') };
+      if (c[3] < 30) return { error: t('cust.lowFan') };
+    }
+  }
+  const name = $('#custName').value.trim();
+  if (!name) return { error: t('cust.noName') };
+  return { id: custEditing || undefined, name, base: $('#custBase').value, fan, boost: n('#custBoost'), epp: n('#custEpp'),
+    fmax_p: n('#custFp') || 0, fmax_e: n('#custFe') || 0, gpu_max: n('#custGpu') || 0, refresh: $('#custHz').value };
+}
+async function saveCustom(list, msg) {
+  try {
+    const r = await api('/api/custom', { profiles: list });
+    meta.profiles = r.profiles; cc = r.cc;
+    renderProfiles();
+    banner(msg, true);
+    return true;
+  } catch (e) { banner(t('cust.saveFail', { err: e.message })); return false; }
+}
+const custPayload = () => customs().map(p => Object.assign({ id: p.id, name: p.name }, p.spec));
+function initCustom() {
+  $('#custNew').addEventListener('click', () => openCustom(null));
+  $('#custBase').addEventListener('change', e => { if (!custEditing) custSpec((profById(e.target.value) || {}).spec); });
+  for (const id of ['#custFan', '#custSame', '#custEpp']) $(id).addEventListener('input', custSync);
+  $('#custCancel').addEventListener('click', () => $('#custDlg').close());
+  $('#custSave').addEventListener('click', async () => {
+    const item = custCollect();
+    if (item.error) { $('#custErr').textContent = item.error; return; }
+    const list = custPayload().filter(p => p.id !== custEditing).concat([item]);
+    if (custEditing) list.sort((a, b) => (a.id || 'z').localeCompare(b.id || 'z'));
+    if (await saveCustom(list, t('cust.saved', { name: item.name }))) $('#custDlg').close();
+  });
+  const del = $('#custDel');
+  let delTimer = 0;
+  del.addEventListener('click', async () => {
+    if (!del.classList.contains('sure')) {
+      del.classList.add('sure'); del.textContent = t('common.sure');
+      delTimer = setTimeout(() => { del.classList.remove('sure'); del.textContent = t('cust.delete'); }, 3000);
+      return;
+    }
+    clearTimeout(delTimer); del.classList.remove('sure'); del.textContent = t('cust.delete');
+    const nm = (profById(custEditing) || {}).name || '';
+    if (await saveCustom(custPayload().filter(p => p.id !== custEditing), t('cust.deleted', { name: nm }))) $('#custDlg').close();
+  });
 }
 function initHotkeys() {
   $('#hotkeys').addEventListener('change', e => saveApps({ hotkeys: e.target.checked }));
@@ -2095,6 +2261,7 @@ async function init() {
   initPerformance();
   initApps();
   initHotkeys();
+  initCustom();
   initAudio();
   initMsi();
   initSettings();

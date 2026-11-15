@@ -367,7 +367,10 @@ class Tray:
 
     def _update(self):
         s = self.state
-        self.level = LEVELS.get(s.get("profile"), 0) if s else 0
+        self.level = 0
+        if s:  # ozel profilin seviyesi temel aldigi profilden gelir (motor bildirir)
+            p = next((x for x in s.get("profiles", []) if x["id"] == s.get("profile")), None)
+            self.level = LEVELS.get(s.get("profile")) or (p or {}).get("level", 0)
         self.nid.uFlags = NIF_ICON | NIF_TIP | NIF_SHOWTIP
         self.nid.hIcon = self._icon(self.level)
         self.nid.szTip = self._tip()

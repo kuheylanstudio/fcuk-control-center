@@ -93,14 +93,107 @@ PROFILES = [
         "gpu": None, "refresh": "max", "aspm": 0, "overlay": "perf", "ac_only": True,
     },
 ]
+BUILTIN = list(PROFILES)
 BY_ID = {p["id"]: p for p in PROFILES}
+LEVEL = {"tam_sessiz": 1, "sessiz_kullanim": 2, "sessiz_oyun": 3, "performans": 4, "ultra": 5}
+
+# ----------------------------------------------------------------------------- ozel profiller
+# Kullanici en fazla 3 profil tanimlar. Her biri hazir bir profili TEMEL alir (denetleyici guc modu, zamanlayici,
+# cekirdek park, PCIe, Windows guc katmani, "yalnizca fiste" oradan gelir) ve su alanlari degistirir: fan
+# (otomatik / en yuksek / egri), turbo, EPP, P/E cekirdek tavani, ekran karti saat tavani, yenileme hizi.
+# Ozel profilde MHz degerleri MUTLAKtir (bu bilgisayarin degerleri): hazir profillerdeki orana gore olcekleme yok.
+# Guvenlik: egri sinirlari dar tutulur; isi bekcisi (93/87 C) ozel egriler icin de gecerlidir.
+CUSTOM_IDS = ("ozel1", "ozel2", "ozel3")
+
+
+def _clamp(v, lo, hi):
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        raise ValueError
+    return max(lo, min(hi, int(round(v))))
+
+
+def clean_curve(c):
+    """[T2, D2, T3, D3]: 40 <= T2 < T3 <= 95 C, 0 <= D2 <= D3 <= 100 %, D3 en az 30 (sicakta fan durmasin)."""
+    t2, d2, t3, d3 = (_clamp(c[0], 40, 90), _clamp(c[1], 0, 100), _clamp(c[2], 45, 95), _clamp(c[3], 30, 100))
+    if t3 <= t2:
+        t3 = min(95, t2 + 5)
+    d2 = min(d2, d3)
+    return (t2, d2, t3, d3)
+
+
+def clean_custom(raw):
+    """Arayuzden / diskten gelen ozel profil listesi -> guvenli liste. Hatali kayit atlanir."""
+    raw = raw if isinstance(raw, list) else []
+    items = []
+    for r in raw:
+        if not isinstance(r, dict):
+            continue
+        nm = r.get("name")
+        if not isinstance(nm, str) or not nm.strip():
+            continue
+        base = r.get("base") if r.get("base") in {p["id"] for p in BUILTIN} else "sessiz_oyun"
+        fan = r.get("fan")
+        try:
+            if fan in ("auto", "max"):
+                fan_v = fan
+            elif isinstance(fan, dict):
+                cpu_c = clean_curve(fan["cpu"])
+                fan_v = {"cpu": list(cpu_c), "gpu": list(clean_curve(fan.get("gpu") or fan["cpu"]))}
+            else:
+                continue
+            item = {"id": r.get("id"), "name": " ".join(nm.split())[:24], "base": base, "fan": fan_v,
+                    "boost": _clamp(r.get("boost", 2), 0, 4), "epp": _clamp(r.get("epp", 50), 0, 100),
+                    "fmax_p": _clamp(r.get("fmax_p", 0), 0, 6500), "fmax_e": _clamp(r.get("fmax_e", 0), 0, 6500),
+                    "gpu_max": _clamp(r.get("gpu_max", 0), 0, 4000),
+                    "refresh": r.get("refresh") if r.get("refresh") in ("min", "max") else "max"}
+        except (ValueError, KeyError, TypeError, IndexError):
+            continue
+        for k in ("fmax_p", "fmax_e"):  # 0 = sinir yok; cok dusuk tavan sistemi kilitler gibi yavaslatir
+            if item[k] and item[k] < 800:
+                item[k] = 800
+        if item["gpu_max"] and item["gpu_max"] < 300:
+            item["gpu_max"] = 300
+        items.append(item)
+    # Kimlikler: gecerli ve tekrarsiz olan korunur (kurallar ona bagli), digerlerine bos kimlik verilir
+    items = items[:len(CUSTOM_IDS)]
+    keep = []
+    for it in items:
+        keep.append(it["id"] if it["id"] in CUSTOM_IDS and it["id"] not in keep else None)
+    free = [i for i in CUSTOM_IDS if i not in keep]
+    for it, kid in zip(items, keep):
+        it["id"] = kid or free.pop(0)
+    return items
+
+
+def build_custom(c):
+    """Temiz ozel profil kaydi -> PROFILES bicimi."""
+    b = BY_ID.get(c["base"]) or next(p for p in BUILTIN if p["id"] == c["base"])
+    fan = (c["fan"],) if isinstance(c["fan"], str) else ("curve", tuple(c["fan"]["cpu"]), tuple(c["fan"]["gpu"]))
+    cpu = dict(b["cpu"], boost=c["boost"], epp=c["epp"], fmax_p=c["fmax_p"], fmax_e=c["fmax_e"], abs=True)
+    return {"id": c["id"], "name": c["name"], "custom": True, "base": b["id"], "ec": b["ec"], "fan": fan,
+            "cpu": cpu, "gpu": (210, c["gpu_max"]) if c["gpu_max"] else None, "gpu_abs": True,
+            "refresh": c["refresh"], "aspm": b["aspm"], "overlay": b["overlay"], "ac_only": bool(b.get("ac_only")),
+            "level": LEVEL.get(b["id"], 3)}
+
+
+def set_custom(items):
+    """Ozel profilleri PROFILES / BY_ID'ye yerlestirir (listeler yerinde degisir: diger moduller ayni nesneyi
+    tutar)."""
+    built = [build_custom(c) for c in clean_custom(items)]
+    PROFILES[:] = BUILTIN + built
+    BY_ID.clear()
+    BY_ID.update({p["id"]: p for p in PROFILES})
+    return built
 
 
 def name(pid):
-    """Profilin etkin dildeki adi (PROFILES'taki ad Turkce kaynaktir)."""
+    """Profilin etkin dildeki adi (PROFILES'taki ad Turkce kaynaktir; ozel profilde kullanicinin verdigi ad)."""
+    p = BY_ID.get(pid)
+    if p and p.get("custom"):
+        return p["name"]
     return t("prof." + pid)
 DEFAULTS = {"profile": "", "on_battery": "", "on_ac": "", "refresh": True, "apps": [], "apps_on": True,
-            "hotkeys": True, "overlay": False, "overlay_corner": "tl", "log_csv": False}
+            "hotkeys": True, "overlay": False, "overlay_corner": "tl", "log_csv": False, "custom": []}
 OVERLAY_CORNERS = ("tl", "tr", "bl", "br")
 
 # ----------------------------------------------------------------------------- uygulamaya gore profil
@@ -244,11 +337,11 @@ def _cpu_ratio():
 
 def cpu_caps(c):
     """(P tavani, E tavani) MHz; 0 = sinir yok. 100 MHz'e yuvarlanir."""
-    r = _cpu_ratio()
+    r = 1.0 if c.get("abs") else _cpu_ratio()  # ozel profil: kullanicinin girdigi mutlak deger
     return tuple(int(round(v * r / 100.0) * 100) if v else 0 for v in (c["fmax_p"], c["fmax_e"]))
 
 
-def gpu_caps(pair, query=False):
+def gpu_caps(pair, query=False, absolute=False):
     """(alt, ust) MHz kartin en yuksek saatine oranli. query: bilinmiyorsa nvidia-smi'ye sor (profil
     uygulanirken; kart zaten kilitlenmek uzere). Sorulmadiysa ve bilinmiyorsa gelistirme degeri."""
     if "gpu" not in _cache and query:
@@ -258,10 +351,21 @@ def gpu_caps(pair, query=False):
         except (ValueError, IndexError):
             _cache["gpu"] = None
     mx = _cache.get("gpu")
-    if not mx:
+    if not mx or absolute:
         return tuple(pair)
     r = mx / float(REF_GPU_MAX)
     return pair[0], max(pair[0] + 90, int(round(pair[1] * r)))
+
+
+def spec(p):
+    """Profilin bu bilgisayardaki somut degerleri: ozel profil duzenleyicisi bunlarla doldurulur."""
+    c = p["cpu"]
+    cap_p, cap_e = cpu_caps(c)
+    fan = p["fan"][0] if p["fan"][0] != "curve" else {"cpu": list(p["fan"][1]), "gpu": list(p["fan"][2])}
+    return {"base": p.get("base", p["id"]), "fan": fan, "boost": c["boost"], "epp": c["epp"],
+            "fmax_p": cap_p, "fmax_e": cap_e,
+            "gpu_max": gpu_caps(p["gpu"], absolute=p.get("gpu_abs"))[1] if p["gpu"] else 0,
+            "refresh": p["refresh"]}
 
 
 # ----------------------------------------------------------------------------- yonetici
@@ -322,7 +426,8 @@ class Manager:
                      else t("val.unsupported"))
         if ec and hasattr(self.dchu, "profile_power_label"):
             power_txt = self.dchu.profile_power_label(p)
-        gpu_txt = t("val.gpuCap", mhz=gpu_caps(p["gpu"])[1]) if p["gpu"] else t("val.gpuFree")
+        gpu_txt = (t("val.gpuCap", mhz=gpu_caps(p["gpu"], absolute=p.get("gpu_abs"))[1]) if p["gpu"]
+                   else t("val.gpuFree"))
         if not self.sensors.gpu_name:
             gpu_txt = t("val.unsupported")
         return [
@@ -343,9 +448,14 @@ class Manager:
         return t("msi.shift." + name) if name else t("val.unsupported")
 
     def public(self):
-        return [{"id": p["id"], "name": name(p["id"]), "tag": t("prof.%s.tag" % p["id"]),
-                 "desc": t("prof.%s.desc" % p["id"]),
-                 "ac_only": bool(p.get("ac_only")), "rows": self.describe(p),
+        def tag(p):
+            return t("prof.customTag", base=name(p["base"])) if p.get("custom") else t("prof.%s.tag" % p["id"])
+
+        def desc(p):
+            return t("prof.customDesc") if p.get("custom") else t("prof.%s.desc" % p["id"])
+        return [{"id": p["id"], "name": name(p["id"]), "tag": tag(p), "desc": desc(p),
+                 "custom": bool(p.get("custom")), "level": p.get("level") or LEVEL.get(p["id"], 3),
+                 "ac_only": bool(p.get("ac_only")), "rows": self.describe(p), "spec": spec(p),
                  "fan": [list(p["fan"][1]), list(p["fan"][2])] if p["fan"][0] == "curve" else p["fan"][0]}
                 for p in PROFILES]
 
@@ -463,7 +573,7 @@ class Manager:
         # Not: guc sinirini 75 W'a cikarmak (nvidia-smi -pl) denendi, olculebilir fark yok: Dynamic Boost
         # karta zaten 74 W'a kadar pay veriyor (2026-11-13, kart ve kart+islemci yukunde olculdu).
         if p["gpu"]:
-            lo, hi = gpu_caps(p["gpu"], query=True)
+            lo, hi = gpu_caps(p["gpu"], query=True, absolute=p.get("gpu_abs"))
             rc, out = hw.nvidia_lock_clocks(lo, hi)
             if rc != 0:
                 raise RuntimeError(out[:160])

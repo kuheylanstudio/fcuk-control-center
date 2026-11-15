@@ -248,8 +248,11 @@ def sanitize(raw, current):
 def sanitize_cc(raw):
     """Profil kurallari: yalnizca bilinen profil kimlikleri."""
     raw = raw if isinstance(raw, dict) else {}
-    ids = set(profiller.BY_ID) | {""}
     out = dict(profiller.DEFAULTS)
+    # Ozel profiller ONCE yerlestirilir: kayitli profil / kurallar onlara bagli olabilir
+    out["custom"] = profiller.clean_custom(raw.get("custom"))
+    profiller.set_custom(out["custom"])
+    ids = set(profiller.BY_ID) | {""}
     for k in ("profile", "on_battery", "on_ac"):
         if raw.get(k) in ids:
             out[k] = raw[k]
@@ -267,6 +270,27 @@ def sanitize_cc(raw):
     if isinstance(prev, str) and re.fullmatch(r"[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}", prev):
         out["prev_scheme"] = prev
     return out
+
+
+def save_custom(mgr, profiles):
+    """Ozel profilleri kaydeder. Silinen profile bagli kurallar temizlenir; etkin profil duzenlendiyse yeniden
+    uygulanir (yeni fan egrisi / tavanlar hemen gecerli olsun), silindiyse fabrika durumuna donulmez, yalnizca
+    'profil yok' olur (donanim son ayarda kalir)."""
+    old = {p["id"]: p for p in profiller.PROFILES if p.get("custom")}
+    mgr.cfg["custom"] = profiller.clean_custom(profiles)
+    profiller.set_custom(mgr.cfg["custom"])
+    ids = set(profiller.BY_ID)
+    mgr.cfg["apps"] = [r for r in mgr.cfg.get("apps", []) if r["profile"] in ids]
+    for k in ("on_battery", "on_ac", "profile"):
+        if mgr.cfg.get(k) and mgr.cfg[k] not in ids:
+            mgr.cfg[k] = ""
+    report = None
+    if mgr.applied and mgr.applied not in ids:
+        mgr.applied = ""
+    elif mgr.applied in old and old[mgr.applied] != profiller.BY_ID[mgr.applied]:
+        report = mgr.apply(mgr.applied, "reason.edited", persist=not mgr.app)
+    save()
+    return {"ok": True, "profiles": mgr.public(), "cc": mgr.status(), "report": report}
 
 
 def sanitize_loaded(raw):
@@ -735,7 +759,8 @@ class Handler(BaseHTTPRequestHandler):
             s, mgr = App.sensors.snapshot, App.manager
             return self._json({
                 "profile": mgr.applied, "guard": mgr.guard, "lang": ceviri.lang(),
-                "profiles": [{"id": p["id"], "name": profiller.name(p["id"]), "ac_only": bool(p.get("ac_only"))}
+                "profiles": [{"id": p["id"], "name": profiller.name(p["id"]), "ac_only": bool(p.get("ac_only")),
+                              "level": p.get("level") or profiller.LEVEL.get(p["id"], 3)}
                              for p in profiller.PROFILES],
                 # tepsinin fan menusu: fan denetlenebiliyor mu (Acer/HP'de modele bagli)
                 "ec": hw.caps(App.dchu)["fan_max"], "caps": [k for k, v in hw.caps(App.dchu).items() if v is True], "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),
@@ -861,6 +886,8 @@ class Handler(BaseHTTPRequestHandler):
                 mgr.cfg["overlay_corner"] = body["overlay_corner"]
             save()
             return self._json({"ok": True, "cc": mgr.status()})
+        if path == "/api/custom":  # ozel profiller: tum liste birden gelir (en fazla 3)
+            return self._json(save_custom(mgr, body.get("profiles")))
         if path == "/api/fan":
             mode = body.get("mode")
             if mode == "profile" and mgr.applied:
