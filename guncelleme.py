@@ -12,6 +12,10 @@ Guvenlik:
     yoksa boyut denetlenir. Dosya kurulmadan hemen once yeniden dogrulanir.
   * Yonetici motor dosyayi kendi veri klasorune (Program Files altinda, yalnizca yonetici yazabilir) indirir:
     kullanici yetkisindeki bir program dogrulama ile baslatma arasinda dosyayi degistiremez.
+  * Authenticode: kurulu uygulama gecerli bir imzayla imzaliysa yeni kurulum dosyasinin da gecerli imzali ve
+    AYNI yayinciya (sertifika konusu) ait olmasi sart kosulur (signer_ok). Boylece GitHub hesabi ele gecirilse
+    bile imzasiz ya da baska sertifikayla imzali bir dosya otomatik kurulmaz. Kurulu surum imzasizsa (imza
+    sertifikasi oncesi surumler) bu denetim uygulanmaz; SHA-256 denetimi her durumda gecerlidir.
 
 Kurulum setup.exe /S ile yapilir: motoru kapatir, dosyalari degistirir, motoru ve tepsiyi yeniden baslatir.
 Yonetici motor Gorev Zamanlayici'nin is nesnesi (job) icinde calisir ve kurulum o gorevi sonlandirir; bu
@@ -23,6 +27,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import threading
 import time
 import urllib.request
@@ -83,6 +88,36 @@ def sha256(path):
     return h.hexdigest()
 
 
+_PS_SIG = ("$s = Get-AuthenticodeSignature -LiteralPath $env:FCUK_SIG_PATH; "
+           "[pscustomobject]@{status = [string]$s.Status; "
+           "subject = $(if ($s.SignerCertificate) { $s.SignerCertificate.Subject } else { '' })} | ConvertTo-Json -Compress")
+
+
+def signature(path):
+    """Authenticode imzasi: {"status": "Valid" | "NotSigned" | "HashMismatch" | ..., "subject": "CN=..."}.
+    Denetlenemezse status "Unknown". Yol, komut satirina degil ortam degiskeniyle verilir (tirnak kacisi yok)."""
+    try:
+        env = dict(os.environ, FCUK_SIG_PATH=path)
+        r = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", _PS_SIG],
+                           env=env, creationflags=NO_WINDOW, capture_output=True, timeout=60)
+        d = json.loads(r.stdout.decode("utf-8", "replace").strip() or "{}")
+        return {"status": str(d.get("status") or "Unknown"), "subject": str(d.get("subject") or "")}
+    except Exception:
+        return {"status": "Unknown", "subject": ""}
+
+
+def signer_ok(new, current):
+    """(ok, neden). new / current: signature() sonuclari. Kurulu surum gecerli imzaliysa yeni dosya da gecerli
+    imzali ve ayni sertifika konusuna sahip olmali; kurulu surum imzasizsa denetim yapilmaz."""
+    if current.get("status") != "Valid":
+        return True, ""
+    if new.get("status") != "Valid":
+        return False, "kurulum dosyasının imzası geçersiz (%s); dosya kurulmadı" % new.get("status")
+    if new.get("subject", "").strip().lower() != current.get("subject", "").strip().lower():
+        return False, "kurulum dosyası farklı bir yayıncı tarafından imzalanmış; dosya kurulmadı"
+    return True, ""
+
+
 class Updater:
     """Durum: idle | checking | uptodate | available | downloading | ready | installing | error"""
 
@@ -109,6 +144,8 @@ class Updater:
         self.checked_at = 0.0
         self.file = ""
         self._busy = False
+        self.signature = signature          # testlerde degistirilebilir
+        self.current_exe = sys.executable   # imza karsilastirmasi icin kurulu uygulama
 
     # ------------------------------------------------------------------ durum
     def status(self):
@@ -256,8 +293,13 @@ class Updater:
             if self.state == "ready":
                 self._set(state="available")
             return False, "not_ready"
-        self._set(state="installing", error="")
         exe = self.file
+        ok, why = signer_ok(self.signature(exe), self.signature(self.current_exe))
+        if not ok:
+            self.log("guncelleme imza: %s" % why)
+            self._set(state="error", error=why[:200])
+            return False, why
+        self._set(state="installing", error="")
         try:
             if self.is_admin():
                 # Gorev Zamanlayici is nesnesinin disinda: kurulum gorevi sonlandirinca setup.exe olmesin

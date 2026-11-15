@@ -8,6 +8,14 @@
 #   -Dagitim  herkese açık indirme için derler: üreticiye ait DLL pakete GİRMEZ. Uygulama InsydeDCHU.dll'i
 #             Clevo / Monster dizüstüde Windows sürücü deposundan yükler. Çıktı: dist\FCUK-Control-Center-Setup-<sürüm>.exe;
 #             README'deki indirme düğmesi de bu dosyaya (sürüm etiketi v<sürüm>) güncellenir.
+#
+# Kod imzalama (isteğe bağlı): aşağıdaki ortam değişkenlerinden biri tanımlıysa uygulama exe'si ve setup.exe
+# signtool ile imzalanır (Windows SDK gerekir). Tanımlı değilse imzasız derlenir, derleme yine başarılı olur.
+#   FCUK_IMZA_PFX       .pfx sertifika dosyası yolu (parolası FCUK_IMZA_PAROLA'da)
+#   FCUK_IMZA_PARMAKIZI sertifika deposundaki sertifikanın parmak izi (SHA-1; ör. donanım anahtarındaki sertifika)
+#   FCUK_IMZA_ZAMAN     zaman damgası sunucusu (varsayılan http://timestamp.digicert.com)
+# İmzalı bir sürüm yayımlandıktan sonra güncelleyici, yeni sürümün aynı sertifikayla imzalı olmasını şart koşar
+# (guncelleme.py, signer_ok).
 param([switch]$Dagitim)
 $ErrorActionPreference = 'Stop'
 $src   = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -34,6 +42,37 @@ if ($Dagitim) {
     }
 }
 
+function Find-SignTool {
+    $cmd = Get-Command signtool.exe -ErrorAction SilentlyContinue
+    if ($cmd) { return $cmd.Source }
+    $kits = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin'
+    if (Test-Path $kits) {
+        $found = Get-ChildItem $kits -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -like '*\x64\*' } | Sort-Object FullName -Descending | Select-Object -First 1
+        if ($found) { return $found.FullName }
+    }
+    return $null
+}
+
+# Imzalama: sertifika ayarlanmamışsa sessizce atlanır; ayarlanmış ama imzalanamıyorsa derleme durur
+# (yarı imzalı bir sürüm yayımlanmasın).
+function Sign-File([string]$path) {
+    if (-not $env:FCUK_IMZA_PFX -and -not $env:FCUK_IMZA_PARMAKIZI) { return }
+    $tool = Find-SignTool
+    if (-not $tool) { throw 'İmza sertifikası ayarlı ama signtool.exe bulunamadı (Windows SDK kurun)' }
+    $ts = if ($env:FCUK_IMZA_ZAMAN) { $env:FCUK_IMZA_ZAMAN } else { 'http://timestamp.digicert.com' }
+    $sargs = @('sign', '/fd', 'SHA256', '/td', 'SHA256', '/tr', $ts, '/d', 'FCUK Control Center')
+    if ($env:FCUK_IMZA_PFX) {
+        $sargs += @('/f', $env:FCUK_IMZA_PFX)
+        if ($env:FCUK_IMZA_PAROLA) { $sargs += @('/p', $env:FCUK_IMZA_PAROLA) }
+    } else {
+        $sargs += @('/sha1', $env:FCUK_IMZA_PARMAKIZI)
+    }
+    & $tool @sargs $path
+    if ($LASTEXITCODE -ne 0) { throw "İmzalanamadı: $path" }
+    Write-Host "== İmzalandı: $path"
+}
+
 New-Item -ItemType Directory -Force $build | Out-Null
 $ico = Join-Path $build 'uygulama.ico'
 python -c "import sys; sys.path.insert(0, r'$src'); import tepsi; tepsi.make_app_icon(r'$ico')"
@@ -45,6 +84,8 @@ python -m PyInstaller --noconfirm --clean --onedir --windowed --name FCUKControl
     --distpath $dist --workpath (Join-Path $build 'pyi') --specpath $build `
     control_center.py
 if ($LASTEXITCODE -ne 0) { throw 'PyInstaller (uygulama) başarısız' }
+# Uygulama exe'si setup.exe'ye gömülmeden önce imzalanır: kurulan dosya da imzalı olur
+Sign-File (Join-Path $app 'FCUKControlCenter.exe')
 
 $surum = Join-Path $build 'surum.txt'
 [IO.File]::WriteAllText($surum, $ver)
@@ -58,6 +99,7 @@ python -m PyInstaller --noconfirm --clean --onefile --windowed --uac-admin --nam
 if ($LASTEXITCODE -ne 0) { throw 'PyInstaller (setup) başarısız' }
 
 $out = Join-Path $dist 'setup.exe'
+Sign-File $out
 if ($Dagitim) {
     $dll = @(Get-ChildItem $app -Recurse -File | Where-Object { $_.Name -in 'InsydeDCHU.dll', 'GetProductdll.dll' })
     if ($dll.Count) { throw "Dağıtım paketinde üretici DLL'i var: $($dll[0].FullName)" }
