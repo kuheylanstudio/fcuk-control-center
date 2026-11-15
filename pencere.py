@@ -14,6 +14,7 @@ import os
 import webbrowser
 
 TITLE = "FCUK Control Center"
+UPDATE_TITLE = "FCUK Control Center güncelleniyor"  # kurulum/setup.py UPDATE_TITLE ile ayni
 MUTEX = "Local\\FCUKControlCenterPencere"
 SIZE = (1320, 860)
 MIN_SIZE = (960, 640)
@@ -56,6 +57,11 @@ class Api:
     def kapat(self):
         if self.window is not None:
             self.window.destroy()
+
+    def guncelleme_penceresi_var(self):
+        """Bagimsiz guncelleme penceresi (kurulum/setup.py) ekranda mi? Sayfa, kendi penceresini ancak bu
+        pencere gorununce kapatir: arada ekranda hicbir sey olmayan bir bosluk kalmaz."""
+        return bool(u32.FindWindowW(None, UPDATE_TITLE))
 
     def ac(self, url):
         """Dis baglanti: yalnizca https, varsayilan tarayicida (pencere icinde acilmaz)."""

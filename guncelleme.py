@@ -17,7 +17,9 @@ Guvenlik:
     bile imzasiz ya da baska sertifikayla imzali bir dosya otomatik kurulmaz. Kurulu surum imzasizsa (imza
     sertifikasi oncesi surumler) bu denetim uygulanmaz; SHA-256 denetimi her durumda gecerlidir.
 
-Kurulum setup.exe /S ile yapilir: motoru kapatir, dosyalari degistirir, motoru ve tepsiyi yeniden baslatir.
+Kurulum setup.exe /guncelle ile yapilir: kendi penceresinde ilerlemeyi gosterir, motoru kapatir, dosyalari
+degistirir, motoru ve tepsiyi yeniden baslatir, uygulamayi acar. Uygulama penceresi bu pencere gorunur gorunmez
+kapanir (ui/index.html waitForUpdate); kurulum uygulamadan bagimsiz surer.
 Yonetici motor Gorev Zamanlayici'nin is nesnesi (job) icinde calisir ve kurulum o gorevi sonlandirir; bu
 yuzden setup.exe WMI (Win32_Process.Create) ile o is nesnesinin DISINDA baslatilir. Standart yetkili motor
 setup.exe'yi UAC ile (runas) baslatir.
@@ -45,6 +47,10 @@ MAX_NOTES = 10           # en fazla bu kadar surumun notu gosterilir
 _NOTE_SKIP = re.compile(r"^\s*(#+\s*FCUK Control Center\b|Windows SmartScreen|\**SHA-256\**|\**VirusTotal\**)", re.I)
 MAX_SIZE = 300 * 1024 * 1024
 NO_WINDOW = 0x08000000
+# setup.exe guncelleme kipi: kendi penceresi olan, uygulamadan bagimsiz bir surec (kurulum/setup.py update_gui).
+# Eski setup.exe'ler bu bayragi tanimaz; yeni setup.exe ise eski motorun "/S /open" cagrisini da ayni pencereyle acar.
+SETUP_ARGS = "/guncelle"
+INSTALL_TIMEOUT = 300    # setup.exe baslatildiktan sonra motor bu kadar sn icinde kapanmadiysa kurulum baslamamistir
 
 
 def parse(v):
@@ -119,7 +125,8 @@ def signer_ok(new, current):
 
 
 class Updater:
-    """Durum: idle | checking | uptodate | available | downloading | ready | installing | error"""
+    """Durum: idle | checking | uptodate | available | downloading | ready | scheduled | permission | installing | error
+    (permission: standart yetkili motor UAC onayini bekliyor)"""
 
     def __init__(self, version, folder, can_install, is_admin, log=lambda m: None, on_ready=lambda v: None,
                  on_available=lambda v: None, on_scheduled=lambda v, s: None):
@@ -133,6 +140,7 @@ class Updater:
         self.on_scheduled = on_scheduled    # otomatik modda kurulumdan AUTO_DELAY sn once (surum, ozet)
         self.changes = []                   # [{"version", "date", "notes"}]: kurulu surumden yeni olanlar, yeniden eskiye
         self.install_at = 0.0
+        self.installing_at = 0.0            # setup.exe'nin baslatildigi an (bkz. INSTALL_TIMEOUT)
         self._cancel = False
         self.lock = threading.Lock()
         self.state = "idle"
@@ -150,6 +158,10 @@ class Updater:
     # ------------------------------------------------------------------ durum
     def status(self):
         with self.lock:
+            # setup.exe hic baslamadiysa (engellendi, coktu) motor oldurulmez ve durum sonsuza dek "kuruluyor"
+            # kalirdi: sure dolunca kurmaya hazir duruma doner, arayuz yeniden denemeyi sunar
+            if self.state == "installing" and time.time() - self.installing_at > INSTALL_TIMEOUT:
+                self.state, self.error = "ready", "kurulum başlamadı (zaman aşımı)"
             return {"state": self.state, "current": self.version, "latest": self.latest,
                     "notes": self.notes[:4000], "changes": list(self.changes), "error": self.error, "page": PAGE,
                     "install_in": max(0, int(self.install_at - time.time() + 0.99)) if self.state == "scheduled" else 0,
@@ -168,7 +180,7 @@ class Updater:
     # ------------------------------------------------------------------ denetim
     def check(self):
         """Son yayini okur. Yeni surum varsa durum 'available' (indirilmis dosya gecerliyse 'ready')."""
-        if self.state in ("downloading", "installing", "scheduled"):
+        if self.state in ("downloading", "permission", "installing", "scheduled"):
             return self.status()
         self._set(state="checking", error="")
         try:
@@ -299,21 +311,25 @@ class Updater:
             self.log("guncelleme imza: %s" % why)
             self._set(state="error", error=why[:200])
             return False, why
-        self._set(state="installing", error="")
         try:
             if self.is_admin():
-                # Gorev Zamanlayici is nesnesinin disinda: kurulum gorevi sonlandirinca setup.exe olmesin
+                self._set(state="installing", error="", installing_at=time.time())
+                # Gorev Zamanlayici is nesnesinin disinda: kurulum gorevi sonlandirinca setup.exe olmesin.
+                # WMI sureci cagiranin oturumunda acar (olculdu): guncelleme penceresi kullaniciya gorunur.
                 ps = ("$r = Invoke-CimMethod -ClassName Win32_Process -MethodName Create "
-                      "-Arguments @{CommandLine='\"%s\" /S /open'}; exit [int]$r.ReturnValue" % exe.replace("'", "''"))
+                      "-Arguments @{CommandLine='\"%s\" %s'}; exit [int]$r.ReturnValue" % (exe.replace("'", "''"), SETUP_ARGS))
                 rc = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", ps],
                                     creationflags=NO_WINDOW, capture_output=True, timeout=60).returncode
                 if rc != 0:
                     raise OSError("setup.exe başlatılamadı (WMI kodu %d)" % rc)
             else:
                 import ctypes
-                r = ctypes.windll.shell32.ShellExecuteW(None, "runas", exe, "/S /open", os.path.dirname(exe), 0)
+                # UAC onayi beklenirken arayuz "izin ver" yonlendirmesini gosterir; onay gelince "installing"
+                self._set(state="permission", error="")
+                r = ctypes.windll.shell32.ShellExecuteW(None, "runas", exe, SETUP_ARGS, os.path.dirname(exe), 0)
                 if r <= 32:
                     raise OSError("Yönetici izni verilmedi" if r == 5 else "setup.exe başlatılamadı (kod %d)" % r)
+                self._set(state="installing", installing_at=time.time())
         except Exception as exc:
             self.log("guncelleme kurulum: %s" % exc)
             self._set(state="ready", error=str(exc)[:200])

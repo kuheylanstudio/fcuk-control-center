@@ -7,7 +7,9 @@
   setup.exe              pencereli kurulum (önce eski Control Center taraması gösterilir)
   setup.exe /S           sessiz kurulum, çıkış kodu: 0 tamam, 2 uyarılı tamam, 1 hata
   setup.exe /S /restore  sessiz kurulum, önce sistem geri yükleme noktası oluşturur
-  setup.exe /S /open     sessiz kurulum, bitince arayüzü açar (uygulama içi güncelleme böyle çağırır)
+  setup.exe /guncelle    uygulama içi güncelleme: uygulamadan bağımsız, kendi penceresinde ilerlemeyi gösterir,
+                         bitince yeni sürümü açar. (Eski sürümlerin güncelleyicisi "/S /open" çağırır; o da aynı
+                         pencereyi açar.)
   setup.exe /S /reboot   sessiz kurulum, başarılıysa bilgisayarı yeniden başlatır (yoksa elle yeniden başlatın)
 Kurulum sonrası yeniden başlatma gerekir; pencereli kurulum bunu söyler ve "Şimdi yeniden başlat" düğmesi sunar.
 """
@@ -362,10 +364,308 @@ def gui():
     root.mainloop()
 
 
+# ----------------------------------------------------------------------------- güncelleme penceresi
+UPDATE_TITLE = "FCUK Control Center güncelleniyor"  # pencere.py UPDATE_TITLE ile aynı: uygulama penceresi bunu bekler
+# Güncelleme adımları. Her biri kurulum.ps1'in "ADIM|..." satırlarından birine (küçük harfle) eşlenir; eşleşmeyen
+# satır adımı değiştirmez, adım geriye gitmez. (başlık, başlangıç yüzdesi, eşleşen ifadeler)
+UPDATE_STEPS = [
+    ("Güncelleme hazırlanıyor", 0, ()),
+    ("Uygulama kapatılıyor", 8, ("kapatılıyor", "durduruluyor", "engelleniyor", "paketleri kaldırılıyor")),
+    ("Dosyalar güncelleniyor", 40, ("kopyalanıyor", "cihaza özel")),
+    ("Ayarlar uygulanıyor", 78, ("açılış görevleri", "kısayollar")),
+    ("Yeni sürüm başlatılıyor", 88, ("başlatılıyor ve doğrulanıyor",)),
+]
+
+
+def update_step(text, current=0):
+    """kurulum.ps1 adım satırına karşılık gelen güncelleme adımının sırası; adım yalnızca ilerler."""
+    low = (text or "").lower()
+    for i in range(len(UPDATE_STEPS) - 1, current, -1):
+        if any(k in low for k in UPDATE_STEPS[i][2]):
+            return i
+    return current
+
+
+def installed_version():
+    """Kurulu (güncellenmeden önceki) sürüm: Uygulamalar listesi kaydından. Okunamazsa boş."""
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+                            r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\FCUKControlCenter") as k:
+            return str(winreg.QueryValueEx(k, "DisplayVersion")[0]).strip()
+    except OSError:
+        return ""
+
+
+def update_gui():
+    """/guncelle: uygulamadan bağımsız güncelleme penceresi. Uygulama bu pencere görününce kendi penceresini kapatır;
+    kurulum burada, ilerlemesi gösterilerek sürer, bitince yeni sürüm açılır. Çıkış kodunu döndürür; pencere hiç
+    açılamazsa None (çağıran sessiz kuruluma düşer)."""
+    import time
+    try:
+        import ctypes
+        import tkinter as tk
+        from tkinter import ttk
+        try:
+            ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        except (OSError, AttributeError):
+            pass
+        root = tk.Tk()
+    except Exception:
+        return None
+
+    BG, SURFACE, SURFACE2, LINE = "#0a0c0f", "#111419", "#181c23", "#252a33"
+    TEXT, TEXT2, TEXT3 = "#eceff4", "#a9b1be", "#818a99"
+    GOOD, WARN, BAD, LIVE = "#5fd38d", "#ffc861", "#ff6b6b", "#7cc4ff"
+    FONT = "Bahnschrift"
+    PREFIX = {"ADIM": "\n▸ ", "OK": "  ✓ ", "UYARI": "  ! ", "HATA": "  ✗ ", "BILGI": "  · ", "HAM": "    "}
+    COLORS = {"ADIM": "#ffffff", "BILGI": TEXT2, "OK": GOOD, "UYARI": WARN, "HATA": BAD, "HAM": TEXT3}
+
+    old, new = installed_version(), version()
+    root.title(UPDATE_TITLE)
+    root.configure(bg=BG)
+    s = root.winfo_fpixels("1i") / 96.0
+    w, h = int(520 * s), int(470 * s)
+    root.geometry("%dx%d+%d+%d" % (w, h, (root.winfo_screenwidth() - w) // 2, (root.winfo_screenheight() - h) // 3))
+    root.resizable(False, False)
+    try:
+        root.iconbitmap(os.path.join(BUNDLE, "uygulama.ico"))
+    except tk.TclError:
+        pass
+    try:  # güncellerken bilgisayar uykuya geçmesin
+        ctypes.windll.kernel32.SetThreadExecutionState(0x80000001)  # ES_CONTINUOUS | ES_SYSTEM_REQUIRED
+    except (OSError, AttributeError):
+        pass
+
+    pad = int(26 * s)
+    tk.Label(root, text=TITLE, bg=BG, fg=TEXT3, font=(FONT, 10), anchor="w").pack(fill="x", padx=pad, pady=(pad - 6, 0))
+    head = tk.Label(root, text="Güncelleniyor", bg=BG, fg="#ffffff", font=(FONT, 20, "bold"), anchor="w")
+    head.pack(fill="x", padx=pad)
+    sub = tk.Label(root, text=("Sürüm %s  →  %s" % (old, new)) if old and new else ("Sürüm %s" % new if new else ""),
+                   bg=BG, fg=LIVE, font=(FONT, 11), anchor="w")
+    sub.pack(fill="x", padx=pad)
+    note = tk.Label(root, bg=BG, fg=TEXT, font=(FONT, 11), justify="left", anchor="w", wraplength=w - 2 * pad)
+    note.pack(fill="x", padx=pad, pady=(14, 8))
+
+    steps = tk.Frame(root, bg=SURFACE, highlightbackground=LINE, highlightthickness=1)
+    steps.pack(fill="x", padx=pad)
+    marks, names = [], []
+    for title, _, _ in UPDATE_STEPS:
+        row = tk.Frame(steps, bg=SURFACE)
+        row.pack(fill="x", padx=14, pady=4)
+        m = tk.Label(row, text="○", width=2, bg=SURFACE, fg=TEXT3, font=(FONT, 12))
+        m.pack(side="left")
+        n = tk.Label(row, text=title, bg=SURFACE, fg=TEXT3, font=(FONT, 11), anchor="w")
+        n.pack(side="left", fill="x", expand=True)
+        marks.append(m)
+        names.append(n)
+
+    style = ttk.Style()
+    style.theme_use("clam")
+    style.configure("U.Horizontal.TProgressbar", troughcolor=SURFACE, background=LIVE, bordercolor=LINE,
+                    lightcolor=LIVE, darkcolor=LIVE, thickness=int(8 * s))
+    bar = ttk.Progressbar(root, mode="determinate", maximum=100, style="U.Horizontal.TProgressbar")
+    bar.pack(fill="x", padx=pad, pady=(14, 4))
+    info = tk.Frame(root, bg=BG)
+    info.pack(fill="x", padx=pad)
+    elapsed = tk.Label(info, text="Geçen süre 0:00", bg=BG, fg=TEXT3, font=(FONT, 9), anchor="w")
+    elapsed.pack(side="left")
+    foot = tk.Label(root, text="Bilgisayarı kapatmayın. Bitince uygulama kendiliğinden açılır.", bg=BG, fg=TEXT2,
+                    font=(FONT, 10), justify="left", anchor="w", wraplength=w - 2 * pad)
+    foot.pack(fill="x", padx=pad, pady=(10, 0))
+
+    btns = tk.Frame(root, bg=BG)
+    btns.pack(side="bottom", fill="x", padx=pad, pady=(8, pad - 8))
+    box = tk.Frame(root, bg=LINE, padx=1, pady=1)
+    txt = tk.Text(box, bg=SURFACE, fg=TEXT2, relief="flat", font=("Consolas", 9), wrap="word", padx=8, pady=6,
+                  highlightthickness=0, height=9)
+    sb = tk.Scrollbar(box, command=txt.yview)
+    txt.configure(yscrollcommand=sb.set, state="disabled")
+    sb.pack(side="right", fill="y")
+    txt.pack(side="left", fill="both", expand=True)
+    for k, c in COLORS.items():
+        txt.tag_configure(k, foreground=c)
+    txt.tag_configure("ADIM", font=("Consolas", 9, "bold"))
+
+    def button(text, cmd, primary=False):
+        return tk.Button(btns, text=text, command=cmd, font=(FONT, 10, "bold" if primary else "normal"), relief="flat",
+                         bd=0, padx=16, pady=6, cursor="hand2", bg=TEXT if primary else SURFACE2,
+                         fg=BG if primary else TEXT, activebackground="#ffffff" if primary else LINE,
+                         activeforeground=BG if primary else "#ffffff")
+
+    q = queue.Queue()
+    st = {"step": 0, "val": 1.0, "rc": None, "errors": [], "warns": [], "t0": time.monotonic(), "details": False,
+          "left": 0}
+
+    def paint():
+        for i, (m, n) in enumerate(zip(marks, names)):
+            if st["rc"] is not None and st["rc"] != 1 or i < st["step"]:
+                m.configure(text="✓", fg=GOOD)
+                n.configure(fg=TEXT2)
+            elif i == st["step"] and st["rc"] is None:
+                m.configure(text="●", fg=LIVE)
+                n.configure(fg="#ffffff")
+            elif i == st["step"]:  # hata: bu adımda kaldı
+                m.configure(text="✗", fg=BAD)
+                n.configure(fg=BAD)
+            else:
+                m.configure(text="○", fg=TEXT3)
+                n.configure(fg=TEXT3)
+
+    def set_note():
+        if st["rc"] is not None:
+            return
+        note.configure(text=("Güncelleme hazırlanıyor. Birazdan uygulama kapanacak; bu normal." if st["step"] == 0 else
+                             "Uygulama kapatıldı. Güncelleme bu pencerede sürüyor; uygulamayı yeniden açmayın."),
+                       fg=TEXT)
+
+    def log_line(kind, msg):
+        txt.configure(state="normal")
+        txt.insert("end", PREFIX[kind] + msg + "\n", kind)
+        txt.see("end")
+        txt.configure(state="disabled")
+
+    def pump():
+        try:
+            while True:
+                item = q.get_nowait()
+                if item[0] == "line":
+                    _, kind, msg = item
+                    if kind == "CIHAZ":
+                        continue
+                    if kind == "HATA":
+                        st["errors"].append(msg)
+                    elif kind == "UYARI":
+                        st["warns"].append(msg)
+                    log_line(kind, msg)
+                    if kind == "ADIM":
+                        nxt = update_step(msg, st["step"])
+                        if nxt != st["step"]:
+                            st["step"] = nxt
+                            st["val"] = max(st["val"], UPDATE_STEPS[nxt][1])
+                            paint()
+                            set_note()
+                else:
+                    item[1]()
+        except queue.Empty:
+            pass
+        root.after(60, pump)
+
+    def tick():
+        if st["rc"] is None:
+            end = (UPDATE_STEPS[st["step"] + 1][1] if st["step"] + 1 < len(UPDATE_STEPS) else 99) - 2
+            st["val"] = min(st["val"] + 0.12, end)  # adım içinde yavaşça ilerler: pencere donmuş görünmesin
+            bar["value"] = st["val"]
+            sec = int(time.monotonic() - st["t0"])
+            elapsed.configure(text="Geçen süre %d:%02d" % (sec // 60, sec % 60))
+            marks[st["step"]].configure(fg=LIVE if int(time.monotonic() * 2) % 2 else "#ffffff")
+        root.after(100, tick)
+
+    def toggle_details():
+        st["details"] = not st["details"]
+        if st["details"]:
+            box.pack(fill="x", padx=pad, pady=(10, 0), before=btns)
+            root.geometry("%dx%d" % (w, h + int(170 * s)))
+            more.configure(text="Ayrıntıları gizle")
+        else:
+            box.pack_forget()
+            root.geometry("%dx%d" % (w, h))
+            more.configure(text="Ayrıntılar")
+
+    def open_log():
+        if os.path.exists(LOG):
+            subprocess.Popen(["notepad.exe", LOG], creationflags=NO_WINDOW)
+
+    def close():
+        if st["rc"] is None:  # güncelleme yarıda kesilmez: pencere yalnızca görev çubuğuna küçülür
+            root.iconify()
+            return
+        root.destroy()
+
+    def countdown():
+        if st["left"] <= 0:
+            root.destroy()
+            return
+        foot.configure(text="Bu pencere %d sn sonra kapanır." % st["left"], fg=TEXT2)
+        st["left"] -= 1
+        root.after(1000, countdown)
+
+    def finished(rc):
+        st["rc"] = rc
+        bar["value"] = 100 if rc != 1 else st["val"]
+        sec = int(time.monotonic() - st["t0"])
+        elapsed.configure(text="Süre %d:%02d" % (sec // 60, sec % 60))
+        paint()
+        closebtn = button("Kapat", close, primary=True)
+        if rc == 1:
+            root.deiconify()
+            root.lift()
+            head.configure(text="Güncelleme tamamlanamadı", fg=BAD)
+            why = st["errors"][-1] if st["errors"] else "ayrıntı kayıt dosyasında"
+            note.configure(text="Sorun: %s" % why, fg=BAD)
+            foot.configure(text="Uygulamayı açmayı deneyebilirsiniz. Sorun sürerse kaydı açıp bize iletin.", fg=TEXT2)
+            closebtn.pack(side="right")
+            button("Uygulamayı aç", open_app).pack(side="right", padx=(0, 8))
+            button("Kaydı aç", open_log).pack(side="right", padx=(0, 8))
+            if not st["details"]:
+                toggle_details()
+        elif rc == 2:
+            root.deiconify()
+            root.lift()
+            head.configure(text="Güncelleme tamamlandı", fg=WARN)
+            note.configure(text="Yeni sürüm kuruldu ve açıldı, ancak %d uyarı var." % len(st["warns"]), fg=WARN)
+            foot.configure(text="Uyarılar ayrıntılarda sarı satırlarla gösterilir.", fg=TEXT2)
+            closebtn.pack(side="right")
+            button("Kaydı aç", open_log).pack(side="right", padx=(0, 8))
+            if not st["details"]:
+                toggle_details()
+        else:
+            head.configure(text="Güncelleme tamamlandı", fg=GOOD)
+            note.configure(text=("Sürüm %s kuruldu ve uygulama açıldı." % new) if new else
+                           "Yeni sürüm kuruldu ve uygulama açıldı.", fg=GOOD)
+            closebtn.pack(side="right")
+            st["left"] = 6
+            countdown()
+
+    def work():
+        try:
+            rc = run_script("Install", lambda k, m: q.put(("line", k, m)))
+        except Exception as e:  # powershell bulunamadı vb.
+            q.put(("line", "HATA", str(e)))
+            rc = 1
+        if rc != 1:  # pencereyi tepsi açtırır (tepsi yoksa uygulama kendisi başlatılır)
+            try:
+                open_app()
+            except Exception:
+                pass
+        q.put(("call", lambda: finished(rc)))
+
+    more = button("Ayrıntılar", toggle_details)
+    more.pack(side="left")
+    root.protocol("WM_DELETE_WINDOW", close)
+    paint()
+    set_note()
+    root.update_idletasks()
+    root.lift()
+    root.attributes("-topmost", True)  # öne gelsin; kullanıcı başka pencerede kalıp güncellemeyi kaçırmasın
+    root.after(900, lambda: root.attributes("-topmost", False))
+    threading.Thread(target=work, daemon=True).start()
+    pump()
+    tick()
+    root.mainloop()
+    return st["rc"] if st["rc"] is not None else 1
+
+
 def main():
     args = [a.lower() for a in sys.argv[1:]]
-    if "/s" in args or "--sessiz" in args or "/silent" in args:
-        sys.exit(silent(restore="/restore" in args, reboot="/reboot" in args, open_after="/open" in args))
+    silent_flag = "/s" in args or "--sessiz" in args or "/silent" in args
+    # /guncelle: uygulama içi güncelleme (kendi penceresi var). Eski sürümlerin güncelleyicisi "/S /open" çağırır;
+    # /open yalnızca uygulama içi güncellemeden geldiği için o da aynı pencereyi açar.
+    if "/guncelle" in args or (silent_flag and "/open" in args):
+        rc = update_gui()
+        sys.exit(rc if rc is not None else silent(open_after=True))  # pencere açılamadı: eski davranış (sessiz)
+    if silent_flag:
+        sys.exit(silent(restore="/restore" in args, reboot="/reboot" in args))
     gui()
 
 

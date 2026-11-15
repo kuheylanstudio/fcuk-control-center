@@ -125,7 +125,10 @@ Sessiz kurulum için `setup.exe /S` kullanın. Çıkış kodu 0 başarılı, 2 u
 - **Elle:** yeni sürüm yalnızca bildirilir; yenilikleri okuyup "İndir ve kur" ile siz kurarsınız.
 
 Dosya yalnızca bu deponun sürüm sayfasından HTTPS ile indirilir ve GitHub'ın verdiği SHA-256 özetiyle doğrulanır.
-Kurulum `setup.exe /S` ile yapılır, ayarlar korunur. Atlanan sürümlerin notları da yenilikler penceresinde görünür.
+Kurulum uygulamadan bağımsız, kendi penceresi olan bir güncelleme arayüzüyle (`setup.exe /guncelle`) yapılır: kurulum
+başlayınca uygulama penceresi kapanır, güncelleme penceresi adımları (hazırlık, kapatma, dosyalar, ayarlar, başlatma) ve
+geçen süreyi gösterir, bitince yeni sürüm kendiliğinden açılır. Hata olursa pencere nedenini ve kayıt dosyasını gösterir.
+Ayarlar korunur. Atlanan sürümlerin notları da yenilikler penceresinde görünür.
 2.0.x kullanıyorsanız 2.1.0'ı bir kez elle kurmanız gerekir; sonraki sürümler kendiliğinden gelir.
 
 #### Kendiniz derlemek
