@@ -13,6 +13,8 @@ Simge rengi ve yay uzunlugu etkin profilin seviyesini gosterir; ipucu canli sica
 import ctypes
 import json
 import os
+import shutil
+import sys
 import threading
 import time
 import urllib.request
@@ -54,10 +56,11 @@ TPM_RIGHTBUTTON, TPM_RETURNCMD, TPM_NONOTIFY = 0x2, 0x100, 0x80
 IMAGE_ICON, LR_LOADFROMFILE = 1, 0x10
 ERROR_ALREADY_EXISTS = 183
 
-# Seviye ve renk: soguk maviden uyari kirmizisina (ui/index.html --warn ve --danger ile ayni aile)
 LEVELS = {"tam_sessiz": 1, "sessiz_kullanim": 2, "sessiz_oyun": 3, "performans": 4, "ultra": 5}
-COLORS = {0: (129, 138, 153), 1: (88, 166, 255), 2: (64, 200, 200), 3: (92, 214, 120),
-          4: (255, 180, 84), 5: (255, 107, 107)}
+
+# Uygulamanin tek simgesi: tepsi, pencere, exe ve kurulum hep bunu kullanir (16-256 piksel cok boyutlu .ico)
+APP_ICON = os.path.join(getattr(sys, "_MEIPASS", None) or os.path.dirname(os.path.abspath(__file__)),
+                        "ui", "simge.ico")
 
 
 class GUID(ctypes.Structure):
@@ -115,49 +118,15 @@ k32.GetModuleHandleW.argtypes = [wt.LPCWSTR]
 k32.GetModuleHandleW.restype = wt.HMODULE
 
 
-# ----------------------------------------------------------------------------- simge cizimi
-def icon_path(level):
-    return os.path.join(core.CONFIG_DIR, "tepsi_%d.ico" % level)
-
-
-def draw(level, n=256):
-    """Koyu yuvarlak kare + seviye kadar dolu gosterge yayi + merkez nokta (PIL Image)."""
-    from PIL import Image, ImageDraw
-    rgb = COLORS[level]
-    im = Image.new("RGBA", (n, n), (0, 0, 0, 0))
-    d = ImageDraw.Draw(im)
-    d.rounded_rectangle((8, 8, n - 8, n - 8), radius=56, fill=(17, 20, 25, 255), outline=(59, 67, 80, 255), width=6)
-    box, w = (40, 40, n - 40, n - 40), 34
-    d.arc(box, 135, 405, fill=(37, 42, 51, 255), width=w)            # bos iz
-    if level:
-        d.arc(box, 135, 135 + 270 * level / 5.0, fill=rgb + (255,), width=w)
-    c = n // 2
-    d.ellipse((c - 26, c - 26, c + 26, c + 26), fill=rgb + (255,))   # merkez nokta: 16 pikselde de gorunur
-    return im
-
-
+# ----------------------------------------------------------------------------- simge
 def make_app_icon(path):
-    """Exe simgesi: tepsiyle ayni tasarim, Sessiz Oyun seviyesi; 16-256 piksel."""
-    draw(3).save(path, sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
+    """Derleme betikleri icin: uygulama simgesini exe/setup'a gomulecek yere kopyalar."""
+    shutil.copyfile(APP_ICON, path)
 
 
-def make_icons():
-    """Her seviye icin tepsi .ico'su uretir (PIL varsa)."""
-    try:
-        import PIL  # noqa: F401
-    except ImportError:
-        return False
-    os.makedirs(core.CONFIG_DIR, exist_ok=True)
-    for level in COLORS:
-        path = icon_path(level)
-        if not os.path.exists(path):
-            draw(level).save(path, sizes=[(16, 16), (20, 20), (24, 24), (32, 32), (48, 48), (64, 64)])
-    return True
-
-
-def load_icon(level):
-    size = u32.GetSystemMetrics(49)  # SM_CXSMICON, DPI'ya gore 16/20/24
-    h = u32.LoadImageW(None, icon_path(level), IMAGE_ICON, size, size, LR_LOADFROMFILE)
+def load_icon():
+    size = u32.GetSystemMetrics(49)  # SM_CXSMICON, DPI'ya gore 16/20/24; .ico'dan en uygun boyut secilir
+    h = u32.LoadImageW(None, APP_ICON, IMAGE_ICON, size, size, LR_LOADFROMFILE)
     return h or u32.LoadImageW(None, ctypes.c_wchar_p(32512), IMAGE_ICON, 0, 0, 0x8000)  # IDI_APPLICATION
 
 
@@ -357,9 +326,10 @@ class Tray:
         # FN_MUTE / FN_VOLUME: Windows kendi bildirimini gosterir
 
     def _icon(self, level):
-        if level not in self.icons:
-            self.icons[level] = load_icon(level)
-        return self.icons[level]
+        # Simge her profilde ayni; profil adi ipucu metninde (_tip) gorunur
+        if "app" not in self.icons:
+            self.icons["app"] = load_icon()
+        return self.icons["app"]
 
     def _add(self):
         self.nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_SHOWTIP
@@ -624,10 +594,6 @@ def run(base, open_window, start_engine):
     dpi_aware()
     if ctypes.get_last_error() == ERROR_ALREADY_EXISTS:
         return
-    try:
-        make_icons()
-    except Exception as exc:  # simge cizilemezse varsayilan simgeyle surer
-        fntus.log("tepsi simgeleri olusturulamadi: %r" % exc)
     tray = Tray(base, open_window, start_engine)
     tray.create()
     tray.loop()

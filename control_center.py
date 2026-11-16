@@ -221,6 +221,8 @@ def _mode_values(mid, vals, base):
         keys = vals.get("keys")
         keys = "cs" if keys == "fps" else keys  # 2.0.4 gelistirme surumundeki genel FPS duzeni -> CS2
         out["keys"] = keys if keys in core.GAME_LAYOUTS else base.get("keys", "lol")
+        skin = vals.get("skin")
+        out["skin"] = skin if isinstance(skin, bool) else bool(base.get("skin", True))
     return out
 
 
@@ -561,6 +563,8 @@ def state():
         "layouts": [{"id": k, "label": t("keys." + k)} for k in core.GAME_LAYOUTS],
         "slots": [t("slot." + k) for k in core.GAME_SLOTS],
         "slotsUsed": core.GAME_SLOTS_USED,
+        "slotIds": core.GAME_SLOTS,
+        "defaults": {m: core.DEFAULTS["modes"][m]["palette"] for m in core.MODE_IDS},
         "lang": ceviri.lang(),
         "lang_setting": App.cfg.get("lang", "auto"),
         "lang_detected": ceviri.detect(),
@@ -785,6 +789,12 @@ class Handler(BaseHTTPRequestHandler):
                 except OSError:
                     pass
             return self._send(200, localize(html).encode("utf-8"), "text/html; charset=utf-8")
+        if path == "/simge.png":  # sekme / Edge --app penceresi simgesi
+            try:
+                with open(os.path.join(HERE, "ui", "simge.png"), "rb") as f:
+                    return self._send(200, f.read(), "image/png")
+            except OSError:
+                return self._send(404, b"", "image/png")
         if path == "/api/ping":
             return self._json({"app": core.APP_NAME, "path": HERE, "admin": hw.is_admin(), "version": VERSION})
         if path == "/api/state":
@@ -858,11 +868,15 @@ class Handler(BaseHTTPRequestHandler):
         self.close_connection = True
         eng, sen = App.engine, App.sensors
         seq = -1
+        theme = 0  # henuz gonderilmedi
         try:
             while eng.running:
                 v = eng.value
                 msg = {"c": eng.current, "info": eng.info, "err": eng.error, "w": eng.warn,
                        "v": None if v is None else round(v, 3)}
+                if eng.theme is not theme:  # skin temasi yalnizca degisince gider
+                    theme = eng.theme
+                    msg["th"] = theme
                 if sen.seq != seq:
                     seq = sen.seq
                     msg["s"] = sen.snapshot
@@ -1274,7 +1288,7 @@ def window_main():
     if not pencere.single_instance():
         return 0
     try:
-        pencere.run(BASE + "/", os.path.join(core.CONFIG_DIR, "pencere"))
+        pencere.run(BASE + "/", os.path.join(core.CONFIG_DIR, "pencere"), icon=os.path.join(HERE, "ui", "simge.ico"))
     except Exception:
         log("pywebview penceresi acilamadi, Edge'e dusuldu: " + traceback.format_exc().replace("\n", " | "))
         edge_window()

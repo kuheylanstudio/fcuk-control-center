@@ -224,6 +224,9 @@ class LolClient(GameSource, threading.Thread):
         self._seen = -1
         self._me = set()
         self._conn = None
+        self.want_champ = False  # skin temasi isteniyorsa mac basina bir kez playerlist okunur
+        self.champ = None        # (rawChampionName, skinID): kendi sampiyonun
+        self._champ_tries = 0
         # API yalnizca 127.0.0.1'de, Riot'un kendi imzali sertifikasiyla calisir. Adres sabit ve yerel oldugu
         # icin sertifika dogrulamasi atlanir; hicbir veri gonderilmez, yalnizca okunur.
         self._ctx = ssl.create_default_context()
@@ -298,10 +301,25 @@ class LolClient(GameSource, threading.Thread):
                 new.append("win" if e.get("Result") == "Win" else "lose")
         return new
 
+    def champion(self, players):
+        """playerlist'ten kendi sampiyonun: (rawChampionName, skinID) ya da None."""
+        me = self._me
+        for p in players if isinstance(players, list) else []:
+            if not isinstance(p, dict):
+                continue
+            if me & _ids(p.get("summonerName"), p.get("riotId"), p.get("riotIdGameName")):
+                raw = p.get("rawChampionName") or p.get("championName")
+                num = p.get("skinID", 0)
+                if isinstance(raw, str) and raw:
+                    return raw, num if isinstance(num, int) and 0 <= num < 1000 else 0
+        return None
+
     def _reset(self):
         self._close()
         self._clear()
         self._seen = -1
+        self.champ = None
+        self._champ_tries = 0
 
     def run(self):
         ev_at = 0.0
@@ -319,6 +337,9 @@ class LolClient(GameSource, threading.Thread):
                     new = self.events(self._get("eventdata"))
                     if self.connected:  # baglanirken gecmis olaylari yeniden oynatma
                         self.push(new)
+                    if self.want_champ and self.champ is None and self._me and self._champ_tries < 5:
+                        self._champ_tries += 1  # mac basina en fazla birkac kez; bulununca bir daha sorulmaz
+                        self.champ = self.champion(self._get("playerlist"))
                 self.connected = True
                 time.sleep(0.25)
             except Exception:  # oyun yok, yukleme ekrani ya da gecici hata

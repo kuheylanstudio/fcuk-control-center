@@ -22,6 +22,7 @@ c_int = ctypes.c_int
 
 import ceviri
 import donanim
+import lol_tema
 import oyun
 
 APP_NAME = "FCUKControlCenter"
@@ -78,7 +79,8 @@ DEFAULTS = {
         "sistem": {"palette": ["#0060ff", "#00ff60", "#ffd000", "#ff0000"], "speed": 50, "source": "cpu_temp"},
         "ekran": {"palette": [], "speed": 55},
         # LoL renkleri can yesilinin ve kirmizisinin ustunde de secilsin diye yesil/kirmizi disi tonlardir
-        "oyun": {"palette": GAME_PALETTE, "speed": 55, "keys": "lol"},
+        # skin: LoL'de Q/W/E/R renkleri secilen sampiyonun/skinin renk temasindan (lol_tema); palet yedektir
+        "oyun": {"palette": GAME_PALETTE, "speed": 55, "keys": "lol", "skin": True},
         "bolgeler": {"palette": ["#ff0040", "#ff8a00", "#00e0ff", "#7a00ff"], "speed": 50},
     },
     "presets": {},
@@ -383,6 +385,8 @@ class GameFx:
         self.beat = 0.0
         self.last = None
         self.on = False
+        self.tema = None  # LoL skin renk temasi izleyicisi (ilk istendiginde olusur)
+        self.theme_now = None  # su an uygulanan skin temasi (arayuz gosterir)
 
     def source(self, layout):
         src = self.sources.get(layout)
@@ -399,8 +403,18 @@ class GameFx:
         self.flashes.append([col, now, dur, shape])
         del self.flashes[:-6]
 
-    def frame(self, pal, speed, layout, now):
-        """(renk, bilgi metni, olculen deger ya da None)."""
+    def skin_theme(self, src, on):
+        """LoL skin temasi: izleyiciyi gerektiginde baslatir/durdurur; hazir tema ya da None."""
+        if on and self.tema is None:
+            self.tema = lol_tema.ThemeWatcher(src, CONFIG_DIR, on_start=efficiency_thread)
+            self.tema.start()
+        if self.tema is not None:
+            self.tema.wanted = on
+        src.want_champ = on
+        return self.tema.theme if on and self.tema is not None else None
+
+    def frame(self, pal, speed, layout, now, skin=False):
+        """(renk, bilgi metni, olculen deger ya da None). skin: LoL'de Q/W/E/R skin temasindan."""
         self.on = True
         if layout not in GAME_LAYOUTS:
             layout = GAME_LAYOUTS[0]
@@ -412,6 +426,12 @@ class GameFx:
             other.wanted = name == layout
         if isinstance(src, oyun.CsClient):
             src.tick(now)
+        theme = self.skin_theme(src, skin) if layout == "lol" else None
+        self.theme_now = theme
+        if theme:
+            for slot, hx in theme["colors"].items():
+                if slot in self.SLOT:
+                    pal[self.SLOT[slot]] = hex_to_rgb(hx)
         fade = period(speed, 1.0, 0.12)
         pressed, held = self.keys.poll(layout, now)
         for fx in pressed:
@@ -462,7 +482,10 @@ class GameFx:
             col = mix(col, pal[1], 0.55 + 0.45 * math.sin(now * 2 * math.pi * 12) ** 2)
         if live and src.flashed > 0.0:  # CS2 flas bombasi: gozun kadar klavye de beyaz
             col = mix(col, (255, 255, 255), src.flashed)
-        return col, self.describe(layout, src, live, health), health
+        info = self.describe(layout, src, live, health)
+        if theme and theme.get("name"):
+            info += " · " + ceviri.t("info.skinTheme", name=theme["name"])
+        return col, info, health
 
     def warning(self, layout):
         """Kullaniciya gosterilecek uyari: on plandaki program tanimlanamiyorsa tus tepkisi calismaz."""
@@ -487,8 +510,13 @@ class GameFx:
     def stop(self):
         self.on = False
         self.last = None
+        self.theme_now = None
+        if self.tema is not None:
+            self.tema.wanted = False
         for src in self.sources.values():
             src.wanted = False
+            if isinstance(src, oyun.LolClient):
+                src.want_champ = False
             if isinstance(src, oyun.CsClient):
                 src.tick(time.monotonic())
 
@@ -589,13 +617,14 @@ class Engine(threading.Thread):
         super().__init__(daemon=True)
         self._wake = threading.Event()  # ayar degisince uyuyan donguyu hemen uyandirir
         self.kb = kb
-        # (mod, palet[(r,g,b)..], hiz 0..100, kaynak, parlaklik 0..1) - arayuz tek seferde degistirir
+        # (mod, palet[(r,g,b)..], hiz 0..100, kaynak, parlaklik 0..1[, secenekler]) - arayuz tek seferde degistirir
         self.settings = ("sabit", ((255, 255, 255),), 50, "cpu_temp", 1.0)
         self.current = (0, 0, 0)
         self.info = ""
         self.value = None  # ses/sistem modlarinda 0..1 arasi olculen deger
         self.error = ""
         self.warn = ""  # kalici olmayan uyari (ornegin oyun penceresi tanimlanamadi)
+        self.theme = None  # Oyun modunda su an uygulanan LoL skin temasi ({"name", "colors"}) ya da None
         self.running = True
 
     @property
@@ -623,13 +652,16 @@ class Engine(threading.Thread):
             now = time.monotonic()
             dt = min(now - last, 0.5)
             last = now
-            mode, pal, speed, source, bright = self.settings
+            mode, pal, speed, source, bright = self.settings[:5]
+            opts = self.settings[5] if len(self.settings) > 5 else {}
             value = None
             warn = ""
             kb_ok = getattr(self.kb, "kb_available", getattr(self.kb, "available", True))  # isik ayri olabilir (Alienware, Lenovo, MSI USB klavye)
             zones = None
             if not kb_ok and mode in ("ses", "ekran", "sistem", "oyun"):
                 mode = "sabit"  # klavye isigi yok: ses/ekran ornekleme ve olcum bosuna calismasin
+            if mode != "oyun":
+                self.theme = None
             if mode != "oyun" and game is not None and game.on:
                 game.stop()  # oyun kaynaklari yalnizca Oyun modundayken dinlenir (moddan cikista bir kez)
             try:
@@ -704,7 +736,8 @@ class Engine(threading.Thread):
                 elif mode == "oyun":
                     if game is None:
                         game = GameFx()
-                    col, self.info, value = game.frame(pal, speed, source, now)
+                    col, self.info, value = game.frame(pal, speed, source, now, bool(opts.get("skin")))
+                    self.theme = game.theme_now
                     warn = game.warning(source if source in GAME_LAYOUTS else GAME_LAYOUTS[0])
                 else:
                     col = (255, 255, 255)
@@ -786,7 +819,8 @@ def snapshot(cfg):
     m = cfg["modes"][cfg["mode"]]
     pal = tuple(hex_to_rgb(h) for h in m.get("palette", []))
     src = m.get("keys", "lol") if cfg["mode"] == "oyun" else m.get("source", "cpu_temp")  # oyunda: tus duzeni
-    return (cfg["mode"], pal, m.get("speed", 50), src, cfg["brightness"] / 100.0)
+    opts = {"skin": bool(m.get("skin", True))} if cfg["mode"] == "oyun" else {}
+    return (cfg["mode"], pal, m.get("speed", 50), src, cfg["brightness"] / 100.0, opts)
 
 
 def set_autostart(enabled, script):

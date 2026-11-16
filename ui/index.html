@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FCUK Control Center</title>
+<link rel="icon" href="/simge.png">
 <style>
 /* Tasarim belirtecleri: tek kaynak MASTER.md. */
 :root{
@@ -292,16 +293,37 @@ input[type=number]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
 .diag-log{max-height:180px;overflow:auto;margin:0;padding:var(--s-2) var(--s-3);background:var(--bg);border:1px solid var(--line);border-radius:var(--r-2);color:var(--text-2);font:12px/1.5 Consolas,"Cascadia Mono",monospace;white-space:pre-wrap;overflow-wrap:anywhere}
 .btn-row{display:flex;flex-wrap:wrap;gap:var(--s-2)}
 .grad{height:12px;border-radius:var(--r-1)}
-.stops{display:flex;flex-wrap:wrap;gap:var(--s-2)}
-.stops li{display:flex}
+.stops{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:var(--s-2)}
+.stops li{display:flex;min-width:0}
+.stops li.add{min-height:46px}
+.stops li.add .btn{flex:1;border-style:dashed}
 .stop,.stop-x{border:1px solid var(--line);background:var(--surface);cursor:pointer;transition:border-color var(--t-fast) var(--ease-out),color var(--t-fast) var(--ease-out),background var(--t-fast) var(--ease-out)}
-.stop{display:flex;align-items:center;gap:var(--s-2);padding:5px 8px 5px 5px;border-right:0;border-radius:var(--r-2) 0 0 var(--r-2);color:var(--text-2);font:500 var(--fs-2)/1 var(--f-display);font-variant-numeric:tabular-nums;text-transform:uppercase}
-.stop.solo{border-right:1px solid var(--line);border-radius:var(--r-2)}
-.stop .sw{width:20px;height:20px;border-radius:var(--r-1)}
-.stop-x{width:26px;border-radius:0 var(--r-2) var(--r-2) 0;color:var(--text-3);font-size:var(--fs-4);line-height:1}
-.stop:hover,.stop-x:hover{border-color:var(--line-strong);color:var(--text);background:var(--surface-2)}
-.stop:active,.stop-x:active{background:var(--line)}
+.stop{flex:1;min-width:0;display:grid;grid-template-columns:28px minmax(0,1fr);column-gap:8px;row-gap:2px;align-items:center;padding:6px 10px 6px 6px;border-radius:var(--r-2);color:var(--text);text-align:left}
+.stop.has-x{border-right:0;border-radius:var(--r-2) 0 0 var(--r-2)}
+.stop .sw{grid-row:1/3;width:28px;height:28px;border-radius:var(--r-1);box-shadow:inset 0 0 0 1px rgb(255 255 255 / .14)}
+.stop .nm{grid-column:2;grid-row:1;font:500 var(--fs-3)/1.2 var(--f-display);overflow-wrap:anywhere}
+.stop .hx{grid-column:2;grid-row:2;font:500 var(--fs-1)/1.2 var(--f-display);letter-spacing:.04em;color:var(--text-3);text-transform:uppercase;font-variant-numeric:tabular-nums}
+.stop[aria-expanded="true"]{border-color:var(--text);background:var(--surface-2)}
+.stop.auto{cursor:default;border-style:dashed}
+.stop.auto .hx{color:var(--text-2)}
+.stop.auto .sw.none{background:repeating-linear-gradient(45deg,var(--line) 0 4px,transparent 4px 8px)!important}
+.stop-x{width:30px;border-radius:0 var(--r-2) var(--r-2) 0;color:var(--text-3);font-size:var(--fs-4);line-height:1}
+.stop:not(.auto):hover,.stop-x:hover{border-color:var(--line-strong);background:var(--surface-2)}
+.stop:not(.auto):active,.stop-x:active{background:var(--line)}
 .stop-x:disabled{opacity:.4;cursor:not-allowed;background:var(--surface);color:var(--text-3);border-color:var(--line)}
+.pal-tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--s-2)}
+.link-btn{padding:0;border:0;background:none;color:var(--text-2);font:500 var(--fs-2)/1.4 var(--f-body);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.link-btn:hover{color:var(--text)}
+.link-btn.sure{color:var(--danger)}
+.link-btn:disabled{opacity:.4;cursor:default;text-decoration:none}
+.skin-note{margin:0;padding:8px 10px;border-left:2px solid var(--line-strong);color:var(--text-2);font-size:var(--fs-2);line-height:1.45}
+.save-state{display:flex;align-items:center;gap:6px;min-height:18px;margin:0;color:var(--text-3);font-size:var(--fs-2)}
+.save-state::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--text-3)}
+.save-state.ok{color:var(--text-2)}
+.save-state.ok::before{background:#3ddc84}
+.save-state.busy::before{background:var(--warn)}
+.save-state.err{color:var(--danger)}
+.save-state.err::before{background:var(--danger)}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:var(--s-2)}
 .seg.auto{grid-template-columns:repeat(auto-fit,minmax(90px,1fr))}
 .seg label{position:relative;cursor:pointer}
@@ -312,6 +334,8 @@ input[type=number]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
 .seg input:checked + span{border-color:var(--live-ink);color:var(--text-hi);background:var(--surface-2)}
 .seg input:focus-visible + span{outline:2px solid var(--live-ink);outline-offset:2px}
 .seg input:disabled + span{opacity:.4}
+.seg .rec{display:inline-block;margin-left:6px;padding:1px 5px;border:1px solid var(--line-strong);border-radius:var(--r-1);font:600 var(--fs-1)/1.3 var(--f-display);font-style:normal;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
+.seg input:checked + span .rec{border-color:var(--live-ink);color:var(--text-2)}
 .seg.onoff input[value="on"]:checked + span{border-color:var(--live-ink);color:var(--text-hi)}
 .seg.onoff input[value="off"]:checked + span{border-color:var(--danger);color:var(--danger);background:color-mix(in srgb,var(--danger) 10%,var(--surface-2))}
 .vnote{margin-top:var(--s-2);font-size:var(--fs-2);color:var(--text-2);text-wrap:pretty}
@@ -337,12 +361,24 @@ input[type=number]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
 .empty{color:var(--text-3);font-size:var(--fs-2)}
 .preset-form{display:flex;gap:var(--s-2);margin-top:auto}
 
-.picker{position:fixed;z-index:10;width:244px;display:grid;gap:var(--s-3);padding:var(--s-3);background:var(--surface-2);border:1px solid var(--line-strong);border-radius:var(--r-2);
+.picker{position:fixed;z-index:10;width:272px;display:grid;gap:var(--s-3);padding:var(--s-3);background:var(--surface-2);border:1px solid var(--line-strong);border-radius:var(--r-2);
   transition:opacity var(--t-med) var(--ease-out),transform var(--t-med) var(--ease-out)}
 .picker.closed{opacity:0;transform:translateY(6px);visibility:hidden;pointer-events:none;transition:opacity var(--t-fast) var(--ease-in),visibility 0s var(--t-fast)}
 .sv{position:relative;height:140px;border-radius:var(--r-1);cursor:crosshair;touch-action:none;--h:0;
   background:linear-gradient(to top,var(--black),transparent),linear-gradient(to right,var(--text-hi),transparent),hsl(var(--h) 100% 50%)}
 .sv i{position:absolute;width:12px;height:12px;margin:-6px;border:2px solid var(--text-hi);border-radius:50%;box-shadow:0 0 0 1px var(--black);pointer-events:none}
+.pick-head{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2)}
+.pick-title{font:500 var(--fs-4)/1.2 var(--f-display);color:var(--text-hi);min-width:0;overflow-wrap:anywhere}
+.pick-cmp{display:flex;flex:none;border-radius:var(--r-1);overflow:hidden;box-shadow:0 0 0 1px var(--line-strong)}
+.pick-cmp i{width:24px;height:26px}
+.pick-cmp i+i{width:40px}
+.pick-quick{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+.pick-quick button{aspect-ratio:1;border:1px solid rgb(255 255 255 / .14);border-radius:var(--r-1);cursor:pointer;padding:0;transition:transform var(--t-fast) var(--ease-out)}
+.pick-quick button:hover{transform:scale(1.12)}
+.pick-quick button[aria-pressed="true"]{outline:2px solid var(--text-hi);outline-offset:1px}
+.pick-hex{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:var(--s-2)}
+.pick-actions{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-2)}
+.pick-note{margin:0;color:var(--text-3);font-size:var(--fs-1);line-height:1.4}
 
 .banner{position:fixed;z-index:20;left:50%;bottom:56px;width:max-content;max-width:min(560px,calc(100vw - 32px));box-sizing:border-box;overflow-wrap:anywhere;text-align:center;line-height:1.4;padding:var(--s-3) var(--s-4);background:var(--surface-2);border:1px solid var(--danger);border-radius:var(--r-2);color:var(--text);
   transform:translateX(-50%);transition:opacity var(--t-med) var(--ease-out)}
@@ -781,10 +817,11 @@ input[type=number]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
         <section class="presets" data-i18n-aria="kb.presets" aria-label="Kayıtlı modlarım">
           <h2 data-i18n="kb.presets">Kayıtlı modlarım</h2>
           <div class="preset-list" id="presetList"></div>
-          <p class="empty" id="presetEmpty" data-i18n="kb.presetsEmpty">Henüz kayıtlı mod yok. Beğendiğin ayara ad verip kaydet.</p>
+          <p class="hint" data-i18n="kb.presetsHint">Ayarların zaten otomatik kaydedilir. Burası, beğendiğin bir ayarı ad verip saklamak ve sonra tek tıkla geri dönmek için.</p>
+          <p class="empty" id="presetEmpty" data-i18n="kb.presetsEmpty">Henüz kayıtlı mod yok.</p>
           <form class="preset-form" id="presetForm">
             <input type="text" id="presetName" maxlength="40" data-i18n-ph="kb.presetPh" placeholder="Bu ayara ad ver" data-i18n-aria="kb.presetAria" aria-label="Kaydedilecek modun adı" autocomplete="off">
-            <button class="btn solid" id="presetSave" type="submit" disabled data-i18n="kb.save">Kaydet</button>
+            <button class="btn solid" id="presetSave" type="submit" disabled data-i18n="kb.presetAdd">Listeye ekle</button>
           </form>
         </section>
       </div>
@@ -986,13 +1023,23 @@ input[type=number]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
   </footer>
 </div>
 
-<div class="picker closed" id="picker" role="dialog" data-i18n-aria="picker.aria" aria-label="Renk seçici">
+<div class="picker closed" id="picker" role="dialog" aria-labelledby="pickTitle">
+  <div class="pick-head">
+    <span class="pick-title" id="pickTitle"></span>
+    <div class="pick-cmp" role="img" id="pickCmp"><i id="pickOld"></i><i id="pickNew"></i></div>
+  </div>
   <div class="sv" id="sv" tabindex="0" role="slider" data-i18n-aria="picker.sv" aria-label="Doygunluk ve parlaklık, ok tuşlarıyla ayarla" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="svDot"></i></div>
   <input type="range" class="hue" id="hue" min="0" max="360" step="1" data-i18n-aria="picker.hue" aria-label="Renk tonu">
-  <div class="row">
-    <input type="text" id="hexIn" maxlength="7" spellcheck="false" data-i18n-aria="picker.hex" aria-label="Renk kodu">
+  <div class="pick-quick" id="pickQuick" role="group" data-i18n-aria="picker.quick" aria-label="Hazır renkler"></div>
+  <div class="pick-hex">
+    <label class="lbl" for="hexIn" data-i18n="picker.code">Kod</label>
+    <input type="text" id="hexIn" maxlength="7" spellcheck="false" autocomplete="off">
+  </div>
+  <div class="pick-actions">
+    <button class="btn" id="pickUndo" type="button" data-i18n="picker.undo">Geri al</button>
     <button class="btn solid" id="pickDone" type="button" data-i18n="picker.done">Tamam</button>
   </div>
+  <p class="pick-note" data-i18n="picker.note">Seçtiğin renk anında klavyeye uygulanır ve kaydedilir.</p>
 </div>
 <div class="banner closed" id="banner" role="status"></div>
 <dialog class="upd-dlg cust-dlg" id="custDlg" aria-labelledby="custDlgTitle">
@@ -1092,6 +1139,7 @@ const FAN_MODE_TXT = { 0: t('fanmode.0'), 1: t('fanmode.1'), 6: t('fanmode.6'), 
 const NO_LINK = t('err.noLink');
 
 let meta = null, cfg = null, cc = null, frozen = false, pending = null, quitting = false, saveTimer = 0;
+let saveState = 'idle', saveSeq = 0, skinTheme = null;  // kayit durumu (ayar basliginda gorunur), LoL skin temasi
 let view = 'genel', sensor = null, busy = false;
 const hist = { cpu_temp: [], gpu_temp: [], cpu_power: [], cpu_rpm: [] };
 
@@ -1134,7 +1182,24 @@ async function api(path, body) {
 function save() {
   paintStrips();
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => api('/api/config', cfg).catch(() => banner(t('err.saveCfg'))), 80);
+  setSaveState('busy');
+  saveTimer = setTimeout(async () => {
+    const n = ++saveSeq;
+    try {
+      await api('/api/config', cfg);
+      if (n === saveSeq) setSaveState('ok');
+    } catch (e) {
+      if (n === saveSeq) { setSaveState('err'); banner(t('err.saveCfg')); }
+    }
+  }, 80);
+}
+// Her degisiklik aninda klavyeye uygulanir ve kaydedilir; bu satir bunu kullaniciya gosterir.
+function setSaveState(st) {
+  saveState = st;
+  const n = $('#saveState');
+  if (!n) return;
+  n.className = 'save-state ' + st;
+  n.textContent = t({ busy: 'kb.saving', ok: 'kb.savedApplied', err: 'kb.saveFailed', idle: 'kb.autoSave' }[st]);
 }
 let bannerTimer = 0;
 function banner(text, info, ms) {
@@ -1243,6 +1308,7 @@ function connect() {
   es.onmessage = e => {
     const d = JSON.parse(e.data);
     pending = d;
+    if ('th' in d) onSkinTheme(d.th);
     if (d.s) onSensor(d.s, d.p);
   };
   es.onopen = () => { if (!quitting && $('#banner').textContent === NO_LINK) banner(''); };  // uyarilari silme
@@ -2254,13 +2320,40 @@ function stripCss(m, pal) {
   if (m.pal === 'loop') return `linear-gradient(90deg,${[...pal, pal[0]].join(',')})`;
   return `linear-gradient(90deg,${pal.join(',')})`;
 }
+// LoL'de "Skin renkleri" seciliyken Q/W/E/R yuvalari otomatiktir: yuva -> tema rengi (tema yoksa null)
+function autoSlots(id) {
+  const v = cfg.modes[id];
+  if (id !== 'oyun' || v.keys !== 'lol' || v.skin === false) return null;
+  const th = skinTheme && skinTheme.colors, out = {};
+  for (const k of ['q', 'w', 'e', 'r']) out[meta.slotIds.indexOf(k)] = (th && th[k]) || null;
+  return out;
+}
+function effPalette(id) {
+  const pal = [...cfg.modes[id].palette], auto = autoSlots(id);
+  if (auto) for (const [i, hx] of Object.entries(auto)) if (hx) pal[i] = hx;
+  return pal;
+}
 function paintStrips() {
   document.querySelectorAll('.mode').forEach(b => {
     const m = modeMeta(b.dataset.id);
-    $('.strip', b).style.background = stripCss(m, cfg.modes[m.id].palette);
+    $('.strip', b).style.background = stripCss(m, effPalette(m.id));
   });
   const g = $('#grad');
-  if (g) g.style.background = stripCss(modeMeta(cfg.mode), cfg.modes[cfg.mode].palette);
+  if (g) g.style.background = stripCss(modeMeta(cfg.mode), effPalette(cfg.mode));
+}
+function onSkinTheme(th) {
+  skinTheme = th && th.colors ? th : null;
+  if (!cfg) return;
+  paintStrips();
+  renderSkinNote();
+  if (pick.i < 0 && cfg.mode === 'oyun') renderStops();  // secici acikken kutular yeniden cizilmez
+}
+function renderSkinNote() {
+  const n = $('#skinNote');
+  if (!n) return;
+  const v = cfg.modes.oyun;
+  n.textContent = v.skin === false ? t('kb.ownNote')
+    : skinTheme ? t('kb.skinNoteOn', { name: skinTheme.name || '' }) : t('kb.skinNoteWait');
 }
 function renderModes() {
   const ul = $('#modeList');
@@ -2298,14 +2391,47 @@ function renderSettings() {
   const m = modeMeta(cfg.mode), v = cfg.modes[m.id], body = $('#setBody');
   body.textContent = '';
   const head = el('header', 'set-head');
-  head.append(el('h2', '', m.label), el('p', '', m.desc));
+  const state = el('p', 'save-state'); state.id = 'saveState';
+  state.setAttribute('role', 'status'); state.setAttribute('aria-live', 'polite');
+  head.append(el('h2', '', m.label), el('p', '', m.desc), state);
   const cols = el('div', 'set-cols' + (m.pal ? '' : ' single'));
   if (m.pal) {
     const f = el('div', 'field'), top = el('div', 'field-top');
     top.append(el('span', 'lbl', m.pal === 'one' ? t('kb.color') : t('kb.colors')), el('span', 'hint', PAL_HINT[m.pal]));
+    f.append(top);
+    if (m.id === 'oyun' && v.keys === 'lol') {  // Q W E R: skin temasi (onerilen) ya da kendi renklerin
+      const fs = el('fieldset', 'field'), seg = el('div', 'seg');
+      fs.append(el('legend', 'lbl', t('kb.qwerSource')));
+      for (const [val, key] of [[true, 'kb.skinColors'], [false, 'kb.ownColors']]) {
+        const lab = el('label'), inp = el('input'), span = el('span', '', t(key));
+        inp.type = 'radio'; inp.name = 'qwer'; inp.value = val ? 'skin' : 'own'; inp.checked = (v.skin !== false) === val;
+        inp.addEventListener('change', () => { closePicker(); v.skin = val; save(); renderSkinNote(); renderStops(); });
+        if (val) span.append(el('em', 'rec', t('kb.recommended')));
+        lab.append(inp, span);
+        seg.append(lab);
+      }
+      const note = el('p', 'skin-note'); note.id = 'skinNote';
+      fs.append(seg);
+      f.append(fs, note);
+    }
     const grad = el('div', 'grad'); grad.id = 'grad';
     const stops = el('ul', 'stops'); stops.id = 'stops';
-    f.append(top, grad, stops);
+    const tools = el('div', 'pal-tools'), reset = el('button', 'link-btn', t('kb.resetColors'));
+    reset.type = 'button';
+    reset.addEventListener('click', () => {
+      if (!reset.classList.contains('sure')) {  // ilk tik sorar, ikincisi uygular
+        reset.classList.add('sure'); reset.textContent = t('kb.resetSure');
+        setTimeout(() => { if (reset.isConnected) { reset.classList.remove('sure'); reset.textContent = t('kb.resetColors'); } }, 3000);
+        return;
+      }
+      closePicker();
+      v.palette = [...meta.defaults[m.id]];
+      reset.classList.remove('sure'); reset.textContent = t('kb.resetColors');
+      renderStops();
+      save();
+    });
+    tools.append(el('span', 'hint', t(m.pal === 'one' ? 'kb.editHintOne' : 'kb.editHint')), reset);
+    f.append(grad, stops, tools);
     cols.append(f);
   }
   const stack = el('div', 'field-stack');
@@ -2339,7 +2465,7 @@ function renderSettings() {
     for (const s of meta.layouts) {
       const lab = el('label'), inp = el('input');
       inp.type = 'radio'; inp.name = 'keys'; inp.value = s.id; inp.checked = v.keys === s.id;
-      inp.addEventListener('change', () => { closePicker(); v.keys = s.id; renderStops(); save(); });
+      inp.addEventListener('change', () => { closePicker(); v.keys = s.id; renderSettings(); save(); $(`input[name=keys][value=${s.id}]`)?.focus(); });
       lab.append(inp, el('span', '', s.label));
       seg.append(lab);
     }
@@ -2359,26 +2485,42 @@ function renderSettings() {
   }
   if (stack.children.length) cols.append(stack);
   body.append(head, cols);
+  setSaveState(saveState);
+  renderSkinNote();
   renderStops();
 }
 function renderStops() {
   const ul = $('#stops');
   if (!ul) return;
-  const m = modeMeta(cfg.mode), pal = cfg.modes[m.id].palette, solo = m.pal === 'one', names = slotNames(m), fixed = !!names;
+  const m = modeMeta(cfg.mode), v = cfg.modes[m.id], pal = v.palette, solo = m.pal === 'one', names = slotNames(m), fixed = !!names;
   ul.textContent = '';
-  const used = fixed ? (meta.slotsUsed[cfg.modes[m.id].keys] || []) : null;
+  const used = m.pal === 'slots' ? (meta.slotsUsed[v.keys] || []) : null;
+  const auto = autoSlots(m.id);
   (solo ? pal.slice(0, 1) : pal).forEach((hx, i) => {
     if (used && !used.includes(i)) return;  // bu tus duzeninde kullanilmayan yuva
-    const li = el('li'), b = el('button', 'stop' + (solo ? ' solo' : ''));
+    const li = el('li'), b = el('button', 'stop'), sw = el('span', 'sw');
+    const name = fixed ? names[i] : solo ? t('kb.color') : t('kb.colorN', { i: i + 1 });
     b.type = 'button';
-    b.setAttribute('aria-label', fixed ? t('kb.slotAria', { name: names[i], hex: hx }) : t('kb.stopAria', { i: i + 1, hex: hx }));
-    const sw = el('span', 'sw'); sw.style.background = hx;
-    b.append(sw, el('span', 'hx', fixed ? names[i] || hx : hx));
-    if (fixed) b.title = hx;
-    b.addEventListener('click', () => openPicker(b, i));
+    if (auto && i in auto) {  // skin temasindan: duzenlenmez
+      const th = auto[i];
+      sw.style.background = th || hx;
+      b.classList.add('auto');
+      b.setAttribute('aria-disabled', 'true');
+      b.setAttribute('aria-label', t('kb.autoAria', { name }));
+      b.title = t('kb.autoTip');
+      b.append(sw, el('span', 'nm', name), el('span', 'hx', th ? t('kb.autoHex', { hex: th }) : t('kb.auto')));
+    } else {
+      sw.style.background = hx;
+      b.setAttribute('aria-haspopup', 'dialog');
+      b.setAttribute('aria-expanded', 'false');
+      b.setAttribute('aria-label', t('kb.editAria', { name, hex: hx }));
+      b.append(sw, el('span', 'nm', name), el('span', 'hx', hx));
+      b.addEventListener('click', () => (pick.anchor === b ? closePicker(true) : openPicker(b, i, name, !fixed)));
+    }
     li.append(b);
     if (!solo && !fixed) {
       const x = el('button', 'stop-x', '×');
+      b.classList.add('has-x');
       x.type = 'button';
       x.setAttribute('aria-label', t('kb.stopDel', { i: i + 1 }));
       x.disabled = pal.length < 2;
@@ -2388,14 +2530,15 @@ function renderStops() {
     ul.append(li);
   });
   if (!solo && !fixed) {
-    const li = el('li'), add = el('button', 'btn', t('kb.addColor'));
+    const li = el('li', 'add'), add = el('button', 'btn', '+ ' + t('kb.addColor'));
     add.type = 'button';
     add.disabled = pal.length >= 8;
     add.addEventListener('click', () => {
       pal.push(pal[pal.length - 1] || '#ffffff');
       renderStops();
       save();
-      openPicker($('#stops').children[pal.length - 1].firstElementChild, pal.length - 1);
+      const last = $('#stops').children[pal.length - 1].firstElementChild;
+      openPicker(last, pal.length - 1, t('kb.colorN', { i: pal.length }), true);
     });
     li.append(add);
     ul.append(li);
@@ -2404,15 +2547,22 @@ function renderStops() {
 }
 
 /* ---------- renk secici ---------- */
-const pick = { i: -1, anchor: null, h: 0, s: 1, v: 1 };
-function openPicker(anchor, i) {
+const pick = { i: -1, anchor: null, h: 0, s: 1, v: 1, orig: '#000000', name: '' };
+// Klavye LED'inde net gorunen doygun renkler (soluk tonlar LED'de beyaza kacar)
+const QUICK = ['#ff0000', '#ff4d00', '#ff9900', '#ffd500', '#a6ff00', '#00ff3c', '#00ffb3', '#00e5ff',
+  '#0096ff', '#0033ff', '#5a00ff', '#a000ff', '#ff00e1', '#ff0077', '#ff8f70', '#ffffff'];
+function openPicker(anchor, i, name, plain) {
   const p = $('#picker'), pal = cfg.modes[cfg.mode].palette;
-  pick.i = i; pick.anchor = anchor;
+  if (pick.anchor && pick.anchor.isConnected) pick.anchor.setAttribute('aria-expanded', 'false');
+  pick.i = i; pick.anchor = anchor; pick.orig = pal[i]; pick.name = name;
+  anchor.setAttribute('aria-expanded', 'true');
   [pick.h, pick.s, pick.v] = rgbToHsv(hexToRgb(pal[i]));
-  const r = anchor.getBoundingClientRect(), w = 244, h = 262;
+  $('#pickTitle').textContent = plain ? name : t('picker.title', { name });  // plain: 'Renk 3' zaten bir renk adi
+  $('#pickOld').style.background = pick.orig;
+  syncPicker(true);
+  const r = anchor.getBoundingClientRect(), w = p.offsetWidth || 272, h = p.offsetHeight || 420;
   p.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + 'px';
   p.style.top = (r.bottom + h + 12 > innerHeight ? Math.max(8, r.top - h - 8) : r.bottom + 8) + 'px';
-  syncPicker(true);
   p.classList.remove('closed');
   $('#sv').focus({ preventScroll: true });
 }
@@ -2420,8 +2570,12 @@ function closePicker(refocus) {
   const p = $('#picker');
   if (p.classList.contains('closed')) return;
   p.classList.add('closed');
-  if (refocus && pick.anchor && pick.anchor.isConnected) pick.anchor.focus();
+  if (pick.anchor && pick.anchor.isConnected) {
+    pick.anchor.setAttribute('aria-expanded', 'false');
+    if (refocus) pick.anchor.focus();
+  }
   pick.i = -1;
+  pick.anchor = null;
 }
 function syncPicker(writeHex) {
   const sv = $('#sv'), hex = rgbToHex(hsvToRgb(pick.h, pick.s, pick.v));
@@ -2432,22 +2586,37 @@ function syncPicker(writeHex) {
   $('#svDot').style.top = (1 - pick.v) * 100 + '%';
   $('#hue').value = pick.h;
   if (writeHex) $('#hexIn').value = hex;
+  $('#pickNew').style.background = hex;
+  $('#pickCmp').setAttribute('aria-label', t('picker.cmp', { old: pick.orig, hex }));
+  $('#pickUndo').disabled = hex === pick.orig.toLowerCase();
+  document.querySelectorAll('#pickQuick button').forEach(q => q.setAttribute('aria-pressed', q.dataset.hex === hex ? 'true' : 'false'));
   return hex;
 }
 function applyPick(writeHex) {
   if (pick.i < 0) return;
   const hex = syncPicker(writeHex), pal = cfg.modes[cfg.mode].palette;
+  if (pal[pick.i] === hex) return;
   pal[pick.i] = hex;
   if (pick.anchor && pick.anchor.isConnected) {
     $('.sw', pick.anchor).style.background = hex;
-    const names = slotNames(modeMeta(cfg.mode)), slot = names ? names[pick.i] : null;
-    if (slot) pick.anchor.title = hex; else $('.hx', pick.anchor).textContent = hex;
-    pick.anchor.setAttribute('aria-label', slot ? t('kb.slotAria', { name: slot, hex }) : t('kb.stopAria', { i: pick.i + 1, hex }));
+    $('.hx', pick.anchor).textContent = hex;
+    pick.anchor.setAttribute('aria-label', t('kb.editAria', { name: pick.name, hex }));
   }
   save();
 }
+function setPick(hex, writeHex) {
+  [pick.h, pick.s, pick.v] = rgbToHsv(hexToRgb(hex));
+  applyPick(writeHex);
+}
 function initPicker() {
-  const sv = $('#sv');
+  const sv = $('#sv'), quick = $('#pickQuick');
+  for (const hx of QUICK) {
+    const b = el('button');
+    b.type = 'button'; b.dataset.hex = hx; b.style.background = hx;
+    b.setAttribute('aria-label', hx); b.title = hx;
+    b.addEventListener('click', () => setPick(hx, true));
+    quick.append(b);
+  }
   const move = e => {
     const r = sv.getBoundingClientRect();
     pick.s = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
@@ -2467,12 +2636,12 @@ function initPicker() {
   });
   $('#hue').addEventListener('input', e => { pick.h = +e.target.value; applyPick(true); });
   $('#hexIn').addEventListener('input', e => {
-    let t = e.target.value.trim();
-    if (t && t[0] !== '#') t = '#' + t;
-    if (!/^#[0-9a-fA-F]{6}$/.test(t)) return;
-    [pick.h, pick.s, pick.v] = rgbToHsv(hexToRgb(t));
-    applyPick(false);
+    let v = e.target.value.trim();
+    if (v && v[0] !== '#') v = '#' + v;
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) setPick(v.toLowerCase(), false);
   });
+  $('#hexIn').addEventListener('keydown', e => { if (e.key === 'Enter') closePicker(true); });
+  $('#pickUndo').addEventListener('click', () => setPick(pick.orig, true));
   $('#pickDone').addEventListener('click', () => closePicker(true));
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closePicker(true); });
   document.addEventListener('pointerdown', e => {
@@ -2525,6 +2694,7 @@ function applyPreset(name) {
   target.speed = p.speed;
   if (p.source) target.source = p.source;
   if (p.keys) target.keys = p.keys;
+  if (typeof p.skin === 'boolean') target.skin = p.skin;
   cfg.brightness = p.brightness;
   setRange($('#bright'), cfg.brightness, $('#brightOut'));
   selectMode(p.mode, true);
