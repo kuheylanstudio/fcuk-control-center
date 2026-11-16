@@ -617,6 +617,7 @@
   "upd.noRestart": "Silnik nie odpowiada po aktualizacji. Otwórz aplikację ponownie.",
   "upd.banner": "Nowa wersja gotowa: {v}. Zainstaluj w Ustawienia > Aktualizacje.",
   "upd.readyNotice": "Pobrano FCUK Control Center {v}. Zainstaluj w Ustawienia > Aktualizacje.",
+  "cc.reinstallBlocked": "Windows ponownie zainstalował składniki starego Control Center ({p}); usunięto je, bo wybrałeś tę blokadę podczas instalacji. Aby na to zezwolić, uruchom instalator ponownie bez tej opcji.",
   "upd.notInstalled": "Automatyczna instalacja działa tylko w wersji zainstalowanej przez setup.exe.",
   "upd.busy": "Aktualizacja już trwa.",
   "upd.mode": "Sposób aktualizacji",

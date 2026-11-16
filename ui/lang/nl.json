@@ -617,6 +617,7 @@
   "upd.noRestart": "De engine reageert niet na de update. Open de app opnieuw.",
   "upd.banner": "Nieuwe versie klaar: {v}. Installeer via Instellingen > Updates.",
   "upd.readyNotice": "FCUK Control Center {v} gedownload. Installeer via Instellingen > Updates.",
+  "cc.reinstallBlocked": "Windows heeft oude Control Center-onderdelen opnieuw geïnstalleerd ({p}); ze zijn verwijderd omdat je deze blokkering bij de installatie koos. Voer de installatie opnieuw uit zonder die optie om het toe te staan.",
   "upd.notInstalled": "Automatisch installeren werkt alleen in de versie die met setup.exe is geïnstalleerd.",
   "upd.busy": "Er loopt al een update.",
   "upd.mode": "Updatemethode",

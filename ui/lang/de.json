@@ -617,6 +617,7 @@
   "upd.noRestart": "Der Dienst antwortet nach dem Update nicht. Öffne die App erneut.",
   "upd.banner": "Neue Version bereit: {v}. Installiere sie unter Einstellungen > Updates.",
   "upd.readyNotice": "FCUK Control Center {v} heruntergeladen. Installiere es unter Einstellungen > Updates.",
+  "cc.reinstallBlocked": "Windows hat alte Control-Center-Komponenten neu installiert ({p}); sie wurden entfernt, weil du diese Sperre bei der Installation gewählt hast. Zum Zulassen das Setup ohne diese Option erneut ausführen.",
   "upd.notInstalled": "Die automatische Installation funktioniert nur in der mit setup.exe installierten Version.",
   "upd.busy": "Ein Update-Vorgang läuft bereits.",
   "upd.mode": "Update-Methode",

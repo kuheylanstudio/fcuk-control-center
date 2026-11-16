@@ -617,6 +617,7 @@
   "upd.noRestart": "업데이트 후 엔진이 응답하지 않습니다. 앱을 다시 여세요.",
   "upd.banner": "새 버전 준비 완료: {v}. 설정 > 업데이트에서 설치하세요.",
   "upd.readyNotice": "FCUK Control Center {v} 다운로드 완료. 설정 > 업데이트에서 설치하세요.",
+  "cc.reinstallBlocked": "Windows가 이전 Control Center 구성 요소({p})를 다시 설치하여 설치 시 선택한 차단 설정에 따라 제거했습니다. 허용하려면 이 옵션을 해제하고 설치를 다시 실행하세요.",
   "upd.notInstalled": "자동 설치는 setup.exe로 설치한 버전에서만 작동합니다.",
   "upd.busy": "업데이트 작업이 이미 진행 중입니다.",
   "upd.mode": "업데이트 방식",

@@ -181,3 +181,92 @@ def refresh():
     """Tara ve uygula. Donus: (bulunan yol sayisi, kayit satirlari)."""
     found = find_paths()
     return sum(len(v) for v in found.values()), apply(found)
+
+
+# ----------------------------------------------------------------------------- geri yukleme engeli
+# Kurulumdaki "Eski Control Center'in geri yuklenmesini engelle" secenegi (kurulum.ps1 -CCGuard On/Off).
+# Geri kurma yolu: AcpiBridge1.inf "AddSoftware = ... pfn://CLEVOCO.FnhotkeysandOSD_6h6z29zh29qx0" (SoftwareType 2,
+# Store uygulamasi). Windows bunu surucu yeniden kurulunca / Windows Update surucuyu guncelleyince isleyebilir.
+# Defender yazilim kurmaz; Store yalnizca KURULU paketleri gunceller. Katmanlar:
+#   1) Appx Deprovisioned kaydi (Windows'un kendi "bu paketi yeniden saglama" isareti; kurulum.ps1 yazar)
+#   2) DeviceSetup\InstalledPfns isareti (Windows'un "bu donanim uygulamasi islendi" kaydi; kurulum.ps1 yazar)
+#   3) bu bekci: yonetici motor acilista ve 10 dk'da bir bakar; paket yine de geldiyse once programlarini tam
+#      yoluyla engeller (refresh), sonra paketi kaldirir ve kullaniciya bildirir.
+# Yalnizca FCUK'un yerini tuttugu paketler; CPUOverclocking, GPUOverclocking, Flexikey, BatteryPackUtility'ye
+# dokunulmaz. Geri almak: kurulumu kutu isaretsiz calistirmak ya da FCUK'u kaldirmak (ikisi de CCKoruma=0 yapar
+# ve yalnizca bizim olusturdugumuz kayitlari siler).
+REPLACED = ("CLEVOCO.FnhotkeysandOSD", "CLEVOCO.ControlCenter3.0", "CLEVOCO.504814C03D814",
+            "CLEVOCO.LedKeyboardSetting", "CLEVOCO.EnergySaveUtility")
+REG_KEY = r"SOFTWARE\FCUK Control Center"
+GUARD_VALUE = "CCKoruma"
+NO_WINDOW = 0x08000000
+
+_PS_FIND = r"""
+$n = $env:FCUK_PKGS -split ','
+try { Get-AppxPackage -AllUsers -ErrorAction Stop | Where-Object { $n -contains $_.Name } |
+      ForEach-Object { 'PKG|' + $_.Name + '|' + $_.PackageFullName } } catch {}
+try { Get-AppxProvisionedPackage -Online -ErrorAction Stop | Where-Object { $n -contains $_.DisplayName } |
+      ForEach-Object { 'PROV|' + $_.DisplayName + '|' + $_.PackageName } } catch {}
+"""
+_PS_REMOVE = r"""
+foreach ($l in ($env:FCUK_ITEMS -split ';')) {
+    $k, $name, $full = $l -split '\|'
+    try {
+        if ($k -eq 'PROV') { Remove-AppxProvisionedPackage -Online -PackageName $full -ErrorAction Stop | Out-Null }
+        else {
+            try { Remove-AppxPackage -Package $full -AllUsers -ErrorAction Stop }
+            catch { Remove-AppxPackage -Package $full -ErrorAction Stop }
+        }
+        'OK|' + $name
+    } catch { 'ERR|' + $name + '|' + $_.Exception.Message }
+}
+"""
+
+
+def guard_enabled():
+    """Kurulumda secildi mi (HKLM, yalnizca yonetici yazabilir)."""
+    try:
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, REG_KEY, 0, winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as k:
+            return int(winreg.QueryValueEx(k, GUARD_VALUE)[0]) == 1
+    except (OSError, ValueError, TypeError):
+        return False
+
+
+def _ps(script, env, timeout=120):
+    import subprocess
+    r = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+                       env=dict(os.environ, **env), capture_output=True, timeout=timeout, creationflags=NO_WINDOW)
+    return [l.strip() for l in r.stdout.decode("utf-8", "replace").splitlines() if l.strip()]
+
+
+def find_returned():
+    """Geri gelmis paketler: [("PKG"|"PROV", ad, tam ad)]."""
+    out = []
+    for line in _ps(_PS_FIND, {"FCUK_PKGS": ",".join(REPLACED)}):
+        parts = line.split("|")
+        if len(parts) == 3 and parts[0] in ("PKG", "PROV") and parts[1] in REPLACED:
+            out.append(tuple(parts))
+    return out
+
+
+def guard_check():
+    """Engel aciksa geri gelen paketleri kaldirir. Donus: (kaldirilan paket adlari, kayit satirlari)."""
+    if not guard_enabled():
+        return [], []
+    items = find_returned()
+    if not items:
+        return [], []
+    lines = ["geri gelen paket: %s %s" % (k, full) for k, _, full in items]
+    # Once programlar tam yollariyla engellenir (paket diskteyken): kaldirma basarisiz olsa da calismazlar
+    _, more = refresh()
+    lines += more
+    removed = []
+    env = {"FCUK_ITEMS": ";".join("|".join(i) for i in items)}
+    for line in _ps(_PS_REMOVE, env, timeout=300):
+        parts = line.split("|", 2)
+        if parts[0] == "OK":
+            removed.append(parts[1])
+            lines.append("geri gelen paket kaldirildi: %s" % parts[1])
+        elif parts[0] == "ERR":
+            lines.append("geri gelen paket kaldirilamadi: %s: %s" % (parts[1], parts[2] if len(parts) > 2 else ""))
+    return sorted(set(removed)), lines

@@ -1502,11 +1502,30 @@ def fn_block_once():
         return -1
 
 
+def cc_guard_once():
+    """Kurulumda 'eski Control Center'in geri yuklenmesini engelle' secildiyse geri gelen paketleri kaldirir."""
+    try:
+        import engelle
+        if not engelle.guard_enabled():
+            return False
+        removed, lines = engelle.guard_check()
+        for line in lines:
+            log("CC engeli: " + line)
+        if removed:
+            notice(t("cc.reinstallBlocked", p=", ".join(removed)))
+        return True
+    except Exception:
+        log("CC engeli hatasi: " + traceback.format_exc().replace("\n", " | "))
+        return False
+
+
 def fn_block_loop():
-    """Windows paketi yeni bir surum klasorune geri kurabilir: yol filtresi acilista ve 30 dk'da bir yenilenir."""
+    """Windows paketi yeni bir surum klasorune geri kurabilir: yol filtresi acilista ve 30 dk'da bir yenilenir.
+    Geri yukleme engeli aciksa (kurulum secenegi) aralik 10 dk ve geri gelen paketler kaldirilir."""
     while App.engine is None or App.engine.running:
         fn_block_once()
-        for _ in range(1800):
+        guard = cc_guard_once()
+        for _ in range(600 if guard else 1800):
             if App.engine is not None and not App.engine.running:
                 return
             time.sleep(1)

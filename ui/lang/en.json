@@ -617,6 +617,7 @@
   "upd.noRestart": "The engine didn't respond after the update. Reopen the app.",
   "upd.banner": "New version ready: {v}. Install it from Settings > Updates.",
   "upd.readyNotice": "FCUK Control Center {v} downloaded. Install it from Settings > Updates.",
+  "cc.reinstallBlocked": "Windows reinstalled old Control Center components ({p}); they were removed because you chose to block this during setup. To allow it, run setup again with that option unchecked.",
   "upd.notInstalled": "Automatic install only works in the version installed with setup.exe.",
   "upd.busy": "An update operation is already running.",
   "upd.mode": "Update method",

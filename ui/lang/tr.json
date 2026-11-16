@@ -617,6 +617,7 @@
   "upd.noRestart": "Güncelleme sonrası motor yanıt vermedi. Uygulamayı yeniden aç.",
   "upd.banner": "Yeni sürüm hazır: {v}. Ayarlar > Güncellemeler'den kurabilirsin.",
   "upd.readyNotice": "FCUK Control Center {v} indirildi. Ayarlar > Güncellemeler'den kurabilirsin.",
+  "cc.reinstallBlocked": "Windows eski Control Center bileşenlerini geri kurdu ({p}); kurulumda seçtiğin engel gereği kaldırıldı. Geri yüklemeye izin vermek için kurulumu bu seçenek işaretsiz yeniden çalıştır.",
   "upd.notInstalled": "Otomatik kurulum yalnızca setup.exe ile kurulmuş sürümde çalışır.",
   "upd.busy": "Güncelleme işlemi zaten sürüyor.",
   "upd.mode": "Güncelleme yöntemi",

@@ -19,7 +19,10 @@ param(
     [string]$Payload,
     [string]$Version = '',
     [switch]$NoLaunch,
-    [switch]$RestorePoint   # sistem geri yükleme noktası (isteğe bağlı; kurulum penceresindeki kutu)
+    [switch]$RestorePoint,  # sistem geri yükleme noktası (isteğe bağlı; kurulum penceresindeki kutu)
+    # Eski Control Center'ın geri yüklenmesini engelle (yalnızca Clevo; kurulum penceresindeki kutu).
+    # Keep: önceki seçimi korur (uygulama içi güncelleme ve sessiz kurulum bunu kullanır).
+    [ValidateSet('On', 'Off', 'Keep')][string]$CCGuard = 'Keep'
 )
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -404,6 +407,62 @@ function Remove-OldCC($inv, [bool]$clevo) {
     if (-not ($inv.OldDir -or $inv.IsInfo -or $inv.Uninstall.Count)) { Info 'Eski Control Center kurulum dosyası yok' }
 }
 
+# ---------------------------------------------------------------------------- geri yükleme engeli
+# Eski CC'yi geri getirebilen tek otomatik yol: AcpiBridge1.inf "AddSoftware" -> pfn://CLEVOCO.FnhotkeysandOSD_...
+# (Store'dan donanım destek uygulaması; sürücü yeniden kurulunca ya da Windows Update güncelleyince). Defender
+# yazılım kurmaz; Store yalnızca kurulu paketleri günceller. Katmanlar, yalnızca FCUK'un yerini tuttuğu paketler için:
+#   D: Appx Deprovisioned kaydı (Windows'un "yeniden sağlama" engeli; özellik güncellemesi / yeni kullanıcı)
+#   I: DeviceSetup\InstalledPfns = 1 (Windows'un "bu donanım uygulaması işlendi" işareti)
+#   ve yönetici motorun bekçisi (engelle.py guard_check): paket yine gelirse tam yoluyla engeller ve kaldırır.
+# Geri alınabilir: yalnızca BİZİM oluşturduğumuz kayıtlar CCKorumaKayit'ta tutulur ve 'Off' / kaldırma onları siler.
+$GuardKey   = 'HKLM:\SOFTWARE\FCUK Control Center'
+$Deprov     = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned'
+$Pfns       = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\DeviceSetup\InstalledPfns'
+$ClevoPubId = '6h6z29zh29qx0'   # CLEVOCO paketlerinin yayıncı kimliği (AcpiBridge1.inf SoftwareID'de görülür)
+
+function Get-GuardState {
+    $p = Get-ItemProperty $GuardKey -ErrorAction SilentlyContinue
+    return [pscustomobject]@{ On = ($p -and [int]$p.CCKoruma -eq 1); Made = @($(if ($p) { $p.CCKorumaKayit }) | Where-Object { $_ }) }
+}
+function Set-CCGuard([bool]$on, [string[]]$families = @()) {
+    $state = Get-GuardState
+    $made = [System.Collections.Generic.List[string]]::new()
+    foreach ($m in $state.Made) { $made.Add($m) }
+    if ($on) {
+        $fams = @($families + @($Replaced.Keys | ForEach-Object { "${_}_$ClevoPubId" }) | Select-Object -Unique)
+        foreach ($f in $fams) {
+            $d = Join-Path $Deprov $f
+            if (-not (Test-Path $d)) { New-Item -Path $d -Force | Out-Null; $made.Add("D|$f") }
+        }
+        # InstalledPfns: yalnızca sürücüsü bu paketi isteyen (AddSoftware) Fn paketi için
+        $fn = @($fams | Where-Object { $_ -like 'CLEVOCO.FnhotkeysandOSD_*' })
+        if (-not (Test-Path $Pfns)) { New-Item -Path $Pfns -Force | Out-Null }
+        foreach ($f in $fn) {
+            if ($null -eq (Get-ItemProperty $Pfns -Name $f -ErrorAction SilentlyContinue)) {
+                New-ItemProperty -Path $Pfns -Name $f -Value 1 -PropertyType DWord -Force | Out-Null; $made.Add("I|$f")
+            }
+        }
+        New-Item -Path $GuardKey -Force | Out-Null
+        New-ItemProperty -Path $GuardKey -Name CCKoruma -Value 1 -PropertyType DWord -Force | Out-Null
+        New-ItemProperty -Path $GuardKey -Name CCKorumaKayit -Value ([string[]]@($made | Select-Object -Unique)) -PropertyType MultiString -Force | Out-Null
+        Ok 'Açık: Windows Update / Store eski Control Center bileşenlerini geri kursa da motor onları açılışta ve 10 dakikada bir kaldırır'
+        Info ('Kapsam: ' + (($Replaced.Keys | ForEach-Object { $_ -replace '^CLEVOCO\.', '' }) -join ', ') + '. Hız aşırtma, Flexikey ve pil yardımcı programına dokunulmaz')
+        Info 'Geri almak için kurulumu bu seçenek işaretsiz yeniden çalıştırın (ya da FCUK Control Center''ı kaldırın)'
+    } else {
+        foreach ($m in $made) {
+            $k, $f = $m -split '\|', 2
+            if ($k -eq 'D') { Remove-Item (Join-Path $Deprov $f) -Force -ErrorAction SilentlyContinue }
+            elseif ($k -eq 'I') { Remove-ItemProperty -Path $Pfns -Name $f -ErrorAction SilentlyContinue }
+        }
+        if (Test-Path $GuardKey) {
+            New-ItemProperty -Path $GuardKey -Name CCKoruma -Value 0 -PropertyType DWord -Force | Out-Null
+            Remove-ItemProperty -Path $GuardKey -Name CCKorumaKayit -ErrorAction SilentlyContinue
+        }
+        if ($state.On -or $made.Count) { Ok "Kapatıldı: FCUK'un eklediği $($made.Count) engel kaydı silindi; Windows eski Control Center bileşenlerini yeniden kurabilir" }
+        else { Info 'Kapalı: Windows eski Control Center bileşenlerini yeniden kurabilir' }
+    }
+}
+
 function Restore-Drivers($before) {
     Step 'AcpiBridge sürücüleri ve donanım hizmeti doğrulanıyor'
     if (-not $before.Count) { Info 'AcpiBridge aygıtı yok (Clevo/Monster değil): atlandı'; return }
@@ -483,6 +542,8 @@ if ($Mode -eq 'Uninstall') {
             if (-not (Get-Item $k).Property) { Remove-Item $k -Force -ErrorAction SilentlyContinue }
         }
     }
+    try { Set-CCGuard $false } catch {}
+    Remove-Item $GuardKey -Recurse -Force -ErrorAction SilentlyContinue
     Ok 'Üretici Fn programları yeniden çalışabilir (üretici Control Center yeniden kurulabilir)'
     Remove-Shortcuts
     if (Test-Path $Veri) { [void](Copy-Tree $Veri (Join-Path $Data 'ayarlar')) }
@@ -617,6 +678,22 @@ try {
     New-ItemProperty -Path $UninstKey -Name EstimatedSize -Value $size -PropertyType DWord -Force | Out-Null
     New-ItemProperty -Path $UninstKey -Name FCUKCihaz -Value $cihaz -PropertyType String -Force | Out-Null  # tanı için: hangi cihaz yoluyla kuruldu
     Ok 'Ayarlar > Uygulamalar listesine eklendi'
+
+    if ($clevo) {
+        # Motor başlamadan önce: bekçi seçimi açılışta okur
+        Step 'Eski Control Center geri yükleme engeli'
+        $fams = @(if ($inv) { $inv.AppxReplaced | ForEach-Object PackageFamilyName })
+        try {
+            switch ($CCGuard) {
+                'On'  { Set-CCGuard $true $fams }
+                'Off' { Set-CCGuard $false }
+                default {
+                    if ((Get-GuardState).On) { Set-CCGuard $true $fams }  # önceki seçim korunur, kayıtlar tazelenir
+                    else { Info 'Kapalı (önceki seçim korundu): Windows eski Control Center bileşenlerini yeniden kurabilir' }
+                }
+            }
+        } catch { Warn "Geri yükleme engeli ayarlanamadı: $($_.Exception.Message)" }
+    }
 
     if ($NoLaunch) { Info 'Başlatma atlandı (-NoLaunch)' }
     else {

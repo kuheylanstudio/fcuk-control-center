@@ -617,6 +617,7 @@
   "upd.noRestart": "更新后引擎没有响应。请重新打开应用。",
   "upd.banner": "新版本已就绪：{v}。可在 设置 > 更新 中安装。",
   "upd.readyNotice": "FCUK Control Center {v} 已下载。可在 设置 > 更新 中安装。",
+  "cc.reinstallBlocked": "Windows 重新安装了旧版 Control Center 组件（{p}）；由于你在安装时选择了阻止，它们已被移除。如需允许，请取消该选项后重新运行安装程序。",
   "upd.notInstalled": "自动安装仅适用于通过 setup.exe 安装的版本。",
   "upd.busy": "更新操作已在进行中。",
   "upd.mode": "更新方式",
