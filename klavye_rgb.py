@@ -318,17 +318,27 @@ GAME_EVENTS = {
     "defused": ((0, 120, 255), 1.5, "double"),  # CS2: bomba imha edildi
     "exploded": ((255, 120, 0), 2.0, "pop"),    # CS2: bomba patladi
 }
-HEALTH_GREEN = 0.5   # bu oranin ustunde tam yesil
 HEALTH_BEAT = 0.35   # bu oran ve altinda kalp atisi
+# Can orani -> renk duraklari (yuksekten dusuge). Klavye LED'lerinde yesil kanal kirmizidan cok daha
+# parlak gorundugu icin sari/turuncu duraklarda yesil bilerek dusuk tutulur; aksi halde turuncu sari,
+# koyu kirmizi turuncu gibi gorunur. %30 ve alti dumduz kirmizi.
+HEALTH_STOPS = (
+    (0.90, (0.0, 255.0, 0.0)),     # tam yesil
+    (0.75, (110.0, 255.0, 0.0)),   # yesil-sari
+    (0.60, (255.0, 170.0, 0.0)),   # sari
+    (0.45, (255.0, 60.0, 0.0)),    # turuncu
+    (0.30, (255.0, 0.0, 0.0)),     # kirmizi
+)
 
 
 def health_color(h):
-    """Can orani -> renk: %50 ve ustu yesil, %50'den %1'e dogru sariya ve kirmiziya kayar."""
-    if h >= HEALTH_GREEN:
-        return (0.0, 255.0, 0.0)
-    t = clamp((HEALTH_GREEN - h) / (HEALTH_GREEN - 0.01))
-    r, g, b = colorsys.hsv_to_rgb((1.0 - t) / 3.0, 1.0, 1.0)  # ton 120 derece -> 0 derece
-    return (r * 255, g * 255, b * 255)
+    """Can orani -> renk: %90 ve ustu yesil, azaldikca hemen sariya/turuncuya, %30 ve altinda kirmizi."""
+    if h >= HEALTH_STOPS[0][0]:
+        return HEALTH_STOPS[0][1]
+    for (hi, c_hi), (lo, c_lo) in zip(HEALTH_STOPS, HEALTH_STOPS[1:]):
+        if h >= lo:
+            return mix(c_lo, c_hi, (h - lo) / (hi - lo))
+    return HEALTH_STOPS[-1][1]
 
 
 def heartbeat(x):
