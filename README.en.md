@@ -14,9 +14,9 @@
 
 **English** · [Türkçe](README.md)
 
-<a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.0.3/FCUK-Control-Center-Setup-3.0.3.exe"><img alt="Download FCUK-Control-Center-Setup-3.0.3.exe" src="https://img.shields.io/badge/Download-FCUK--Control--Center--Setup--3.0.3.exe-2ea44f?style=for-the-badge&logo=windows&logoColor=white"></a>
+<a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.0.4/FCUK-Control-Center-Setup-3.0.4.exe"><img alt="Download FCUK-Control-Center-Setup-3.0.4.exe" src="https://img.shields.io/badge/Download-FCUK--Control--Center--Setup--3.0.4.exe-2ea44f?style=for-the-badge&logo=windows&logoColor=white"></a>
 <br>
-<a href="https://www.virustotal.com/gui/file/23d85e7bb5390a8a9a2f374b74787464a87d77acb52849303583c0c1611c4bb9"><img alt="VirusTotal scan result" src="https://img.shields.io/badge/VirusTotal-scan%20result-394EFF?logo=virustotal&logoColor=white"></a>
+<a href="https://www.virustotal.com/gui/file/db85267b4bedd28b343f8f796678683fc7193b96af08446966940d329b3cf5e9"><img alt="VirusTotal scan result" src="https://img.shields.io/badge/VirusTotal-scan%20result-394EFF?logo=virustotal&logoColor=white"></a>
 <br>
 <sub>Windows 10/11 (64-bit) · <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/latest">all releases and SHA-256</a> · <a href="#security-and-verification">security and verification</a></sub>
 
@@ -117,7 +117,7 @@ Checks GitHub releases, verifies SHA-256 and installs. Automatic or manual.
 
 ## Quick start
 
-1. **[Download the installer](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.0.3/FCUK-Control-Center-Setup-3.0.3.exe)** and double-click it.
+1. **[Download the installer](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.0.4/FCUK-Control-Center-Setup-3.0.4.exe)** and double-click it.
 2. Approve the administrator prompt; setup detects your device and applies only the steps for it.
 3. The app opens. Pick a **performance profile**.
 
@@ -178,19 +178,19 @@ a kernel driver. The app installs no kernel driver.
 
 ### setup.exe (recommended)
 
-1. Download **[FCUK-Control-Center-Setup-3.0.3.exe](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.0.3/FCUK-Control-Center-Setup-3.0.3.exe)**.
+1. Download **[FCUK-Control-Center-Setup-3.0.4.exe](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.0.4/FCUK-Control-Center-Setup-3.0.4.exe)**.
 2. Double-click it and approve the administrator prompt. The installer window shows every step; the app opens when it finishes.
 3. If Windows says "Windows protected your PC" (SmartScreen): **More info → Run anyway**. Details:
    [Security and verification](#security-and-verification).
 
 ### Security and verification
 
-- **VirusTotal:** [scan report for the 3.0.3 installer](https://www.virustotal.com/gui/file/23d85e7bb5390a8a9a2f374b74787464a87d77acb52849303583c0c1611c4bb9)
+- **VirusTotal:** [scan report for the 3.0.4 installer](https://www.virustotal.com/gui/file/db85267b4bedd28b343f8f796678683fc7193b96af08446966940d329b3cf5e9)
   (the badge above links to the same report). New releases are uploaded to VirusTotal via GitHub Actions; the report
   link is appended to the release notes. Programs packaged with PyInstaller are sometimes falsely flagged by a few
   antivirus engines (under generic names such as "Trojan/Wacatac"); the full source code is in this repository.
 - **SHA-256:** verify that the file you downloaded matches the hash on the [release page](https://github.com/kuheylanstudio/fcuk-control-center/releases/latest):
-  `Get-FileHash FCUK-Control-Center-Setup-3.0.3.exe`
+  `Get-FileHash FCUK-Control-Center-Setup-3.0.4.exe`
 - **Code signing:** the installer is currently not code-signed; that is why SmartScreen warns. The build script is
   ready for signing (see [Code signing](#code-signing)); once a signed release is published, the updater installs only
   installers carrying the same publisher's signature.
@@ -255,7 +255,7 @@ powershell -ExecutionPolicy Bypass -File setup_olustur.ps1   # output: dist\setu
 
 A setup.exe built this way contains the manufacturer's DLL; use it on your own computer and do not distribute it
 publicly. For a distributable (DLL-free) package: `setup_olustur.ps1 -Dagitim` (output:
-`dist\FCUK-Control-Center-Setup-3.0.3.exe`). This is the file behind the download button.
+`dist\FCUK-Control-Center-Setup-3.0.4.exe`). This is the file behind the download button.
 
 #### Code signing
 
