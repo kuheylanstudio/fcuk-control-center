@@ -1,4 +1,40 @@
-# FCUK Control Center
+<div align="center">
+
+<img src="docs/banner.svg" alt="FCUK Control Center" width="100%">
+
+<br>
+
+[![Sürüm](https://img.shields.io/github/v/release/kuheylanstudio/fcuk-control-center?style=for-the-badge&color=7c5cff&label=s%C3%BCr%C3%BCm)](https://github.com/kuheylanstudio/fcuk-control-center/releases/latest)
+[![İndirmeler](https://img.shields.io/github/downloads/kuheylanstudio/fcuk-control-center/total?style=for-the-badge&color=00a6d6&label=indirme)](https://github.com/kuheylanstudio/fcuk-control-center/releases)
+[![Testler](https://img.shields.io/github/actions/workflow/status/kuheylanstudio/fcuk-control-center/testler.yml?style=for-the-badge&label=testler)](https://github.com/kuheylanstudio/fcuk-control-center/actions/workflows/testler.yml)
+[![Lisans: MIT](https://img.shields.io/badge/lisans-MIT-2ea44f?style=for-the-badge)](LICENSE)
+![Windows 10/11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=for-the-badge&logo=windows&logoColor=white)
+
+### Üreticinin Control Center'ını bırakın.<br>Fanı, güç modunu, klavye ışığını ve performansı tek hafif uygulamadan yönetin.
+
+[English](README.en.md) · **Türkçe**
+
+<a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.0.3/FCUK-Control-Center-Setup-3.0.3.exe"><img alt="İndir: FCUK-Control-Center-Setup-3.0.3.exe" src="https://img.shields.io/badge/%C4%B0ndir-FCUK--Control--Center--Setup--3.0.3.exe-2ea44f?style=for-the-badge&logo=windows&logoColor=white"></a>
+<br>
+<a href="https://www.virustotal.com/gui/file/23d85e7bb5390a8a9a2f374b74787464a87d77acb52849303583c0c1611c4bb9"><img alt="VirusTotal tarama sonucu" src="https://img.shields.io/badge/VirusTotal-tarama%20sonucu-394EFF?logo=virustotal&logoColor=white"></a>
+<br>
+<sub>Windows 10/11 (64 bit) · <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/latest">tüm sürümler ve SHA-256</a> · <a href="#güvenlik-ve-doğrulama">güvenlik ve doğrulama</a></sub>
+
+<br>
+
+[Özellikler](#öne-çıkanlar) · [Ekran görüntüleri](#ekran-görüntüleri) · [Desteklenen cihazlar](#desteklenen-cihazlar) · [Kurulum](#kurulum) · [SSS](#sık-sorulanlar) · [Sorumluluk reddi](#sorumluluk-reddi)
+
+<br>
+
+<img src="docs/screenshots/canli.png" alt="FCUK Control Center: canlı izleme ekranı" width="92%">
+
+</div>
+
+<br>
+
+> ⚠️ **Uyarı:** Bu yazılım donanım ayarlarını (fan, güç modu, işlemci/ekran kartı sınırları, gömülü denetleyici) değiştirir
+> ve "olduğu gibi", garantisiz sunulur. Kullanımdan doğabilecek hiçbir zarardan geliştirici sorumlu değildir; tüm risk
+> size aittir. Ayrıntı: [Sorumluluk reddi](#sorumluluk-reddi) · *Use at your own risk, see [Disclaimer](#disclaimer-english).*
 
 Windows dizüstü ve masaüstü bilgisayarlar için açık kaynak, hafif, tam donanımlı kontrol paneli.
 Monster / Clevo tabanlı dizüstülerde üreticinin Control Center'ının yerini tamamen alır. **Alienware / Dell G** ve
@@ -8,15 +44,91 @@ bilgisayarlarda da donanım tespiti, canlı izleme, NVIDIA ve işlemci ayarları
 > Bu projenin kaynak kodu Anthropic'in **Claude Opus 5.5** yapay zeka modeliyle yazılmıştır.
 > *The source code of this project was written with Anthropic's Claude Opus 5.5 AI model.*
 
-<p align="center">
-  <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.0.3/FCUK-Control-Center-Setup-3.0.3.exe"><img alt="İndir: FCUK-Control-Center-Setup-3.0.3.exe" src="https://img.shields.io/badge/%C4%B0ndir-FCUK--Control--Center--Setup--3.0.3.exe-2ea44f?style=for-the-badge&logo=windows&logoColor=white"></a>
-  <br>
-  <a href="https://www.virustotal.com/gui/file/23d85e7bb5390a8a9a2f374b74787464a87d77acb52849303583c0c1611c4bb9"><img alt="VirusTotal tarama sonucu" src="https://img.shields.io/badge/VirusTotal-tarama%20sonucu-394EFF?logo=virustotal&logoColor=white"></a>
-  <br>
-  <sub>Windows 10/11 (64 bit) · <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/latest">tüm sürümler ve SHA-256</a> · <a href="#güvenlik-ve-doğrulama">güvenlik ve doğrulama</a></sub>
-</p>
+## Öne çıkanlar
 
-## Özellikler
+<table>
+<tr>
+<td width="33%" valign="top">
+
+### ⚡ 5 performans profili
+Tam Sessiz'den Ultra Performans'a. Her profil güç modunu, fan eğrisini, işlemci / ekran kartı sınırlarını ve ekran yenileme hızını **tek tıkla** birlikte ayarlar.
+
+</td>
+<td width="33%" valign="top">
+
+### 🌀 Özel fan eğrisi
+Eğriyi gömülü denetleyici çalıştırır; uygulama kapalıyken de geçerli kalır. Aşırı ısınmada fanlar otomatik fabrika tablosuna döner.
+
+</td>
+<td width="33%" valign="top">
+
+### 🎹 Klavye RGB + oyun tepkisi
+9 ışık modu. League of Legends'ta can rengi, Counter-Strike 2'de ateş ve kill tepkisi. Oyun belleğine dokunulmaz.
+
+</td>
+</tr>
+<tr>
+<td width="33%" valign="top">
+
+### 📊 Canlı izleme ve geçmiş
+İşlemci, ekran kartı, disk, bellek, ağ ve pil. Son 1 saatin grafikleri, kısılma bölgeleri ve CSV dışa aktarma.
+
+</td>
+<td width="33%" valign="top">
+
+### 🎮 Oyun içi gösterge
+FPS, kare süresi, sıcaklık, güç ve daha fazlası. Tıklamayı geçiren küçük panel; **Ctrl+Alt+O** ile aç/kapat.
+
+</td>
+<td width="33%" valign="top">
+
+### 🔄 Kendini günceller
+GitHub'dan yeni sürümü denetler, SHA-256 ile doğrular ve kurar. Otomatik ya da elle seçilebilir.
+
+</td>
+</tr>
+</table>
+
+<div align="center">
+
+**Hafif** · çekirdek sürücüsü kurmaz · **Açık kaynak** (MIT) · **14 dil** · telemetri yok, hiçbir yere veri göndermez
+
+</div>
+
+## Ekran görüntüleri
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/profiller.png" alt="Performans profilleri"><br><sub><b>Performans profilleri</b>: tek tıkla beş hazır profil</sub></td>
+<td width="50%"><img src="docs/screenshots/fan.png" alt="Fan eğrisi"><br><sub><b>Fan eğrisi</b>: eğri, canlı nokta ve fan denetimi</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/klavye.png" alt="Klavye RGB"><br><sub><b>Klavye RGB</b>: canlı önizleme, 9 mod, kayıtlı modlar</sub></td>
+<td width="50%"><img src="docs/screenshots/oyun-ici-gosterge.png" alt="Oyun içi gösterge"><br><sub><b>Oyun içi gösterge</b>: değerleri tek tek seç, canlı önizle</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/gecmis.png" alt="Geçmiş grafikleri"><br><sub><b>Geçmiş</b>: sıcaklık, güç, fan ve kısılma bölgeleri</sub></td>
+<td width="50%"><img src="docs/screenshots/donanim.png" alt="Donanım bilgisi"><br><sub><b>Donanım</b>: işlemci, ekran kartı, bellek, disk sağlığı, pil</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/islemci.png" alt="İşlemci ayarları"><br><sub><b>İşlemci</b>: yalnızca modelinizde etkili olan ayarlar</sub></td>
+<td width="50%" valign="middle" align="center"><sub>Ekran görüntüleri Monster Abra A5 (Core i5-12450H, RTX 3050) üzerinde, sürüm 3.0.3'ten alınmıştır.</sub></td>
+</tr>
+</table>
+
+## Hızlı başlangıç
+
+1. **[Kurulum dosyasını indirin](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.0.3/FCUK-Control-Center-Setup-3.0.3.exe)** ve çift tıklayın.
+2. Yönetici iznini onaylayın; kurulum cihazınızı tanır ve yalnızca ona ait adımları uygular.
+3. Uygulama açılır. Bir **performans profili** seçin, hepsi bu.
+
+> Windows "Bilgisayarınız korundu" (SmartScreen) derse: **Ek bilgi → Yine de çalıştır**. Neden olduğu ve nasıl doğrulanacağı: [Güvenlik ve doğrulama](#güvenlik-ve-doğrulama).
+
+## Tüm özellikler
+
+<details>
+<summary><b>Özellik tablosunu aç</b> (donanım, NVIDIA, işlemci, fan, klavye, geçmiş, tanılama ve daha fazlası)</summary>
+
 
 | Bölüm | Ne yapar | Gereken |
 |---|---|---|
@@ -44,7 +156,9 @@ bilgisayarlarda da donanım tespiti, canlı izleme, NVIDIA ve işlemci ayarları
 | **Güncellemeler** | GitHub'dan yeni sürümü denetler, indirir, SHA-256 ile doğrular ve kurar. Otomatik ya da elle seçilebilir; kurmadan önce yenilikler gösterilir | Her bilgisayar (setup.exe ile kurulmuş) |
 | **Dil** | 14 dil, Windows bölge ayarına göre otomatik | |
 
-### Desteklenen cihazlar
+</details>
+
+## Desteklenen cihazlar
 
 | Cihaz | Durum |
 |---|---|
@@ -109,6 +223,14 @@ Control Center'ının yerine geçer:
 - **Korunanlar:** AcpiBridge sürücüleri ve CCDCHUService hizmeti. Kurulum önce bir geri yükleme noktası oluşturur
   ve sürücüleri dışa aktarır. Sonunda sürücülerin yerinde olduğunu doğrular; eksik çıkarsa yedekten geri kurar.
 - Karşılığı bu uygulamada olmayan paketlere dokunulmaz: CPU/GPU hız aşırtma, Flexikey ve pil yardımcı programı.
+- **Geri yükleme engeli (isteğe bağlı, kurulum penceresindeki kutu).** Eski Fn paketini geri getirebilen tek otomatik
+  yol, AcpiBridge1 sürücüsünün INF'indeki `AddSoftware` satırıdır: sürücü yeniden kurulunca ya da Windows Update
+  güncelleyince Windows paketi Store'dan geri kurabilir. (Defender yazılım kurmaz; Store yalnızca kurulu paketleri
+  günceller.) Kutu işaretliyse Windows'un kendi "yeniden sağlama" ve "donanım uygulaması işlendi" kayıtları yazılır ve
+  yönetici motor açılışta ve 10 dakikada bir bakar: yerini tuttuğumuz paketlerden biri yine gelirse önce tam yoluyla
+  engeller, sonra kaldırır ve bildirir. Geri alınabilir: kurulumu kutu işaretsiz çalıştırmak ya da FCUK'u kaldırmak
+  yalnızca FCUK'un eklediği kayıtları siler. Sessiz kurulumda `/ccengel` açar, `/ccengelyok` kapatır; ikisi de
+  verilmezse (uygulama içi güncellemeler dahil) önceki seçim korunur.
 - Kurulumun sonunda motorun yönetici modunda çalıştığı, gömülü denetleyiciye bağlandığı, fan okumasının geldiği ve
   tepsi / Fn dinleyicisinin açık olduğu denetlenir.
 - Yedekler `C:\ProgramData\FCUK Control Center\yedek\<tarih>` altına, kayıt dosyası `kurulum.log` olarak aynı
@@ -227,6 +349,9 @@ Pencere ve tepsi simgesi her zaman normal kullanıcı yetkisiyle çalışır.
 
 ## Mimari
 
+<details>
+<summary><b>Dosya yapısını ve testleri göster</b></summary>
+
 ```
 control_center.py  giriş noktası, yerel HTTP sunucusu (yalnızca 127.0.0.1:47815), görevler
 donanim.py         gömülü denetleyici (DCHU), cihaz tespiti, PDH sayaçları, NVML, ekran, ses, sensör döngüsü
@@ -276,7 +401,12 @@ python tools/ceviri_denetle.py              # dil dosyaları: eksik / fazla anah
 Yeni bir arayüz metni eklerken önce `ui/lang/tr.json` ve `en.json`'a, sonra diğer dillere ekleyin; denetim eksik
 dili gösterir.
 
+</details>
+
 ## MSI dizüstüler (deneysel, gerçek donanımda doğrulanmadı)
+
+<details>
+<summary><b>MSI güvenlik kurallarını göster</b></summary>
 
 Üretici `Micro-Star International` ise `msi.py` devreye girer. Gömülü denetleyiciye ek sürücü kurmadan MSI'ın
 kendi `MSI_ACPI` WMI sınıfıyla ulaşılır (Get_EC, Get_Data/Set_Data, Get_Fan; Set_EC hiç kullanılmaz). Adres ve
@@ -288,6 +418,94 @@ değerler Linux msi-ec sürücüsünün firmware tablolarından alındı (yalnı
 - Profillerin fan eğrisi MSI'da özel eğri yerine en yakın fan moduna (Silent / Auto) çevrilir.
 
 Testler (sahte WMI/HID ile): `python -m unittest discover -s tests`
+
+</details>
+
+## Sık sorulanlar
+
+<details>
+<summary><b>Çekirdek sürücüsü ya da arka planda ağır bir hizmet kuruyor mu?</b></summary>
+
+Hayır. Uygulama hiçbir çekirdek sürücüsü kurmaz. Bu yüzden PL1/PL2 güç sınırı ve voltaj düşürme gibi işlemci yazmacı (MSR) gerektiren ayarlar bilerek yoktur.
+
+</details>
+
+<details>
+<summary><b>Üreticinin uygulamasını silmem gerekir mi?</b></summary>
+
+Yalnızca Monster / Clevo dizüstülerde setup.exe eski Control Center bileşenlerini yedekleyip kaldırır; sürücülere (AcpiBridge) dokunmaz. Alienware, Asus, Lenovo, MSI, HP, Acer ve Gigabyte'ta üretici uygulamaları kaldırılmaz, birlikte çalışır.
+
+</details>
+
+<details>
+<summary><b>Windows neden "Bilgisayarınız korundu" uyarısı veriyor?</b></summary>
+
+Kurulum programı şu an kod imzalı değildir. **Ek bilgi → Yine de çalıştır** ile devam edebilir, dosyayı [VirusTotal raporu](https://www.virustotal.com/gui/file/23d85e7bb5390a8a9a2f374b74787464a87d77acb52849303583c0c1611c4bb9) ve SHA-256 özetiyle doğrulayabilirsiniz. Ayrıntı: [Güvenlik ve doğrulama](#güvenlik-ve-doğrulama).
+
+</details>
+
+<details>
+<summary><b>Verilerim bir yere gönderiliyor mu?</b></summary>
+
+Hayır. Tanılama raporu tek tıkla yalnızca sizin için oluşturulur, kullanıcı ve bilgisayar adı çıkarılır ve hiçbir yere gönderilmez. Uygulama yalnızca güncelleme denetimi için GitHub'a bağlanır. Yerel sunucu yalnızca `127.0.0.1` üzerinde dinler.
+
+</details>
+
+<details>
+<summary><b>Cihazım listede yok, çalışır mı?</b></summary>
+
+Donanım tespiti, canlı izleme, NVIDIA, işlemci, ses ve ekran her bilgisayarda çalışır. Fan ve klavye sayfaları desteklenmeyen cihazda "Bu bilgisayarda kullanılamaz" der ve hiçbir komut gönderilmez.
+
+</details>
+
+<details>
+<summary><b>Nasıl kaldırırım?</b></summary>
+
+Ayarlar → Uygulamalar → FCUK Control Center → Kaldır.
+
+</details>
+
+<details>
+<summary><b>Sorun buldum, nereye bildirebilirim?</b></summary>
+
+[GitHub Issues](https://github.com/kuheylanstudio/fcuk-control-center/issues) üzerinden. Uygulamadaki **Tanılama** raporunu eklemek çözümü hızlandırır. Destek gönüllülük esasıyla verilir.
+
+</details>
+
+## Sorumluluk reddi
+
+**Bu yazılımı kullanmadan önce lütfen okuyun. Uygulamayı indirerek, kurarak veya çalıştırarak aşağıdaki koşulları kabul etmiş olursunuz.**
+
+1. **"Olduğu gibi" sunulur.** Yazılım, açık veya zımni hiçbir garanti verilmeden "olduğu gibi" ve "mevcut haliyle"
+   sunulur. Belirli bir cihazla uyumlu, kesintisiz, hatasız veya belirli bir amaca uygun olduğu taahhüt edilmez.
+2. **Donanımı doğrudan etkiler.** Uygulama gömülü denetleyiciye (EC), BIOS/ACPI/WMI arayüzlerine, fanlara, güç modlarına,
+   işlemci ve ekran kartı sınırlarına, NVIDIA sürücü profiline, klavye aydınlatmasına, pil şarj sınırına, Windows
+   kayıt defterine, Görev Zamanlayıcı'ya ve sistem hizmetlerine müdahale edebilir. Yanlış, uyumsuz veya beklenmedik bir
+   ayar; aşırı ısınmaya, performans kaybına, kararsızlığa, sistem çökmesine, veri kaybına, pil veya donanım ömrünün
+   kısalmasına, hatta donanım arızasına yol açabilir.
+3. **Risk size aittir.** Yazılımın kullanımından veya kullanılamamasından doğabilecek her türlü doğrudan, dolaylı,
+   arızi, özel veya sonuçsal zarardan (donanım hasarı, veri kaybı, kâr kaybı, iş kesintisi, cihaz garantisinin
+   geçersiz kalması dahil) **geliştirici ve katkıda bulunanlar sorumlu değildir.** Tüm risk kullanıcıya aittir.
+4. **Garanti kapsamı.** Bilgisayar üreticileri bu tür üçüncü taraf yazılımların kullanımını desteklemeyebilir.
+   Cihaz garantinizin etkilenip etkilenmeyeceğini kontrol etmek sizin sorumluluğunuzdadır.
+5. **Yedek alın.** Kurulum sırasında oluşturulan geri yükleme noktası ve yedekler bir kolaylıktır, kesin bir güvence
+   değildir. Önemli verilerinizi kullanmadan önce yedekleyin.
+6. **Deneysel özellikler.** Alienware, Asus, Lenovo, MSI, HP, Acer ve Gigabyte desteği gerçek cihazlarda yeterince
+   sınanmamış olabilir (bkz. [Desteklenen cihazlar](#desteklenen-cihazlar)); bunlar deneysel kabul edilmelidir.
+7. **Üçüncü taraf yazılımlar ve markalar.** Bu proje NVIDIA, Intel, AMD, Monster, Clevo, Alienware, Dell, Asus, Lenovo,
+   MSI, HP, Acer, Gigabyte, Riot Games, Valve veya Microsoft ile bağlantılı, onlar tarafından onaylanmış ya da
+   desteklenmiş değildir. Tüm ticari markalar kendi sahiplerine aittir. Oyun tepkisi ve oyun içi gösterge
+   özellikleri oyun belleğine dokunmaz; yine de üçüncü taraf oyunların kendi kullanım koşullarına uyum sizin
+   sorumluluğunuzdadır. Bu yazılımın kullanımından doğabilecek hesap yaptırımlarından geliştirici sorumlu değildir.
+8. **Yasal uyum.** Yazılımı yürürlükteki yasa ve düzenlemelere uygun biçimde kullanmak sizin sorumluluğunuzdadır.
+9. **Destek taahhüdü yoktur.** Hata düzeltme, güncelleme veya kullanıcı desteği garanti edilmez. Sorun bildirimleri
+   gönüllülük esasıyla ele alınır.
+10. **Yapay zekâ ile yazılmıştır.** Kaynak kodun büyük bölümü yapay zekâ modeliyle üretilmiştir ve her satırı bağımsız
+    olarak denetlenmemiş olabilir. Kodu kendi sorumluluğunuzda inceleyin ve kullanın.
+
+Bu yazılımı kabul etmiyorsanız lütfen kurmayın veya kullanmayın. Yürürlükteki yasaların sorumluluğun sınırlandırılmasına
+izin vermediği durumlarda, geliştiricinin sorumluluğu yasaların izin verdiği en dar ölçüyle sınırlıdır. Bu metin
+hukuki danışmanlık değildir; [MIT lisansının](LICENSE) garanti reddi ve sorumluluk sınırlaması hükümleri ayrıca geçerlidir.
 
 ## Lisans
 
@@ -306,3 +524,20 @@ fans and keyboard lighting on Alienware / Dell G and Asus ROG / TUF laptops (plu
 on Asus) alongside the vendor app, reacts to League of Legends and Counter-Strike 2 game events with keyboard
 lighting, and updates itself from GitHub releases (automatic or manual, SHA-256 verified). Written with Claude
 Opus 5.5. MIT licensed.
+
+### Disclaimer (English)
+
+This software is provided **"AS IS"**, without warranty of any kind, express or implied, including but not limited
+to merchantability, fitness for a particular purpose and non-infringement. It interacts directly with hardware
+and system components (embedded controller, BIOS/ACPI/WMI interfaces, fans, power limits, GPU/CPU settings, drivers
+profiles, registry, scheduled tasks). Incorrect or unexpected settings may cause overheating, instability, crashes,
+data loss, reduced battery or hardware lifespan, hardware failure, or a voided device warranty.
+
+**You use this software entirely at your own risk.** To the maximum extent permitted by applicable law, the author
+and contributors shall not be liable for any direct, indirect, incidental, special, consequential or other damages
+or claims arising from the use of, or inability to use, this software, including hardware damage, data loss, lost
+profits, game account actions or business interruption. Support for non-Clevo devices may be experimental and not
+verified on real hardware. Back up your data first. This project is not affiliated with, endorsed by or sponsored by
+any hardware or software vendor or game publisher named above; all trademarks belong to their respective owners.
+Much of the code was generated by an AI model and may not have been independently audited. If you do not agree,
+do not install or use this software. This is not legal advice.
