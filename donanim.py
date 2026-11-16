@@ -44,6 +44,7 @@ DLL_CANDIDATES += sorted(glob.glob(os.path.join(os.environ.get("SystemRoot", r"C
 NO_WINDOW = 0x08000000
 
 POWER_MODES = {0: "Sessiz", 1: "Güç tasarrufu", 2: "Performans", 3: "Eğlence"}
+KB_BRIGHT_EVERY = 5.0  # sn: Clevo klavye donanim parlakligi (103, 0xF4) bu arayla yeniden tam acilir
 FAN_AUTO, FAN_MAX, FAN_CUSTOM = 0, 1, 6
 FAN_FIXED = 7  # sabit yuzde (Clevo'da yok; Gigabyte arka ucu)
 
@@ -260,6 +261,7 @@ class DCHU:
         self._flags = None
         self._kb_kind = None
         self._kb_level = None
+        self._kb_bright_at = None  # klavyenin donanim parlakligi (103/0xF4) en son ne zaman tam acildi
         self._support = None
 
     @staticmethod
@@ -388,6 +390,15 @@ class DCHU:
                 self._kb_level = level
                 return self.set_wmi(39, level)
             return 0
+        # Klavyenin kendi (EC) parlakligi ayri bir ayardir: Fn tuslari, uyku ya da baska bir program onu 0'a
+        # indirirse yazilan renk hic gorunmez (16.11.2026: klavye tamamen sondu, motor hatasiz renk yaziyordu).
+        # Parlakligi uygulama rengin kendisiyle yonetir, bu yuzden donanim parlakligi hep tam tutulur. Bir yazma
+        # (~16 ms) KB_BRIGHT_EVERY saniyede bir: dongunun 30 FPS'i icin ihmal edilebilir.
+        now = time.monotonic()
+        last = getattr(self, "_kb_bright_at", None)
+        if last is None or now - last >= KB_BRIGHT_EVERY:
+            self._kb_bright_at = now
+            self.set_data(103, (0xFF, 0, 0, 0xF4))
         rc = self.set_data(103, (g & 255, r & 255, b & 255, 0xF0))  # sol (tek bolgelide tumu)
         if kind == "rgb":  # 3 bolgeli: orta ve sag bolge ayni renge
             self.set_data(103, (g & 255, r & 255, b & 255, 0xF1))

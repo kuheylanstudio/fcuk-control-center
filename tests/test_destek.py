@@ -153,7 +153,18 @@ class Algilama(unittest.TestCase):
     def test_uc_bolgeli_rgb(self):
         d = make(kb=6)
         d.set_color(255, 0, 0)
-        self.assertEqual([w[2][3] for w in d.dll.writes], [0xF0, 0xF1, 0xF2])
+        d.set_color(0, 255, 0)
+        # once donanim parlakligi tam (0xF4), sonra uc bolge; parlaklik her karede degil, araliklarla
+        self.assertEqual([w[2][3] for w in d.dll.writes], [0xF4, 0xF0, 0xF1, 0xF2, 0xF0, 0xF1, 0xF2])
+        self.assertEqual(d.dll.writes[0][2][0], 0xFF)
+
+    def test_klavye_parlakligi_yeniden_acilir(self):
+        # Fn tusu / uyku donanim parlakligini 0'a indirirse renk gorunmez: arayla yeniden tam acilir
+        d = make(kb=6)
+        d.set_color(255, 0, 0)
+        d._kb_bright_at -= hw.KB_BRIGHT_EVERY
+        d.set_color(255, 0, 0)
+        self.assertEqual([w[2][3] for w in d.dll.writes].count(0xF4), 2)
 
     def test_tek_renkli_klavye_parlaklik(self):
         d = make(kb=1)
