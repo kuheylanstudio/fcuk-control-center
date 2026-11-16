@@ -952,6 +952,14 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(save_custom(mgr, body.get("profiles")))
         if path == "/api/fan":
             mode = body.get("mode")
+            if mode == "user":  # fan sayfasindaki kendi egrin: kaydedilir, her profilde ve yeniden baslatmada calisir
+                try:
+                    mgr.set_user_curve(body.get("cpu"), body.get("gpu"))
+                except (ValueError, hw.Unsupported) as exc:
+                    return self._json({"error": str(exc)}, 400)
+                return self._json({"ok": True, "cc": mgr.status()})
+            if mode in ("profile", "auto", "max", "custom", "fixed"):
+                mgr.clear_user_curve()
             if mode == "profile" and mgr.applied:
                 mgr.apply(mgr.applied, "reason.fanProfile")
             elif mode in ("auto", "max"):

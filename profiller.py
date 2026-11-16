@@ -121,6 +121,16 @@ def clean_curve(c):
     return (t2, d2, t3, d3)
 
 
+def clean_user_curve(cpu, gpu=None):
+    """Fan sayfasindaki "Kendi egrim": (islemci, kart) [T2, D2, T3, D3] listeleri. Kart verilmezse islemcininki."""
+    try:
+        c = clean_curve(cpu)
+        g = clean_curve(gpu) if gpu is not None else c
+    except (TypeError, IndexError, KeyError, ValueError):
+        raise ValueError(t("cust.badCurve"))
+    return {"cpu": list(c), "gpu": list(g)}
+
+
 def clean_custom(raw):
     """Arayuzden / diskten gelen ozel profil listesi -> guvenli liste. Hatali kayit atlanir."""
     raw = raw if isinstance(raw, list) else []
@@ -545,8 +555,41 @@ class Manager:
         msg = self.dchu.set_power_mode(p["ec"])
         return msg if isinstance(msg, str) and msg else hw.power_text(self.dchu, p["ec"])
 
+    def fan_spec(self, p):
+        """Profilin fan ayari; kullanici fan sayfasinda "Kendi egrim"i sectiyse (egri destekleniyorsa) onun egrisi.
+        Secim cfg'de kalir: profil degisse de, uygulama yeniden baslasa da kendi egrin calisir."""
+        cfg = getattr(self, "cfg", None) or {}  # testler Manager'i __new__ ile cfg'siz kurabilir
+        u = cfg.get("fan_user")
+        if cfg.get("fan_sel") == "user" and isinstance(u, dict) and hw.caps(self.dchu)["fan_curve"]:
+            try:
+                u = clean_user_curve(u.get("cpu"), u.get("gpu"))
+                return ("curve", tuple(u["cpu"]), tuple(u["gpu"]))
+            except ValueError:
+                pass  # bozuk kayit: profilin egrisi
+        return p["fan"]
+
+    def set_user_curve(self, cpu, gpu=None):
+        """Kendi egrini kaydet ve hemen uygula. Uygulanamazsa kaydedilmez."""
+        if not hw.caps(self.dchu)["fan_curve"]:
+            raise hw.Unsupported(t("fan.userNo"))
+        u = clean_user_curve(cpu, gpu)
+        with self.lock:
+            self.dchu.set_fan_curve(tuple(u["cpu"]), tuple(u["gpu"]))
+            self.cfg["fan_user"] = u
+            self.cfg["fan_sel"] = "user"
+            self.guard = ""
+            self._hot = self._cool = self._blind = 0
+            self.save()
+        return u
+
+    def clear_user_curve(self):
+        """Fan sayfasinda baska bir mod secildi: kendi egrin kayitli kalir ama artik profillere uygulanmaz."""
+        if self.cfg.pop("fan_sel", None):
+            self.save()
+
     def _fan(self, p):
-        kind = p["fan"][0]
+        fan = Manager.fan_spec(self, p)  # testler _fan'i sahte nesneyle de cagirir
+        kind = fan[0]
         if kind == "curve" and not getattr(self.dchu, "fan_curve_ok", True):
             # Egri desteklenmiyor (Acer): fanlar guc modunun fabrika tablosunda; elle hiz da kalkar
             self.dchu.set_fan_mode(hw.FAN_AUTO)
@@ -556,8 +599,10 @@ class Manager:
                 # Ozel egri yok (HP BIOS'u): fanlar uretici tablosunda kalir; NullDCHU'da bu da Unsupported verir
                 self.dchu.set_fan_mode(hw.FAN_AUTO)
                 return t("msg.hpCurveAuto")
-            msg = self.dchu.set_fan_curve(p["fan"][1], p["fan"][2])
-            return msg if isinstance(msg, str) else t("msg.customCurve")  # MSI: en yakin fan moduna cevrilir
+            msg = self.dchu.set_fan_curve(fan[1], fan[2])
+            if isinstance(msg, str):
+                return msg  # MSI: en yakin fan moduna cevrilir
+            return t("msg.userCurve") if fan is not p["fan"] else t("msg.customCurve")  # MSI: en yakin fan moduna cevrilir
         self.dchu.set_fan_mode(hw.FAN_MAX if kind == "max" else hw.FAN_AUTO)
         return t("msg.auto") if kind == "auto" else t("msg.max")
 
@@ -651,7 +696,7 @@ class Manager:
         p = BY_ID.get(self.applied)
         # Ozel egri yoksa (IdeaPad, egrisiz Asus, Acer) fanlar zaten bellenimde: bekcinin geri alacagi bir sey yok
         # (caps: Asus/IdeaPad'de fan_control, digerlerinde arka ucun kendi bayraklari)
-        if not p or p["fan"][0] != "curve" or not hw.caps(self.dchu)["fan_curve"]:
+        if not p or self.fan_spec(p)[0] != "curve" or not hw.caps(self.dchu)["fan_curve"]:
             return
         # Profil uygulanirken (kilit dolu) bekci dokunmaz: apply() sonunda bekci durumunu zaten sifirlar.
         if not self.lock.acquire(blocking=False):
@@ -747,7 +792,8 @@ class Manager:
             if self.guard and cpu < 80 and gpu < 75:
                 self._cool += 1
                 if self._cool >= 30:
-                    self.dchu.set_fan_curve(p["fan"][1], p["fan"][2])
+                    fan = self.fan_spec(p)
+                    self.dchu.set_fan_curve(fan[1], fan[2])
                     self.guard = ""
                     self._cool = 0
 
@@ -779,6 +825,7 @@ class Manager:
             self.applied = ""
             self.guard = ""
             self.cfg["profile"] = ""
+            self.cfg.pop("fan_sel", None)  # kendi egrin kayitli kalir, fabrika durumunda calismaz
             self.save()
             self.report = rep
             return rep

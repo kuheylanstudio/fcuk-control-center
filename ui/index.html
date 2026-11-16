@@ -196,9 +196,21 @@ select:hover{border-color:var(--text-3)}
 .curve .mine{fill:none;stroke:var(--live-ink);stroke-width:2.5}
 .curve .pt{fill:var(--bg);stroke:var(--live-ink);stroke-width:2}
 .curve .dot{fill:var(--text-hi)}
+.curve .act{fill:none;stroke:var(--live-ink);stroke-width:1.5;opacity:.45}
+.curve .area{fill:var(--live-ink);opacity:.08}
+.curve.editable{touch-action:none}
+.curve.editable .pt{cursor:grab}
+.curve.editable .pt:hover,.curve .pt.drag{fill:var(--live-ink)}
+.curve.dragging,.curve.dragging .pt{cursor:grabbing}
+.curve .ptl{fill:var(--text-2);font:600 10px var(--f-display)}
+.curve-ed{display:grid;gap:var(--s-3);margin-top:var(--s-3);padding-top:var(--s-3);border-top:1px solid var(--line)}
+.curve-ed-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--s-3)}
+.curve-ed-top .seg{margin-top:0;min-width:220px}
+.curve-ed .hint.dirty{color:var(--live-ink)}
 .legend{display:flex;gap:var(--s-4);font-size:var(--fs-2);color:var(--text-3)}
 .legend i{display:inline-block;width:18px;height:0;margin-right:6px;vertical-align:middle;border-top:2px dashed var(--line-strong)}
 .legend i.m{border-top:2.5px solid var(--live-ink)}
+.legend i.a{border-top:1.5px solid var(--live-ink);opacity:.45}
 .legend i.d{width:8px;height:8px;border:0;border-radius:50%;background:var(--text-hi)}
 
 /* Klavye sahnesi */
@@ -690,8 +702,30 @@ input[type=number]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
         </header>
         <div class="split">
           <div class="tile" id="fanCurveTile">
-            <div class="tile-top"><span class="lbl" data-i18n="fan.curve">İşlemci fan eğrisi</span><span class="legend"><span><i></i><span data-i18n="fan.legend.factory">Fabrika</span></span><span><i class="m"></i><span data-i18n="fan.legend.active">Etkin</span></span><span><i class="d"></i><span data-i18n="fan.legend.now">Şu an</span></span></span></div>
+            <div class="tile-top"><span class="lbl" id="curveTitle" data-i18n="fan.curve">İşlemci fan eğrisi</span><span class="legend"><span><i></i><span data-i18n="fan.legend.factory">Fabrika</span></span><span><i class="a"></i><span data-i18n="fan.legend.active">Etkin</span></span><span class="ed-only" hidden><i class="m"></i><span data-i18n="fan.legend.mine">Kendi eğrin</span></span><span><i class="d"></i><span data-i18n="fan.legend.now">Şu an</span></span></span></div>
             <svg class="curve" id="curve" viewBox="0 0 440 230" role="img" data-i18n-aria="fan.curve.aria" aria-label="Sıcaklığa göre fan görevi eğrisi"></svg>
+            <!-- Kendi egrin: noktalar surukle-birak ya da sayi ile; kaydedilince her profilde ve yeniden baslatmada calisir -->
+            <div class="curve-ed" id="curveEd" hidden>
+              <div class="curve-ed-top">
+                <div class="seg" id="curveFanSel">
+                  <label><input type="radio" name="cfan" value="cpu" checked><span data-i18n="fan.ed.cpu">İşlemci</span></label>
+                  <label><input type="radio" name="cfan" value="gpu"><span data-i18n="fan.ed.gpu">Ekran kartı</span></label>
+                </div>
+                <label class="switch" id="curveSameRow"><input type="checkbox" id="curveSame"><span class="track" aria-hidden="true"></span><span data-i18n="fan.ed.same">İki fan için aynı eğri</span></label>
+              </div>
+              <div class="cust-grid">
+                <label><span data-i18n="cust.t2">Başlangıç °C</span><input type="number" id="cE0" data-i="0"></label>
+                <label><span data-i18n="cust.d2">Başlangıç %</span><input type="number" id="cE1" data-i="1"></label>
+                <label><span data-i18n="cust.t3">Tam devir °C</span><input type="number" id="cE2" data-i="2"></label>
+                <label><span data-i18n="cust.d3">Tam devir %</span><input type="number" id="cE3" data-i="3"></label>
+              </div>
+              <p class="hint" id="curveNote" role="status"></p>
+              <div class="btn-row">
+                <button class="btn solid" type="button" id="curveSave" data-i18n="fan.ed.save">Kaydet ve uygula</button>
+                <button class="btn" type="button" id="curveFromActive" data-i18n="fan.ed.fromActive">Etkin eğriyi al</button>
+                <button class="btn" type="button" id="curveRevert" data-i18n="fan.ed.revert">Geri al</button>
+              </div>
+            </div>
           </div>
           <div class="form">
             <div class="tiles" style="grid-template-columns:1fr 1fr">
@@ -704,6 +738,7 @@ input[type=number]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
                 <label><input type="radio" name="fanm" value="profile"><span data-i18n="fan.byProfile">Profile göre</span></label>
                 <label><input type="radio" name="fanm" value="auto"><span data-i18n="fan.factoryOpt">Fabrika</span></label>
                 <label><input type="radio" name="fanm" value="max"><span data-i18n="fan.max">Maksimum</span></label>
+                <label id="fanUserOpt" hidden><input type="radio" name="fanm" value="user"><span data-i18n="fan.user">Kendi eğrim</span></label>
                 <label id="fanCustomOpt" hidden><input type="radio" name="fanm" value="custom"><span data-i18n="fan.custom">Özel hız</span></label>
                 <label id="fanFixedOpt" hidden><input type="radio" name="fanm" value="fixed"><span data-i18n="fan.fixed">Sabit</span></label>
               </div>
@@ -1494,13 +1529,15 @@ function paintProfile() {
       : cc.fan_mode !== 1 && mf ? t('msi.fan.' + mf) : (FAN_MODE_TXT[cc.fan_mode] || '–'));
     const pf = id ? (profById(id) || {}).fan : null;
     const manual = meta && meta.vendor === 'gigabyte' ? 'fixed' : 'custom';  // 7: Gigabyte sabit, Acer ozel hiz
-    const fm = cc.fan_mode === 1 ? 'max' : cc.fan_mode === 7 ? manual : cc.fan_mode === 6 ? 'profile' : pf === 'auto' ? 'profile' : 'auto';
+    const own = cc.rules.fan_sel === 'user' && curveEditable();  // fan sayfasindaki kendi egrin secili
+    const fm = cc.fan_mode === 1 ? 'max' : cc.fan_mode === 7 ? manual : cc.fan_mode === 6 ? (own ? 'user' : 'profile') : pf === 'auto' && !own ? 'profile' : 'auto';
     if (cc.fan_mode === 7 && cc.fan_fixed != null) setRange($('#fanFixed'), cc.fan_fixed, $('#fanFixedOut'));
     const r = document.querySelector(`input[name=fanm][value=${fm}]`); if (r) r.checked = true;
     document.querySelector('input[name=fanm][value=profile]').disabled = !id;
     const ap = document.querySelector(`input[name=acerp][value="${cc.power_name}"]`); if (ap) ap.checked = true;
   }
   renderReport();
+  syncCurveDraft();
   drawCurve();
 }
 function renderReport() {
@@ -1926,6 +1963,7 @@ function initPerformance() {
   const fanFixed = $('#fanFixed');
   const fanBody = mode => mode === 'fixed' ? { mode, percent: +fanFixed.value } : { mode };
   document.querySelectorAll('input[name=fanm]').forEach(r => r.addEventListener('change', async () => {
+    if (r.value === 'user') { saveCurve(); return; }  // kendi egrin: duzenleyicideki egri kaydedilip uygulanir
     const body = r.value === 'custom' ? { mode: 'custom', cpu: +$('#acerCpu').value, gpu: +$('#acerGpu').value } : fanBody(r.value);
     try { cc = (await api('/api/fan', body)).cc; }
     catch (e) { banner(t('fan.modeFail', { err: e.message })); }
@@ -1938,6 +1976,7 @@ function initPerformance() {
     catch (e) { banner(t('fan.modeFail', { err: e.message })); }
     paintProfile();
   });
+  initCurveEditor();
   // Pil sarj siniri (yalnizca destekleyen bilgisayarlarda gorunur)
   const cOn = $('#chargeOn'), cStop = $('#chargeStop');
   const sendCharge = async () => {
@@ -1959,31 +1998,224 @@ function paintCharge() {
   $('#chargeStop').disabled = !c.enabled;
 }
 
-/* ---------- fan egrisi ---------- */
+/* ---------- fan egrisi ve kendi egrin ---------- */
+// Egri 4 noktadir: ilk nokta (T1, D1) ve son nokta (100 C, %100) denetleyicide sabit; kullanici ortadaki iki noktayi
+// [T2, D2, T3, D3] belirler. Sinirlar donanim.validate_curve ile ayni: arayuzde gorulen, denetleyiciye yazilanin aynisi.
+let curveDraft = null, curveSel = 'cpu', curveDirty = false, curveDrag = -1;
+const clampN = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+function curveEditable() {
+  const caps = (meta && meta.caps) || {};
+  const tile = $('#fanCurveTile');
+  return !!(meta && meta.fan_default && caps.fan_curve !== false && tile && !tile.hidden);
+}
+function curveFactory(sel) {
+  const fd = meta && meta.fan_default;
+  return fd ? (fd[sel] || fd.cpu) : [[45, 28], [60, 40], [80, 70], [100, 100]];
+}
+function curveTwoFans() { return !!(meta && meta.fan_default && (meta.fan_default.count || 2) > 1); }
+// moved: 0 = ilk tutamak (T2, D2) surukleniyor, 1 = ikinci (T3, D3); digeri ona gore itilir
+function fixCurve(c, moved, sel) {
+  const [t1, d1] = curveFactory(sel)[0];
+  let [t2, d2, t3, d3] = c.map(v => Math.round(+v || 0));
+  t2 = clampN(t2, t1 + 1, 87); t3 = clampN(t3, t1 + 2, 88);
+  d2 = clampN(d2, d1 + 1, 97); d3 = clampN(d3, 45, 99);
+  if (moved === 1) { if (t2 >= t3) t2 = t3 - 1; if (d2 >= d3) d2 = d3 - 1; }
+  else { if (t3 <= t2) t3 = t2 + 1; if (d3 <= d2) d3 = d2 + 1; }
+  return [t2, d2, t3, d3];
+}
+// Su an calisan egri (cizimde ince cizgi): kendi egrin, profilin egrisi, en yuksek ya da yok (fabrika tablosu)
+function curveActive(sel) {
+  if (!cc) return null;
+  if (cc.fan_mode === 1) return 'max';
+  if (cc.fan_mode !== 6) return null;
+  const u = cc.rules.fan_user;
+  if (cc.rules.fan_sel === 'user' && u) return u[sel];
+  const pf = cc.profile ? (profById(cc.profile) || {}).fan : null;
+  return Array.isArray(pf) ? pf[sel === 'gpu' ? 1 : 0] : null;
+}
+function curveSaved() {
+  const u = cc && cc.rules && cc.rules.fan_user;
+  return u && Array.isArray(u.cpu) && Array.isArray(u.gpu) ? { cpu: u.cpu.slice(), gpu: u.gpu.slice() } : null;
+}
+function curveFromActive() {
+  const pick = sel => {
+    const a = curveActive(sel);
+    if (Array.isArray(a)) return a.slice();
+    const f = curveFactory(sel);
+    return [f[1][0], f[1][1], f[2][0], f[2][1]];
+  };
+  return { cpu: fixCurve(pick('cpu'), 0, 'cpu'), gpu: fixCurve(pick('gpu'), 0, 'gpu') };
+}
+function syncCurveDraft() {
+  const ed = $('#curveEd');
+  if (!ed) return;
+  const ok = curveEditable();
+  ed.hidden = !ok;
+  $('#fanUserOpt').hidden = !ok;
+  document.querySelectorAll('#fanCurveTile .ed-only').forEach(n => { n.hidden = !ok; });
+  if (!ok || !cc) return;
+  if (!curveDirty) {
+    curveDraft = curveSaved() || curveFromActive();
+    $('#curveSame').checked = curveDraft.cpu.join() === curveDraft.gpu.join();
+  }
+  paintCurveEd();
+}
+function paintCurveEd() {
+  if (!curveDraft) return;
+  const two = curveTwoFans(), same = $('#curveSame').checked || !two;
+  $('#curveSameRow').hidden = !two;
+  $('#curveFanSel').hidden = !two || same;
+  if (same) curveSel = 'cpu';
+  const r = document.querySelector(`input[name=cfan][value=${curveSel}]`); if (r) r.checked = true;
+  $('#curveTitle').textContent = t(same && two ? 'fan.curveBoth' : curveSel === 'gpu' ? 'fan.curveGpu' : 'fan.curve');
+  const [t1, d1] = curveFactory(curveSel)[0];
+  const lims = [[t1 + 1, 87], [d1 + 1, 97], [t1 + 2, 88], [45, 99]];
+  const c = curveDraft[curveSel];
+  for (let i = 0; i < 4; i++) {
+    const inp = $('#cE' + i);
+    inp.min = lims[i][0]; inp.max = lims[i][1];
+    if (document.activeElement !== inp) inp.value = c[i];
+  }
+  const own = cc && cc.rules.fan_sel === 'user';
+  const note = $('#curveNote');
+  note.textContent = curveDirty ? t('fan.ed.dirty') : own ? t('fan.ed.on') : t('fan.ed.off', { t1, d1 });
+  note.classList.toggle('dirty', curveDirty);
+  $('#curveRevert').disabled = !curveDirty;
+  $('#curveSave').disabled = !curveDirty && own && cc.fan_mode === 6;
+}
+function setCurve(c, moved) {
+  const fixed = fixCurve(c, moved, curveSel);
+  curveDraft[curveSel] = fixed;
+  if ($('#curveSame').checked || !curveTwoFans()) curveDraft[curveSel === 'cpu' ? 'gpu' : 'cpu'] = fixed.slice();
+  curveDirty = true;
+  paintCurveEd();
+  drawCurve();
+}
+async function saveCurve() {
+  if (!curveDraft) return;
+  if ($('#curveSame').checked || !curveTwoFans()) curveDraft.gpu = curveDraft.cpu.slice();
+  $('#curveSave').disabled = true;
+  try {
+    cc = (await api('/api/fan', { mode: 'user', cpu: curveDraft.cpu, gpu: curveDraft.gpu })).cc;
+    curveDirty = false;
+    banner(t('fan.ed.saved'), true);
+  } catch (e) { banner(t('fan.ed.fail', { err: e.message })); }
+  paintProfile();
+}
+const CURVE_GEOM = (() => {
+  const W = 440, H = 230, L = 36, R = 10, T = 10, B = 26;
+  return {
+    W, H, L, R, T, B,
+    X: v => L + (Math.max(30, Math.min(100, v)) - 30) / 70 * (W - L - R),
+    Y: d => H - B - Math.max(0, Math.min(100, d)) / 100 * (H - T - B),
+    Tinv: x => 30 + (x - L) / (W - L - R) * 70,
+    Dinv: y => (H - B - y) / (H - T - B) * 100,
+  };
+})();
+function initCurveEditor() {
+  const svg = $('#curve');
+  if (!svg) return;
+  document.querySelectorAll('input[name=cfan]').forEach(r => r.addEventListener('change', () => {
+    curveSel = r.value; paintCurveEd(); drawCurve();
+  }));
+  $('#curveSame').addEventListener('change', () => {
+    if ($('#curveSame').checked && curveDraft) {
+      curveDraft.gpu = curveDraft.cpu.slice(); curveSel = 'cpu';
+      const sv = curveSaved();
+      if (!sv || sv.gpu.join() !== curveDraft.gpu.join()) curveDirty = true;
+    }
+    paintCurveEd(); drawCurve();
+  });
+  for (let i = 0; i < 4; i++) {
+    $('#cE' + i).addEventListener('change', e => {
+      if (!curveDraft) return;
+      const c = curveDraft[curveSel].slice();
+      c[i] = +e.target.value;
+      setCurve(c, i < 2 ? 0 : 1);
+      e.target.value = curveDraft[curveSel][i];
+    });
+  }
+  $('#curveSave').addEventListener('click', saveCurve);
+  $('#curveFromActive').addEventListener('click', () => {
+    curveDraft = curveFromActive(); curveDirty = true;
+    $('#curveSame').checked = curveDraft.cpu.join() === curveDraft.gpu.join();
+    paintCurveEd(); drawCurve();
+  });
+  $('#curveRevert').addEventListener('click', () => { curveDirty = false; syncCurveDraft(); drawCurve(); });
+  // Surukle-birak: ekran noktasini SVG koordinatina cevir, en yakin tutamagi yakala
+  const toSvg = e => {
+    const m = svg.getScreenCTM();
+    if (!m) return null;
+    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
+    return [p.x, p.y];
+  };
+  svg.addEventListener('pointerdown', e => {
+    if (!svg.classList.contains('editable') || !curveDraft) return;
+    const p = toSvg(e); if (!p) return;
+    const c = curveDraft[curveSel], g = CURVE_GEOM;
+    const d = [[c[0], c[1]], [c[2], c[3]]].map(h => Math.hypot(g.X(h[0]) - p[0], g.Y(h[1]) - p[1]));
+    const i = d[0] <= d[1] ? 0 : 1;
+    if (d[i] > 22) return;
+    curveDrag = i;
+    svg.setPointerCapture(e.pointerId);
+    svg.classList.add('dragging');
+    e.preventDefault();
+  });
+  svg.addEventListener('pointermove', e => {
+    if (curveDrag < 0) return;
+    const p = toSvg(e); if (!p) return;
+    const c = curveDraft[curveSel].slice(), g = CURVE_GEOM;
+    c[curveDrag * 2] = g.Tinv(p[0]); c[curveDrag * 2 + 1] = g.Dinv(p[1]);
+    setCurve(c, curveDrag);
+  });
+  const end = e => {
+    if (curveDrag < 0) return;
+    curveDrag = -1;
+    svg.classList.remove('dragging');
+    try { svg.releasePointerCapture(e.pointerId); } catch (_) { /* zaten birakildi */ }
+    drawCurve();
+  };
+  svg.addEventListener('pointerup', end);
+  svg.addEventListener('pointercancel', end);
+}
 function drawCurve() {
   const svg = $('#curve');
   if (!svg || view !== 'fan' || !meta) return;
-  const W = 440, H = 230, L = 36, R = 10, T = 10, B = 26;
-  const X = t => L + (Math.max(30, Math.min(100, t)) - 30) / 70 * (W - L - R);
-  const Y = d => H - B - Math.max(0, Math.min(100, d)) / 100 * (H - T - B);
+  const { W, H, L, R, T, B, X, Y } = CURVE_GEOM;
   if (!meta.fan_default) return;  // gomulu denetleyici yok: fan sayfasi zaten "kullanilamaz" gosterir
-  const fac = meta.fan_default.cpu;
-  const pf = cc && cc.profile ? (profById(cc.profile) || {}).fan : null;
-  let mine = null, handles = [];
-  if (cc && cc.fan_mode === 6 && Array.isArray(pf)) {
-    const [t2, d2, t3, d3] = pf[0];
-    handles = [[t2, d2], [t3, d3]];
-    mine = [[30, fac[0][1]], fac[0], ...handles, [100, 100]];
-  } else if (cc && cc.fan_mode === 1) mine = [[30, 100], [100, 100]];
+  const edit = curveEditable() && !!curveDraft;
+  const sel = edit ? curveSel : 'cpu';
+  const fac = curveFactory(sel);
+  const lead = [30, fac[0][1]];
+  const act = curveActive(sel);
+  let active = null;
+  if (act === 'max') active = [[30, 100], [100, 100]];
+  else if (Array.isArray(act)) active = [lead, fac[0], [act[0], act[1]], [act[2], act[3]], [100, 100]];
   const path = pts => pts.map((p, i) => (i ? 'L' : 'M') + X(p[0]).toFixed(1) + ' ' + Y(p[1]).toFixed(1)).join(' ');
   let s = '<g class="grid">';
-  for (let t = 30; t <= 100; t += 10) s += `<line x1="${X(t)}" x2="${X(t)}" y1="${T}" y2="${H - B}"/><text x="${X(t)}" y="${H - 8}" text-anchor="middle">${t}°</text>`;
+  for (let v = 30; v <= 100; v += 10) s += `<line x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H - B}"/><text x="${X(v)}" y="${H - 8}" text-anchor="middle">${v}°</text>`;
   for (let d = 0; d <= 100; d += 25) s += `<line x1="${L}" x2="${W - R}" y1="${Y(d)}" y2="${Y(d)}"/><text x="${L - 6}" y="${Y(d) + 3}" text-anchor="end">${pct(d)}</text>`;
   s += '</g>';
-  s += `<path class="factory" d="${path([[30, fac[0][1]], ...fac])}"/>`;
-  if (mine) s += `<path class="mine" d="${path(mine)}"/>`;
-  for (const p of handles) s += `<circle class="pt" cx="${X(p[0])}" cy="${Y(p[1])}" r="4"/>`;
-  if (sensor && sensor.cpu_temp != null) s += `<circle class="dot" cx="${X(sensor.cpu_temp)}" cy="${Y(sensor.cpu_duty)}" r="5"/>`;
+  s += `<path class="factory" d="${path([lead, ...fac])}"/>`;
+  if (edit) {
+    const c = curveDraft[sel];
+    const handles = [[c[0], c[1]], [c[2], c[3]]];
+    const mine = [lead, fac[0], ...handles, [100, 100]];
+    if (active && !(Array.isArray(act) && act.join() === c.join())) s += `<path class="act" d="${path(active)}"/>`;
+    s += `<path class="area" d="${path(mine)} L ${X(100)} ${Y(0)} L ${X(30)} ${Y(0)} Z"/>`;
+    s += `<path class="mine" d="${path(mine)}"/>`;
+    handles.forEach((p, i) => {
+      const lx = X(p[0]), ly = Y(p[1]);
+      s += `<circle class="pt${curveDrag === i ? ' drag' : ''}" cx="${lx}" cy="${ly}" r="6"/>`;
+      s += `<text class="ptl" x="${lx}" y="${ly - 11}" text-anchor="${lx > W - 70 ? 'end' : 'middle'}">${p[0]}° · ${pct(p[1])}</text>`;
+    });
+  } else if (active) {
+    s += `<path class="mine" d="${path(active)}"/>`;
+    if (Array.isArray(act)) for (const p of [[act[0], act[1]], [act[2], act[3]]]) s += `<circle class="pt" cx="${X(p[0])}" cy="${Y(p[1])}" r="4"/>`;
+  }
+  const k = sel === 'gpu' ? 'gpu' : 'cpu';
+  if (sensor && sensor[k + '_temp'] != null && sensor[k + '_duty'] != null) s += `<circle class="dot" cx="${X(sensor[k + '_temp'])}" cy="${Y(sensor[k + '_duty'])}" r="5"/>`;
+  svg.classList.toggle('editable', edit);
   svg.innerHTML = s;
 }
 
