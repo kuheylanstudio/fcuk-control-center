@@ -336,6 +336,15 @@ input[type=number]:focus-visible{outline-offset:0;border-color:var(--live-ink)}
 .seg input:disabled + span{opacity:.4}
 .seg .rec{display:inline-block;margin-left:6px;padding:1px 5px;border:1px solid var(--line-strong);border-radius:var(--r-1);font:600 var(--fs-1)/1.3 var(--f-display);font-style:normal;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
 .seg input:checked + span .rec{border-color:var(--live-ink);color:var(--text-2)}
+.seg.parts{grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}
+.seg.parts label:first-child{grid-column:1/-1}
+.seg.parts span{position:relative;overflow:hidden;padding-bottom:10px}
+.seg.parts .lv{position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--live-ink);transform-origin:left;transform:scaleX(var(--v,0));opacity:.85;transition:transform 60ms linear}
+.seg.parts input:not(:checked) + span .lv{opacity:0}
+.parts-hint{margin:var(--s-2) 0 0;line-height:1.45}
+.perf-note{margin:var(--s-2) 0 0;padding:8px 10px;border-left:2px solid var(--line-strong);color:var(--text-2);font-size:var(--fs-2);line-height:1.45}
+.perf-note.warn{border-left-color:var(--warn);color:var(--warn)}
+@media (prefers-reduced-motion:reduce){.seg.parts .lv{transition:none}}
 .seg.onoff input[value="on"]:checked + span{border-color:var(--live-ink);color:var(--text-hi)}
 .seg.onoff input[value="off"]:checked + span{border-color:var(--danger);color:var(--danger);background:color-mix(in srgb,var(--danger) 10%,var(--surface-2))}
 .vnote{margin-top:var(--s-2);font-size:var(--fs-2);color:var(--text-2);text-wrap:pretty}
@@ -1302,6 +1311,7 @@ function paintLive() {
     m.setAttribute('aria-valuenow', Math.round(d.v * 100));
     $('#meterInfo').textContent = d.info;
   }
+  if (cfg && cfg.mode === 'ses') renderPartLevels(d.pl);
 }
 function connect() {
   const es = new EventSource('/api/events');
@@ -2459,6 +2469,7 @@ function renderSettings() {
     fs.append(seg);
     stack.append(fs);
   }
+  if (m.id === 'ses') stack.append(partsField(v));
   if (m.id === 'oyun') {
     const fs = el('fieldset', 'field'), seg = el('div', 'seg');
     fs.append(el('legend', 'lbl', t('kb.layout')));
@@ -2488,6 +2499,46 @@ function renderSettings() {
   setSaveState(saveState);
   renderSkinNote();
   renderStops();
+}
+/* Ses modu: hangi muzik parcalarina tepki verilecegi (muzik.py). "Tum ses" tek basina secilir; parcalardan
+   biri ya da birkaci secilince sesi gercek zamanli ayristiran analiz calisir (islemci uyarisi gosterilir). */
+function partsField(v) {
+  const fs = el('fieldset', 'field'), seg = el('div', 'seg parts');
+  fs.append(el('legend', 'lbl', t('kb.parts')));
+  const ok = meta.split_ok !== false;
+  if (!Array.isArray(v.parts) || !v.parts.length) v.parts = ['tum'];
+  const note = el('p', 'perf-note'); note.id = 'partsNote';
+  const sync = () => {
+    seg.querySelectorAll('input').forEach(i => { i.checked = v.parts.includes(i.value); });
+    const split = !v.parts.includes('tum');
+    note.hidden = !split && ok;
+    note.textContent = ok ? t('kb.partsPerf') : t('kb.partsNoSplit');
+    note.classList.toggle('warn', ok);
+  };
+  for (const p of meta.parts || []) {
+    const lab = el('label'), inp = el('input'), span = el('span', '', p.label);
+    inp.type = 'checkbox'; inp.name = 'part'; inp.value = p.id;
+    inp.disabled = !ok && p.id !== 'tum';
+    if (p.id !== 'tum') { const bar = el('i', 'lv'); bar.dataset.part = p.id; span.append(bar); }
+    inp.addEventListener('change', () => {
+      if (p.id === 'tum') v.parts = ['tum'];
+      else if (inp.checked) v.parts = [...v.parts.filter(x => x !== 'tum'), p.id];
+      else v.parts = v.parts.filter(x => x !== p.id);
+      if (!v.parts.length) v.parts = ['tum'];  // en az biri secili kalir
+      sync();
+      save();
+    });
+    lab.append(inp, span);
+    seg.append(lab);
+  }
+  fs.append(seg, el('p', 'hint parts-hint', t('kb.partsHint')), note);
+  sync();
+  return fs;
+}
+function renderPartLevels(pl) {
+  document.querySelectorAll('.parts .lv').forEach(b => {
+    b.style.setProperty('--v', pl && b.dataset.part in pl ? pl[b.dataset.part] : 0);
+  });
 }
 function renderStops() {
   const ul = $('#stops');
@@ -2695,6 +2746,7 @@ function applyPreset(name) {
   if (p.source) target.source = p.source;
   if (p.keys) target.keys = p.keys;
   if (typeof p.skin === 'boolean') target.skin = p.skin;
+  if (Array.isArray(p.parts) && p.parts.length) target.parts = [...p.parts];
   cfg.brightness = p.brightness;
   setRange($('#bright'), cfg.brightness, $('#brightOut'));
   selectMode(p.mode, true);

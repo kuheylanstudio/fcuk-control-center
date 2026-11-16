@@ -38,6 +38,7 @@ import kayit
 import islemci
 import kare
 import klavye_rgb as core
+import muzik
 import nvidia
 import profiller
 import tanilama
@@ -212,6 +213,8 @@ def _mode_values(mid, vals, base):
     vals = vals if isinstance(vals, dict) else {}
     out = {"palette": _palette(vals.get("palette"), PAL_KIND[mid], base.get("palette", [])),
            "speed": _int(vals.get("speed"), 0, 100, base.get("speed", 50))}
+    if mid == "ses":
+        out["parts"] = muzik.clean_parts(vals.get("parts"), base.get("parts") or [muzik.ALL])
     if mid == "sistem":
         src = vals.get("source")
         out["source"] = src if src in [s[0] for s in core.SOURCES] else base.get("source", "cpu_temp")
@@ -560,6 +563,8 @@ def state():
                    "speed": SPEED_KEY.get(m[3]) and t(SPEED_KEY[m[3]]), "desc": t("mode.%s.desc" % m[0])}
                   for m in core.MODES if m[0] != "bolgeler" or hw.caps(App.dchu).get("kb_zones")],
         "sources": [{"id": s[0], "label": t("src." + s[0])} for s in core.SOURCES],
+        "parts": [{"id": p, "label": t("part." + p)} for p in muzik.PART_IDS],
+        "split_ok": muzik.available(),  # numpy yoksa parca ayrimi yok: arayuz yalnizca "Tum ses" gosterir
         "layouts": [{"id": k, "label": t("keys." + k)} for k in core.GAME_LAYOUTS],
         "slots": [t("slot." + k) for k in core.GAME_SLOTS],
         "slotsUsed": core.GAME_SLOTS_USED,
@@ -874,6 +879,8 @@ class Handler(BaseHTTPRequestHandler):
                 v = eng.value
                 msg = {"c": eng.current, "info": eng.info, "err": eng.error, "w": eng.warn,
                        "v": None if v is None else round(v, 3)}
+                if eng.parts is not None:  # Ses modunda secili parcalarin seviyeleri
+                    msg["pl"] = eng.parts
                 if eng.theme is not theme:  # skin temasi yalnizca degisince gider
                     theme = eng.theme
                     msg["th"] = theme

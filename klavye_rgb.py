@@ -23,6 +23,7 @@ c_int = ctypes.c_int
 import ceviri
 import donanim
 import lol_tema
+import muzik
 import oyun
 
 APP_NAME = "FCUKControlCenter"
@@ -41,7 +42,9 @@ MODES = [
     ("gecis", "Renk geçişi", True, "Hız", "Paletteki renkler arasında yumuşak geçiş yapar."),
     ("gokkusagi", "Gökkuşağı", False, "Hız", "Tüm renk çemberini dolaşır."),
     ("nabiz", "Nabız", True, "Hız", "Kalp atışı gibi çift vuruş; her atışta sıradaki renk."),
-    ("ses", "Ses / müzik", True, "Tepki hızı", "Bilgisayardan çıkan sese göre: sessizken ilk renk, yüksek seste son renk."),
+    ("ses", "Ses / müzik", True, "Tepki hızı",
+     "Bilgisayardan çıkan sese ya da seçtiğin parçalara (bas, davul, gitar, vokal, melodi, riff) göre: sessizken "
+     "ilk renk, yüksek seste son renk."),
     ("sistem", "Sistem durumu", True, None, "Seçtiğin değere göre: düşükken ilk renk, yüksekken son renk."),
     ("ekran", "Ekran rengi", False, "Tepki hızı", "Ekrandaki baskın rengi klavyeye yansıtır."),
     ("oyun", "Oyun tepkisi", True, "Tepki hızı",
@@ -75,7 +78,8 @@ DEFAULTS = {
         "gecis": {"palette": ["#ff0040", "#ff8a00", "#00e0ff", "#7a00ff"], "speed": 50},
         "gokkusagi": {"palette": [], "speed": 50},
         "nabiz": {"palette": ["#ff0020"], "speed": 50},
-        "ses": {"palette": ["#1b00ff", "#00e5ff", "#ff00c8", "#ff2a00"], "speed": 60},
+        # parts: muzik.PART_IDS'ten secim; ["tum"] yalnizca toplam ses seviyesi (ek islem yok)
+        "ses": {"palette": ["#1b00ff", "#00e5ff", "#ff00c8", "#ff2a00"], "speed": 60, "parts": [muzik.ALL]},
         "sistem": {"palette": ["#0060ff", "#00ff60", "#ffd000", "#ff0000"], "speed": 50, "source": "cpu_temp"},
         "ekran": {"palette": [], "speed": 55},
         # LoL renkleri can yesilinin ve kirmizisinin ustunde de secilsin diye yesil/kirmizi disi tonlardir
@@ -625,6 +629,7 @@ class Engine(threading.Thread):
         self.error = ""
         self.warn = ""  # kalici olmayan uyari (ornegin oyun penceresi tanimlanamadi)
         self.theme = None  # Oyun modunda su an uygulanan LoL skin temasi ({"name", "colors"}) ya da None
+        self.parts = None  # Ses modunda secili muzik parcalarinin seviyeleri {kimlik: 0..1} ya da None
         self.running = True
 
     @property
@@ -639,7 +644,7 @@ class Engine(threading.Thread):
     def run(self):
         efficiency_thread()
         fullscreen, fs_at = False, -10.0
-        audio = screen = game = None
+        audio = screen = game = music = None
         sysinfo = SystemInfo()
         phase = 0.0
         level = 0.0
@@ -664,6 +669,13 @@ class Engine(threading.Thread):
                 self.theme = None
             if mode != "oyun" and game is not None and game.on:
                 game.stop()  # oyun kaynaklari yalnizca Oyun modundayken dinlenir (moddan cikista bir kez)
+            parts = (opts.get("parts") or [muzik.ALL]) if mode == "ses" else None
+            split = bool(parts) and parts != [muzik.ALL] and muzik.available()
+            if music is not None and not split:  # ses yakalama ve FFT yalnizca parca seciliyken calisir
+                music.close()
+                music = None
+            if not split:
+                self.parts = None
             try:
                 if mode == "sabit":
                     col = pal[0] if pal else (255, 255, 255)
@@ -694,7 +706,19 @@ class Engine(threading.Thread):
                     env = max(math.exp(-((x - 0.12) / 0.05) ** 2), 0.65 * math.exp(-((x - 0.34) / 0.07) ** 2))
                     col = scale(pal[int(phase) % len(pal)] if pal else (255, 0, 0), 0.06 + 0.94 * env)
                     self.info = ""
+                elif mode == "ses" and split:
+                    if music is None:
+                        music = muzik.Music()
+                    lv = music.levels(dt, period(speed, 1.2, 0.08))
+                    level = max(lv[p] for p in parts)
+                    col = scale(sample(pal, level, False), 0.12 + 0.88 * level)
+                    value = level
+                    self.parts = {p: round(lv[p], 3) for p in parts}
+                    self.info = " · ".join("%s %s" % (ceviri.t("part." + p), ceviri.pct(round(lv[p] * 100)))
+                                           for p in parts) if music.ok else ceviri.t("info.noLoopback")
                 elif mode == "ses":
+                    if parts and parts != [muzik.ALL]:  # numpy eksik: parca ayrimi yerine toplam ses
+                        warn = ceviri.t("info.noSplit")
                     if audio is None:
                         audio = AudioMeter()
                     p = audio.peak()
@@ -819,7 +843,11 @@ def snapshot(cfg):
     m = cfg["modes"][cfg["mode"]]
     pal = tuple(hex_to_rgb(h) for h in m.get("palette", []))
     src = m.get("keys", "lol") if cfg["mode"] == "oyun" else m.get("source", "cpu_temp")  # oyunda: tus duzeni
-    opts = {"skin": bool(m.get("skin", True))} if cfg["mode"] == "oyun" else {}
+    opts = {}
+    if cfg["mode"] == "oyun":
+        opts = {"skin": bool(m.get("skin", True))}
+    elif cfg["mode"] == "ses":
+        opts = {"parts": list(m.get("parts") or [muzik.ALL])}
     return (cfg["mode"], pal, m.get("speed", 50), src, cfg["brightness"] / 100.0, opts)
 
 
