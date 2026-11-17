@@ -36,6 +36,7 @@ import envanter
 import guncelleme
 import kayit
 import islemci
+import kaldirici
 import kare
 import klavye_rgb as core
 import muzik
@@ -142,6 +143,7 @@ class App:
     notices = []  # kullaniciya gosterilecek uyarilar: [{"id", "text"}]; arayuz ve tepsi gosterir
     crash_log = None
     updater = None  # guncelleme.Updater: GitHub'dan yeni surum denetimi / indirme / kurulum
+    uninstaller = None  # kaldirici.Uninstaller: Araclar > Kaldirici
 
 
 def log(msg):
@@ -786,7 +788,7 @@ class Handler(BaseHTTPRequestHandler):
             except OSError:
                 return self._send(500, t("err.ui", path=UI_PATH).encode("utf-8"), "text/plain; charset=utf-8")
             # Donanim / NVIDIA / Islemci ve Gecmis sayfalari ayri dosyalarda; menu dugmelerini ve sayfalari kendileri kurar
-            for name in ("sayfalar.js", "gecmis.js"):
+            for name in ("sayfalar.js", "gecmis.js", "kaldirici.js"):
                 try:
                     with open(os.path.join(HERE, "ui", name), encoding="utf-8") as f:
                         extra = f.read().replace("</", "<\\/")
@@ -850,6 +852,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(cpu_state())
         if path == "/api/update":
             return self._json(App.updater.status())
+        if path == "/api/uninst/apps":  # Araclar > Kaldirici: yuklu uygulamalar
+            return self._json({"apps": uninstaller().list(), "admin": hw.is_admin()})
+        if path == "/api/uninst/status":
+            return self._json(uninstaller().status())
         if path == "/api/events":
             return self._events()
         return self._json({"error": "not found"}, 404)
@@ -921,6 +927,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def _post(self, path, body):
         mgr = App.manager
+        if path.startswith("/api/uninst/"):
+            return self._uninst(path[len("/api/uninst/"):], body)
         if path == "/api/config":
             with App.lock:
                 App.cfg = sanitize(body, App.cfg)
@@ -1116,6 +1124,23 @@ class Handler(BaseHTTPRequestHandler):
         return self._json({"error": "not found"}, 404)
 
 
+    def _uninst(self, action, body):
+        """Kaldirici: kaldir / tara / sil / yedek klasorunu ac. Hatalar arayuzde okunur iletiye cevrilir."""
+        u = uninstaller()
+        try:
+            if action == "run":
+                return self._json(dict(u.start(body.get("id"), bool(body.get("restore", True))), ok=True))
+            if action == "scan":
+                return self._json(dict(u.scan(body.get("id"), str(body.get("mode", "moderate"))), ok=True))
+            if action == "clean":
+                return self._json(dict(u.clean(body.get("ids"), bool(body.get("restore", False))), ok=True))
+            if action == "open":
+                u.open_backup()
+                return self._json({"ok": True})
+        except kaldirici.Error as exc:
+            return self._json({"error": t("un.err." + exc.code)}, 400)
+        return self._json({"error": "not found"}, 404)
+
     def _update(self, body):
         """Guncelleme: {"action": "check" | "download" | "install" | "mode", "mode": "auto" | "manual"}"""
         up, act = App.updater, body.get("action")
@@ -1183,6 +1208,16 @@ class Server(ThreadingHTTPServer):
 
     def handle_error(self, request, client_address):  # kopan baglantilar gurultu yapmasin
         pass
+
+
+def uninstaller():
+    """Kaldirici ilk kullanimda kurulur. Control Center'in kendi klasorleri hicbir zaman silinmez."""
+    with App.lock:
+        if App.uninstaller is None:
+            own = [HERE, APP_DIR, data_dir(), core.CONFIG_DIR]
+            backup = os.path.join(data_dir() if hw.is_admin() else core.CONFIG_DIR, "kaldirici")
+            App.uninstaller = kaldirici.Uninstaller(lambda: kaldirici.Env(protect=own), backup)
+        return App.uninstaller
 
 
 def tray_hud(s, mgr):
