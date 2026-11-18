@@ -839,6 +839,7 @@ class Uninstaller:
         self.last = None
         self.restored = set()
         self.last_backup = ""
+        self.proc = None  # calisan kaldirici sureci (iptal icin)
 
     def list(self):
         env = self.env_factory()
@@ -883,24 +884,55 @@ class Uninstaller:
                 raise Error("busy")
             self.job = {"phase": "restore" if restore else "running", "id": app_id, "started": time.time()}
 
+        job = self.job
+
         def work():
             res = self._restore(app) if restore else None
             with self.lock:
-                self.job.update(phase="running", restore=res)
+                if job.get("phase") == "cancelled":  # geri yukleme noktasi beklenirken iptal edildi
+                    job["restore"] = res
+                    return
+                job.update(phase="running", restore=res, started=time.time())
             try:
                 p = subprocess.Popen(cmd, cwd=os.path.dirname(exe) or None)
-                code = p.wait()
-                with self.lock:
-                    self.job.update(phase="done", code=code)
             except OSError as exc:
                 with self.lock:
-                    self.job.update(phase="error", error=str(exc)[:200])
+                    job.update(phase="error", error=str(exc)[:200])
+                return
+            with self.lock:
+                self.proc = p
+            code = p.wait()
+            with self.lock:
+                self.proc = None
+                if job.get("phase") != "cancelled":
+                    job.update(phase="done", code=code)
         threading.Thread(target=work, name="kaldirici", daemon=True).start()
+        return self.status()
+
+    def cancel(self):
+        """Takilan / yanit vermeyen kaldiriciyi (ve actigi alt surecleri) sonlandirir; arayuz serbest kalir."""
+        with self.lock:
+            active = self.job.get("phase") in ("restore", "running")
+            if active:
+                self.job["phase"] = "cancelled"
+            p = self.proc
+        if active and p is not None and p.poll() is None:
+            try:
+                _run([_sys32("taskkill.exe"), "/PID", str(p.pid), "/T", "/F"], timeout=20)
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+            if p.poll() is None:
+                try:
+                    p.kill()
+                except OSError:
+                    pass
         return self.status()
 
     def status(self):
         with self.lock:
             st = dict(self.job)
+        if st.get("started"):
+            st["elapsed"] = int(time.time() - st["started"])
         if st.get("id"):
             st["installed"] = self.env_factory().reg.exists(st["id"])
         return st

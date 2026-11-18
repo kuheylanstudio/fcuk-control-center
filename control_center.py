@@ -1130,6 +1130,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if action == "run":
                 return self._json(dict(u.start(body.get("id"), bool(body.get("restore", True))), ok=True))
+            if action == "cancel":
+                return self._json(dict(u.cancel(), ok=True))
             if action == "scan":
                 return self._json(dict(u.scan(body.get("id"), str(body.get("mode", "moderate"))), ok=True))
             if action == "clean":

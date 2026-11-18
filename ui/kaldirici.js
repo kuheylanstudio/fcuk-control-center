@@ -76,7 +76,7 @@ const page = window.ccNav.add('kaldirici', 'nav.kaldirici');
 const view = document.getElementById('v-kaldirici');
 
 let apps = null, admin = true, sel = null, filter = '', mode = 'moderate', restore = true;
-let busy = false, poll = 0, pollId = '', waitUntil = 0, restoreShown = false;
+let busy = false, poll = 0, pollId = '', waitUntil = 0, restoreShown = false, cancelable = false, ticking = false;
 let scanRes = null, cleaned = null, sure = 0, sureTimer = 0;
 let listNode = null, detailNode = null, resNode = null, countNode = null, statusNode = null;
 
@@ -191,6 +191,11 @@ function renderDetail() {
   go.addEventListener('click', uninstall);
   only.addEventListener('click', () => scan(false));
   row.append(go, only);
+  if (cancelable && pollId === a.id) {  // takilan kaldirici her zaman durdurulabilir
+    const stop = E('button', 'btn', T('un.cancel')); stop.type = 'button';
+    stop.addEventListener('click', cancelRun);
+    row.append(stop);
+  }
   statusNode = E('p', 'un-status');
   body.append(row, E('p', 'hint', T('un.scanOnly.d')), statusNode);
   if (keep) setStatus(keep[0], keep[1]);
@@ -210,21 +215,38 @@ async function uninstall() {
   } catch (e) {
     busy = false; renderDetail(); setStatus(T('un.fail', { err: e.message }), true); return;
   }
-  pollId = sel.id; waitUntil = 0; restoreShown = false;
+  pollId = sel.id; waitUntil = 0; restoreShown = false; cancelable = true; renderDetail();
   clearInterval(poll); poll = setInterval(tick, 1000); tick();
 }
+async function cancelRun() {
+  if (!cancelable) return;
+  cancelable = false; renderDetail(); setStatus(T('un.ph.cancelling'));
+  try { await api('/api/uninst/cancel', {}); } catch (e) { toast(T('un.fail', { err: e.message })); }
+  tick();
+}
 async function tick() {
+  if (ticking) return;  // motor yavas yanit verirse istekler ust uste binmesin
+  ticking = true;
   let st;
-  try { st = await api('/api/uninst/status'); } catch (e) { return; }
-  if (!poll || !sel || sel.id !== pollId || st.id !== pollId) return;
+  try { st = await api('/api/uninst/status'); } catch (e) { return; } finally { ticking = false; }
+  if (!poll || st.id !== pollId) return;
+  // Baska bir uygulama secildiyse durum metni yazilmaz ama izleme surer: is bitince sayfa kilitli kalmaz
+  const mine = !!sel && sel.id === pollId;
+  const show = (text, err) => { if (mine) setStatus(text, err); };
   if (st.restore && !restoreShown) {
     restoreShown = true;
     const m = restoreMsg(st.restore); if (m) toast(m, st.restore.ok);
   }
-  if (st.phase === 'restore') return setStatus(T('un.ph.restore'));
-  if (st.phase === 'running') return setStatus(T('un.ph.running'));
-  if (st.phase === 'error') { stopPoll(); return setStatus(T('un.ph.error', { err: st.error || '' }), true); }
-  if (st.phase !== 'done') return;
+  if (st.phase === 'restore') return show(T('un.ph.restore'));
+  if (st.phase === 'running') {
+    // Sessiz kaldiricilar (OneDrive gibi) pencere acmaz; uzun surerse iptal secenegi hatirlatilir
+    return show(T((st.elapsed || 0) > 45 ? 'un.ph.slow' : 'un.ph.running'));
+  }
+  cancelable = false;
+  if (st.phase === 'cancelled') { stopPoll(); return show(T('un.ph.cancelled')); }
+  if (st.phase === 'error') { stopPoll(); return show(T('un.ph.error', { err: st.error || '' }), true); }
+  if (st.phase !== 'done') { stopPoll(); return; }
+  if (!mine) { stopPoll(); return; }
   if (!st.installed) { stopPoll(); setStatus(T('un.ph.done')); return scan(true); }
   // Bazi kaldiricilar (Inno Setup, NSIS) kendini gecici klasore kopyalayip hemen cikar: kayit silinene dek
   // en fazla 10 dakika beklenir; bu sirada dugmeler acik (iptal ettiysen baska bir sey yapabilirsin)
@@ -234,7 +256,7 @@ async function tick() {
 }
 function stopPoll(quiet) {
   if (!poll) return;
-  clearInterval(poll); poll = 0; pollId = '';
+  clearInterval(poll); poll = 0; pollId = ''; cancelable = false;
   if (!quiet) { busy = false; renderDetail(); }
 }
 

@@ -357,6 +357,31 @@ class GuardTest(unittest.TestCase):
             u.clean(["0", 5, None], False)
         self.assertEqual(cm.exception.code, "nothing")
 
+    def test_hung_uninstaller_can_be_cancelled(self):
+        import time
+        app_id = k.UNINSTALL_ROOTS[0] + "\Takilan"
+        u = k.Uninstaller(lambda: k.Env(roots={}, reg=FakeReg({}), tasks_dir=""), tempfile.gettempdir())
+        u.apps[app_id] = {"id": app_id, "key": "Takilan", "name": "Takilan", "msi": False,
+                          "uninstall": '"%s" -c "import time; time.sleep(120)"' % sys.executable}
+        self.assertEqual(u.start(app_id, False)["phase"], "running")
+        for _ in range(100):
+            if u.proc is not None:
+                break
+            time.sleep(0.05)
+        p = u.proc
+        self.assertIsNotNone(p)
+        with self.assertRaises(k.Error) as cm:
+            u.start(app_id, False)
+        self.assertEqual(cm.exception.code, "busy")
+        self.assertEqual(u.cancel()["phase"], "cancelled")
+        p.wait(timeout=10)
+        for _ in range(100):
+            if u.proc is None:
+                break
+            time.sleep(0.05)
+        self.assertEqual(u.status()["phase"], "cancelled")  # bitis "done" ile ezilmez
+        self.assertEqual(u.cancel()["phase"], "cancelled")  # ikinci iptal zararsiz
+
 
 if __name__ == "__main__":
     unittest.main()
