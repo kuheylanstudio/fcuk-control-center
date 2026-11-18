@@ -60,7 +60,7 @@ OLD_TASKS = ("KendiControlCenter", "KendiControlCenter Tepsi")  # onceki surumle
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 PAL_KIND = {"sabit": "one", "nefes": "steps", "gecis": "loop", "gokkusagi": None,
             "nabiz": "steps", "ses": "range", "sistem": "range", "ekran": None,
-            "oyun": "slots", "bolgeler": "zones"}
+            "oyun": "slots", "bolgeler": "zones", "tarayici": "steps", "kivilcim": "steps"}
 BROWSERS = (
     r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
     r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
@@ -553,6 +553,22 @@ def set_autostart(enabled):
 
 
 # ----------------------------------------------------------------------------- durum
+def mode_list():
+    """Klavye modlari. Bolgeli klavyede (Alienware 16X Aurora, Acer: 4 bolge) bolge modlari da listelenir ve
+    koreografisi degisen modlar bolgeli aciklamasini (mode.X.zdesc) gosterir."""
+    zones = bool(hw.caps(App.dchu).get("kb_zones"))
+    out = []
+    for m in core.MODES:
+        if m[0] in core.ZONE_ONLY and not zones:
+            continue
+        key = "mode.%s.zdesc" % m[0]
+        desc = t(key) if zones else key
+        out.append({"id": m[0], "label": t("mode." + m[0]), "pal": PAL_KIND[m[0]],
+                    "speed": SPEED_KEY.get(m[3]) and t(SPEED_KEY[m[3]]),
+                    "desc": desc if desc != key else t("mode.%s.desc" % m[0])})
+    return out
+
+
 def state():
     disp = App.display
     w, h, hz = disp.current()
@@ -561,9 +577,7 @@ def state():
         "config": rgb_config(),
         "device": App.device,
         "gpu_name": App.sensors.gpu_name,
-        "modes": [{"id": m[0], "label": t("mode." + m[0]), "pal": PAL_KIND[m[0]],
-                   "speed": SPEED_KEY.get(m[3]) and t(SPEED_KEY[m[3]]), "desc": t("mode.%s.desc" % m[0])}
-                  for m in core.MODES if m[0] != "bolgeler" or hw.caps(App.dchu).get("kb_zones")],
+        "modes": mode_list(),
         "sources": [{"id": s[0], "label": t("src." + s[0])} for s in core.SOURCES],
         "parts": [{"id": p, "label": t("part." + p)} for p in muzik.PART_IDS],
         "split_ok": muzik.available(),  # numpy yoksa parca ayrimi yok: arayuz yalnizca "Tum ses" gosterir

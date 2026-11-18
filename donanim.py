@@ -618,6 +618,9 @@ def caps(dev):
             out["fan_curve"] = out["fan_max"] = ok and bool(dev.fan_control)
         if hasattr(dev, "ec_temps"):  # yoksa sensorler ACPI isi bolgesini kullanir
             out["temp"] = ok and bool(dev.ec_temps)
+    if "kb_zones" not in out:  # bolgeli klavye (Alienware 16X Aurora: 4); caps vermeyen arka uclarda nitelikten
+        z = getattr(dev, "kb_zones", 0)
+        out["kb_zones"] = z if isinstance(z, int) and not isinstance(z, bool) and out["kb"] else 0
     out.setdefault("temps", out["temp"])
     out.setdefault("fan", bool(out["fan_max"] or out["fan_curve"]))
     return out

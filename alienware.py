@@ -188,16 +188,52 @@ ALIENFX_VIDS = (0x187C, 0x0D62)
 
 class AlienFx:
     """AlienFX HID klavye: APIv4 (0x187C, 34 baytlik cikis raporu) ve APIv5 (0x0D62, kullanim 0xCC, 64 baytlik
-    ozellik raporu). Isik kimlikleri model bazinda bilinmedigi icin tum klavye tek renge boyanir:
-    v4'te 0..LIGHTS-1 kimliklerinin hepsine, v5'te tum tuslara ayni renk yazilir."""
+    ozellik raporu). Tek renkte v4'te 0..LIGHTS-1 kimliklerinin hepsine, v5'te tum tuslara ayni renk yazilir.
+
+    Bolgeler (Alienware 16X Aurora: AWCC'de soldan saga 4 bolge): bolge -> isik kimligi eslemesi uretici
+    tarafindan yayimlanmaz (AlienFX-SDK de model bazinda eslemeyi kullanicinin yoklamasina birakir). Varsayilan
+    ZONE_IDS (bolge i = kimlik i) disarida kalan kimlikler 1. bolgenin rengini alir: esleme yanlissa bile klavye
+    karanlik kalmaz. Gercek esleme 'python alienware.py --bolge-testi' ile bulunur ve ayar klasorundeki
+    alienfx.json'a {"zones": [[kimlikler], [..], [..], [..]]} olarak yazilir."""
     LIGHTS = 16      # v4: tek bolgeli klavyede kimlik bu aralikta (alienfx-tools probe araligi)
     V5_KEYS = 128
+    ZONES = 4
+    ZONE_IDS = ([0], [1], [2], [3])
+    ZONE_FILE = "alienfx.json"
 
-    def __init__(self, hid, info):
+    def __init__(self, hid, info, zone_ids=None):
         self.dev = hid.HidDevice(info)
         self.info = info
         self.api = 4 if info["vid"] == 0x187C else 5
         self.last = None
+        self.zone_ids = self._valid_zones(zone_ids) or self._load_zones() or [list(z) for z in self.ZONE_IDS]
+
+    @property
+    def count(self):
+        return self.LIGHTS if self.api == 4 else self.V5_KEYS
+
+    def _valid_zones(self, zones):
+        """[[kimlik..] x ZONES] gecerliyse tamsayi listesi, degilse None."""
+        if not isinstance(zones, (list, tuple)) or len(zones) != self.ZONES:
+            return None
+        out = []
+        for z in zones:
+            if not isinstance(z, (list, tuple)) or not z:
+                return None
+            ids = [i for i in z if isinstance(i, int) and not isinstance(i, bool) and 0 <= i < self.count]
+            if len(ids) != len(z):
+                return None
+            out.append(ids)
+        return out
+
+    def _load_zones(self):
+        try:
+            import json
+            import klavye_rgb  # gec ice aktarma: motor yuklu; yonetici motorda veri klasoru Program Files altinda
+            with open(os.path.join(klavye_rgb.CONFIG_DIR, self.ZONE_FILE), encoding="utf-8") as f:
+                return self._valid_zones(json.load(f).get("zones"))
+        except Exception:
+            return None
 
     @staticmethod
     def find(hid):
@@ -212,27 +248,53 @@ class AlienFx:
     def _v4(self, *data):
         self.dev.write((0x00, 0x03) + data, 34)
 
-    def set_color(self, r, g, b):
-        if (r, g, b) == self.last:
-            return 0
+    def _write(self, lights):
+        """lights: {kimlik: (r, g, b)}, tum kimlikler. v4'te ayni renkteki kimlikler tek pakette gider."""
         if self.api == 4:
+            groups = {}
+            for i in sorted(lights):  # donanim kisiti: kimlikler kucukten buyuge (AlienFX-SDK notu)
+                groups.setdefault(lights[i], []).append(i)
             self._v4(0x21, 0x00, 0x04, 0xFF, 0xFF)          # yeni kare
             self._v4(0x21, 0x00, 0x01, 0xFF, 0xFF)
-            ids = tuple(range(self.LIGHTS))
-            self._v4(0x27, r, g, b, 0x00, len(ids), *ids)   # duz renk
+            for (r, g, b), ids in groups.items():
+                self._v4(0x27, r, g, b, 0x00, len(ids), *ids)  # duz renk
             self._v4(0x21, 0x00, 0x03, 0xFF, 0xFF)          # uygula
         else:
             n = self.info.get("feat_len") or 64
             self.dev.set_feature((0xCC, 0x94), n)            # sifirla
             per = (n - 4) // 4
-            for start in range(0, self.V5_KEYS, per):
+            keys = sorted(lights)
+            for start in range(0, len(keys), per):
                 pkt = [0xCC, 0x8C, 0x02, 0x00]
-                for k in range(start, min(start + per, self.V5_KEYS)):
-                    pkt += [k + 1, r, g, b]
+                for k in keys[start:start + per]:
+                    pkt += [k + 1] + list(lights[k])
                 self.dev.set_feature(pkt, n)
             self.dev.set_feature((0xCC, 0x8C, 0x13), n)     # dongu
             self.dev.set_feature((0xCC, 0x8B, 0x01, 0xFF), n)  # uygula
-        self.last = (r, g, b)
+
+    def set_color(self, r, g, b):
+        col = (r, g, b)
+        if col == self.last:
+            return 0
+        self._write(dict.fromkeys(range(self.count), col))
+        self.last = col
+        return 0
+
+    def set_zones(self, cols):
+        """cols: soldan saga ZONES renk. Esleme disindaki kimlikler 1. bolgenin rengini alir."""
+        cols = tuple(tuple(int(v) & 255 for v in c) for c in cols[:self.ZONES])
+        if len(cols) < self.ZONES:
+            cols += (cols[-1] if cols else (0, 0, 0),) * (self.ZONES - len(cols))
+        if len(set(cols)) == 1:
+            return self.set_color(*cols[0])
+        if cols == self.last:
+            return 0
+        lights = dict.fromkeys(range(self.count), cols[0])
+        for z, ids in enumerate(self.zone_ids):
+            for i in ids:
+                lights[i] = cols[z]
+        self._write(lights)
+        self.last = cols
         return 0
 
     def close(self):
@@ -493,15 +555,26 @@ class AlienwareEC:
             pass
 
     # ------------------------------------------------------------------ klavye
+    @property
+    def kb_zones(self):
+        """Bolgeli klavye: 4 (AWCC'deki soldan saga 4 bolge); isik yoksa 0. donanim.caps 'kb_zones' buradan okur."""
+        return AlienFx.ZONES if self.kb is not None else 0
+
     def set_color(self, r, g, b):
         if self.kb is None:
             return 0
         return self.kb.set_color(r & 255, g & 255, b & 255)
 
+    def set_zones(self, cols):
+        if self.kb is None:
+            return 0
+        return self.kb.set_zones(cols)
+
     def describe(self):
         d = self.th.describe()
         d["keyboard"] = None if self.kb is None else {"api": self.kb.api, "vid": "0x%04X" % self.kb.info["vid"],
-                                                      "pid": "0x%04X" % self.kb.info["pid"]}
+                                                      "pid": "0x%04X" % self.kb.info["pid"],
+                                                      "zones": self.kb.zone_ids}
         return d
 
 
@@ -542,9 +615,38 @@ def open_alienware():
         return None, str(exc)
 
 
+def zone_probe(hid, wait=1.5, limit=32):
+    """Bolge eslemesini bulmak icin: isik kimliklerini sirayla beyaz yakar (digerleri soluk kirmizi) ve kimligi
+    yazar. Kullanici hangi kimligin klavyenin hangi bolgesini yaktigini not eder; sonuc alienfx.json'a girer."""
+    import time
+    info = AlienFx.find(hid)
+    if not info:
+        print("AlienFX klavye bulunamadi.")
+        return
+    kb = AlienFx(hid, info)
+    print("AlienFX API v%d (%04X:%04X). Her kimlik %.1f sn beyaz yanar; hangi bolgenin yandigini not et." % (
+        kb.api, info["vid"], info["pid"], wait))
+    try:
+        for i in range(min(kb.count, limit)):
+            lights = dict.fromkeys(range(kb.count), (40, 0, 0))
+            lights[i] = (255, 255, 255)
+            kb._write(lights)
+            print("  kimlik %d" % i)
+            time.sleep(wait)
+    finally:
+        kb._write(dict.fromkeys(range(kb.count), (255, 255, 255)))
+        kb.close()
+    print('Sonucu ayar klasorundeki %s dosyasina yaz, ornegin: {"zones": [[0], [1], [2], [3]]}' % AlienFx.ZONE_FILE)
+
+
 def main():
-    """Alienware'de tani: python alienware.py (yonetici). Donanima yalnizca okuma komutlari gider."""
+    """Alienware'de tani: python alienware.py (yonetici). Donanima yalnizca okuma komutlari gider.
+    python alienware.py --bolge-testi: klavye isik kimliklerini sirayla yakar (bolge eslemesi icin)."""
     import json
+    if "--bolge-testi" in sys.argv:
+        import hid_win
+        zone_probe(hid_win)
+        return
     ec, err = open_alienware()
     if ec is None:
         print("Alienware AWCC arayuzu acilamadi:", err or "Alienware/Dell degil")

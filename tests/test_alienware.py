@@ -369,6 +369,111 @@ class TestKeyboard(unittest.TestCase):
     def test_other_vendor_ignored(self):
         self.assertFalse(make(hid=FakeHid([dict(V4, vid=0x1234)])).kb_available)
 
+    def test_four_zones_in_caps(self):
+        self.assertEqual(donanim.caps(make(hid=FakeHid([V4]))).get("kb_zones"), 4)
+        self.assertFalse(donanim.caps(make(hid=FakeHid([]))).get("kb_zones"))  # isik yok: bolge yok
+
+    def test_v4_zones(self):
+        ec = make(hid=FakeHid([V4]))
+        ec.set_zones(((255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 0, 0)))
+        sets = {s[1][3:6]: s[1][8:8 + s[1][7]] for s in FakeHidDevice.sent if s[1][2] == 0x27}
+        # varsayilan esleme bolge i = kimlik i; esleme disindaki kimlikler 1. bolgenin rengini alir
+        self.assertEqual(sets[(0, 255, 0)], (1,))
+        self.assertEqual(sets[(0, 0, 255)], (2,))
+        self.assertEqual(sets[(255, 0, 0)], (0, 3) + tuple(range(4, aw.AlienFx.LIGHTS)))
+        n = len(FakeHidDevice.sent)
+        ec.set_zones(((255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 0, 0)))  # ayni kare tekrar gitmez
+        self.assertEqual(len(FakeHidDevice.sent), n)
+        ec.set_zones(((9, 9, 9),) * 4)  # tek renge donusur
+        self.assertEqual(FakeHidDevice.sent[-2][1][3:8], (9, 9, 9, 0, aw.AlienFx.LIGHTS))
+
+    def test_v5_zones_custom_map(self):
+        ec = make(hid=FakeHid([V5]))
+        ec.kb.zone_ids = [[10, 11], [20], [30], [40, 41]]
+        ec.set_zones(((1, 1, 1), (2, 2, 2), (3, 3, 3), (4, 4, 4)))
+        keys = {}
+        for s in FakeHidDevice.sent:
+            if s[1][:3] == (0xCC, 0x8C, 0x02):
+                body = s[1][4:]
+                for j in range(0, len(body), 4):
+                    keys[body[j] - 1] = tuple(body[j + 1:j + 4])
+        self.assertEqual(len(keys), aw.AlienFx.V5_KEYS)
+        self.assertEqual((keys[20], keys[30], keys[40], keys[41], keys[0]),
+                         ((2, 2, 2), (3, 3, 3), (4, 4, 4), (4, 4, 4), (1, 1, 1)))
+
+    def test_zone_map_validation(self):
+        kb = make(hid=FakeHid([V4])).kb
+        self.assertEqual(kb._valid_zones([[0, 1], [2], [3], [4]]), [[0, 1], [2], [3], [4]])
+        for bad in ([[0], [1], [2]], [[0], [1], [2], [99]], [[0], [], [2], [3]], "x", [[0], [1], [2], [True]]):
+            self.assertIsNone(kb._valid_zones(bad), bad)
+
+
+class TestZoneChoreography(unittest.TestCase):
+    """Bolge koreografileri saf islevlerdir: soldan saga hareketi dogrula."""
+    PAL = ((255, 0, 0), (0, 0, 255))
+
+    def test_engine_sees_zones(self):
+        import klavye_rgb as core
+        self.assertEqual(core.zone_count(make(hid=FakeHid([V4]))), 4)
+        self.assertEqual(core.zone_count(make(hid=FakeHid([]))), 0)
+
+    def test_breath_rolls_right(self):
+        import klavye_rgb as core
+        z = core.zones_breath(self.PAL, 0.4, 4)  # yukselen nefeste soldaki bolge ondedir
+        lum = [max(c) for c in z]
+        self.assertEqual(lum, sorted(lum, reverse=True))
+
+    def test_meter_fills_left_to_right(self):
+        import klavye_rgb as core
+        low = core.zones_meter(self.PAL, 0.25, 4)
+        self.assertGreater(max(low[0]), 200)
+        self.assertTrue(all(max(c) < 30 for c in low[1:]))
+        full = core.zones_meter(self.PAL, 1.0, 4)
+        self.assertGreater(full[0][0], full[0][2])   # sol: ilk renk (kirmizi)
+        self.assertGreater(full[3][2], full[3][0])   # sag: son renk (mavi)
+
+    def test_scanner_moves_and_returns(self):
+        import klavye_rgb as core
+        peak = lambda z: max(range(4), key=lambda i: max(z[i]))  # noqa: E731
+        self.assertEqual(peak(core.zones_scanner(self.PAL, 0.0, 4)), 0)
+        self.assertEqual(peak(core.zones_scanner(self.PAL, 0.999, 4)), 3)
+        back = core.zones_scanner(self.PAL, 1.999, 4)
+        self.assertEqual(peak(back), 0)
+        self.assertGreater(back[0][2], back[0][0])  # donuste sonraki renk
+
+    def test_pulse_starts_in_middle(self):
+        import klavye_rgb as core
+        z = core.zones_pulse(((255, 0, 0),), 0.10, 4)
+        self.assertGreater(z[1][0], z[0][0])
+        self.assertAlmostEqual(z[1][0], z[2][0])
+
+    def test_sparkle_flashes(self):
+        import klavye_rgb as core
+        sp = core.Sparkle(4, seed=1)
+        seen = set()
+        for _ in range(200):
+            z = sp.frame(self.PAL, 1 / 30.0, 0.5)
+            seen.update(i for i, c in enumerate(z) if max(c) > 200)
+        self.assertEqual(seen, {0, 1, 2, 3})
+
+    def test_engine_plays_zones_on_alienware(self):
+        import time
+        import klavye_rgb as core
+        ec = make(hid=FakeHid([V4]))
+        frames = []
+        ec.set_zones = lambda cols: frames.append(cols)
+        eng = core.Engine(ec)
+        for mode in ("nefes", "gecis", "gokkusagi", "nabiz", "tarayici", "kivilcim"):
+            frames.clear()
+            eng.settings = core.snapshot({"mode": mode, "brightness": 100, "modes": core.DEFAULTS["modes"]})
+            if not eng.is_alive():
+                eng.start()
+            time.sleep(0.3)
+            self.assertEqual(eng.error, "", mode)
+            self.assertTrue(frames and len(frames[-1]) == 4, mode)
+        eng.running = False
+        eng.join(2)
+
 
 class TestDetection(unittest.TestCase):
     def test_vendor(self):

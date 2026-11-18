@@ -5,7 +5,8 @@
 
 Clevo'da Control Center'in kendi kitapligi (InsydeDCHU.dll), MSI'da USB HID klavye (msi_klavye.py), Acer
 Predator/Nitro'da WMI (acer_predator.AcerGaming, 4 bolge) uzerinden klavye rengini ayarlar; motor icin hepsi ayni
-set_color(r, g, b) cagrisidir.
+set_color(r, g, b) cagrisidir. Bolgeli klavyede (Alienware 16X Aurora ve Acer: soldan saga 4 bolge, donanim.caps
+'kb_zones') zamanla degisen modlar bolge koreografisi olarak oynar ve set_zones(renkler) ile yazilir.
 Bu dosya motor ve donanim katmanidir; uygulama control_center.py ile baslar.
 """
 import colorsys
@@ -13,6 +14,7 @@ import ctypes
 import json
 import math
 import os
+import random
 import sys
 import threading
 import time
@@ -52,7 +54,13 @@ MODES = [
      "ölümde parlar. LoL ve Counter-Strike 2."),
     # Yalnizca bolgeli klavyede (Acer Predator/Nitro 4 bolge) listelenir: her bolgeye ayri sabit renk
     ("bolgeler", "Bölge renkleri", True, None, "Klavyenin dört bölgesi soldan sağa ayrı renkte sabit yanar."),
+    # Yalnizca bolgeli klavyede: bolgeler arasinda hareket eden koreografiler
+    ("tarayici", "Tarayıcı", True, "Hız",
+     "Parlak bir ışık kuyruğuyla bölgeler arasında sağa sola süzülür; her dönüşte sıradaki renk."),
+    ("kivilcim", "Kıvılcım", True, "Hız",
+     "Bölgeler rastgele anlarda paletteki bir renkle çakıp söner; arka plan hafif yanar."),
 ]
+ZONE_ONLY = ("bolgeler", "tarayici", "kivilcim")  # arayuz bunlari yalnizca bolgeli klavyede listeler
 MODE_IDS = [m[0] for m in MODES]
 SOURCES = [
     ("cpu_temp", "İşlemci sıcaklığı (40-95 °C)"),
@@ -86,6 +94,8 @@ DEFAULTS = {
         # skin: LoL'de Q/W/E/R renkleri secilen sampiyonun/skinin renk temasindan (lol_tema); palet yedektir
         "oyun": {"palette": GAME_PALETTE, "speed": 55, "keys": "lol", "skin": True},
         "bolgeler": {"palette": ["#ff0040", "#ff8a00", "#00e0ff", "#7a00ff"], "speed": 50},
+        "tarayici": {"palette": ["#ff0030", "#00e0ff", "#9d00ff"], "speed": 50},
+        "kivilcim": {"palette": ["#00e0ff", "#ff2bd6", "#ffffff", "#7a00ff"], "speed": 50},
     },
     "presets": {},
 }
@@ -236,6 +246,14 @@ class ScreenSampler:
         self.bmi = BITMAPINFOHEADER(40, self.W, -self.H, 1, 32, 0, 0, 0, 0, 0, 0)
 
     def color(self):
+        return self._dominant(self._grab(), 0, self.W)
+
+    def colors(self, n):
+        """Ekrani soldan saga n dikey seride boler; her serinin baskin rengi (bolgeli klavye icin)."""
+        raw = self._grab()
+        return tuple(self._dominant(raw, self.W * i // n, self.W * (i + 1) // n) for i in range(n))
+
+    def _grab(self):
         u, g = self.u, self.g
         sw, sh = u.GetSystemMetrics(0), u.GetSystemMetrics(1)
         screen = u.GetDC(None)
@@ -251,10 +269,13 @@ class ScreenSampler:
             g.DeleteObject(bmp)
             g.DeleteDC(mem)
             u.ReleaseDC(None, screen)
-        raw = bytes(self.buf)
+        return bytes(self.buf)
+
+    def _dominant(self, raw, x0, x1):
         tr = tg = tb = tw = 0.0
         lum = 0.0
-        for i in range(0, len(raw), 4):
+        idx = [(y * self.W + x) * 4 for y in range(self.H) for x in range(x0, x1)]
+        for i in idx:
             b, gr, r = raw[i], raw[i + 1], raw[i + 2]
             mx, mn = max(r, gr, b), min(r, gr, b)
             w = (mx - mn) * mx / 65025.0 + 0.02  # canli pikseller daha agir basar
@@ -265,7 +286,7 @@ class ScreenSampler:
             lum += mx
         r, gr, b = tr / tw / 255.0, tg / tw / 255.0, tb / tw / 255.0
         h, s, v = colorsys.rgb_to_hsv(r, gr, b)
-        avg = lum / (self.W * self.H) / 255.0
+        avg = lum / max(1, len(idx)) / 255.0
         s = clamp(s * 1.5)
         v = clamp(max(0.06, min(1.0, avg * 1.6 + 0.1)))
         r, gr, b = colorsys.hsv_to_rgb(h, s, v)
@@ -613,6 +634,116 @@ def efficiency_thread():
         return False
 
 
+# ----------------------------------------------------------------------------- bolge koreografileri
+# Bolgeli klavyede (soldan saga n bolge) zamanla degisen modlar bolgeler arasinda bir hareket olarak oynar.
+# Islevler saftir: zamana/olcume gore n renk dondurur; yazma seyreltmesi (should_send) bolge demetlerinde de calisir.
+BREATH_LAG = 0.12      # nefes dalgasi: komsu bolge nefese bu kadar tur sonra baslar (soldan saga yuvarlanir)
+FLOW_LAG = 0.5         # renk akisi: komsu bolge paletin yarim renk gerisinden gelir (renkler saga akar)
+RAINBOW_SPREAD = 0.08  # gokkusagi dalgasi: komsu bolgeler arasi ton farki (renk cemberinin orani)
+PULSE_LAG = 0.05       # nabiz: vurus ortadan kenarlara bu kadar gecikmeyle (tur) yayilir
+DIM = 0.06             # sonuk bolgelerin taban parlakligi: tamamen sonmesin, tuslar okunabilir kalsin
+
+
+def zone_count(kb):
+    """Klavyenin bolge sayisi (2 ve ustu) ya da 0 (tek renk). set_zones yoksa bolge yazilamaz."""
+    if not hasattr(kb, "set_zones"):
+        return 0
+    try:
+        n = donanim.caps(kb).get("kb_zones")
+    except Exception:
+        return 0
+    return n if isinstance(n, int) and not isinstance(n, bool) and n >= 2 else 0
+
+
+def breath_env(x):
+    return 0.03 + 0.97 * math.sin(math.pi * (x % 1.0)) ** 2
+
+
+def pulse_env(x):
+    x %= 1.0
+    return max(math.exp(-((x - 0.12) / 0.05) ** 2), 0.65 * math.exp(-((x - 0.34) / 0.07) ** 2))
+
+
+def zones_breath(pal, phase, n):
+    """Nefes dalgasi: soldaki bolge once nefes alir, dalga saga yuvarlanir; renk her bolgenin kendi nefesinde."""
+    pal = pal or ((255, 255, 255),)
+    return tuple(scale(pal[int(p) % len(pal)], breath_env(p)) for p in (phase - i * BREATH_LAG for i in range(n)))
+
+
+def zones_flow(pal, phase, n):
+    """Renk akisi: palet soldan saga akar."""
+    return tuple(sample(pal, phase - i * FLOW_LAG, True) for i in range(n))
+
+
+def zones_rainbow(phase, n):
+    """Gokkusagi dalgasi: tonlar soldan saga kayar."""
+    out = []
+    for i in range(n):
+        r, g, b = colorsys.hsv_to_rgb((phase - i * RAINBOW_SPREAD) % 1.0, 1.0, 1.0)
+        out.append((r * 255, g * 255, b * 255))
+    return tuple(out)
+
+
+def zones_pulse(pal, phase, n):
+    """Nabiz: kalp atisi ortadaki bolgelerden kenarlara yayilir."""
+    pal = pal or ((255, 0, 0),)
+    mid = (n - 1) / 2.0
+    out = []
+    for i in range(n):
+        p = phase - abs(i - mid) / max(mid, 1.0) * PULSE_LAG
+        out.append(scale(pal[int(p) % len(pal)], 0.06 + 0.94 * pulse_env(p)))
+    return tuple(out)
+
+
+def zones_meter(pal, level, n):
+    """Gosterge cubugu (ses, sistem): deger soldan saga bolgeleri doldurur. Her bolge paletteki kendi yerinin
+    rengini alir (sol ilk renk, sag son renk); dolmamis bolgeler sonuk yanar."""
+    fill = clamp(level) * n
+    return tuple(scale(sample(pal, (i + 0.5) / n, False), DIM + (1 - DIM) * clamp(fill - i)) for i in range(n))
+
+
+def zones_scanner(pal, phase, n):
+    """Tarayici: parlak bir isik kuyruguyla bolgeler arasinda gidip gelir; her donuste sonraki renk."""
+    pal = pal or ((255, 0, 0),)
+    leg = int(phase)                         # her tur bir yon: cift turda soldan saga, tek turda sagdan sola
+    x = (1 - math.cos(math.pi * (phase - leg))) / 2  # uclarda yavaslar
+    pos = x * (n - 1) if leg % 2 == 0 else (1 - x) * (n - 1)
+    col = pal[leg % len(pal)]
+    return tuple(scale(col, max(DIM * 0.6, clamp(1 - abs(i - pos) / 1.3) ** 1.6)) for i in range(n))
+
+
+class Sparkle:
+    """Kivilcim: her bolge kendi rastgele aninda paletteki bir renkle cakar ve ustel olarak soner."""
+
+    def __init__(self, n, seed=None):
+        self.rng = random.Random(seed)
+        self.n = n
+        self.level = [0.0] * n
+        self.color = [(0, 0, 0)] * n
+        self.wait = [self.rng.uniform(0.0, 1.0) for _ in range(n)]
+
+    def frame(self, pal, dt, every):
+        """every: bir bolgenin ortalama cakma araligi (sn). Donus: n renk."""
+        pal = pal or ((255, 255, 255),)
+        decay = math.exp(-dt / max(every * 0.35, 0.05))
+        base = scale(pal[0], DIM)
+        out = []
+        for i in range(self.n):
+            self.wait[i] -= dt / every
+            self.level[i] *= decay
+            if self.wait[i] <= 0:
+                self.wait[i] = self.rng.uniform(0.5, 1.5)
+                self.level[i] = 1.0
+                self.color[i] = pal[self.rng.randrange(len(pal))]
+            out.append(mix(base, self.color[i], self.level[i]))
+        return tuple(out)
+
+
+def zones_mean(zones):
+    n = float(len(zones))
+    return (sum(z[0] for z in zones) / n, sum(z[1] for z in zones) / n, sum(z[2] for z in zones) / n)
+
+
 # ----------------------------------------------------------------------------- motor
 class Engine(threading.Thread):
     FPS = 30
@@ -652,6 +783,8 @@ class Engine(threading.Thread):
         sys_val, sys_target, sys_at = 0.0, 0.0, 0.0
         scr, scr_target, scr_at = (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), 0.0
         sent, sent_at = None, 0.0
+        nz = zone_count(self.kb)  # bolge sayisi calisirken degismez
+        sparkle = None
         last = time.monotonic()
         while self.running:
             now = time.monotonic()
@@ -687,24 +820,39 @@ class Engine(threading.Thread):
                     self.info = ""
                 elif mode == "nefes":
                     phase += dt / period(speed, 9.0, 1.0)
-                    x = phase % 1.0
-                    env = 0.03 + 0.97 * math.sin(math.pi * x) ** 2
-                    col = scale(pal[int(phase) % len(pal)] if pal else (255, 255, 255), env)
+                    col = scale(pal[int(phase) % len(pal)] if pal else (255, 255, 255), breath_env(phase))
+                    if nz:
+                        zones = zones_breath(pal, phase, nz)
                     self.info = ""
                 elif mode == "gecis":
                     phase += dt / period(speed, 12.0, 0.4)
                     col = sample(pal, phase, True)
+                    if nz:
+                        zones = zones_flow(pal, phase, nz)
                     self.info = ""
                 elif mode == "gokkusagi":
                     phase += dt / rainbow_period(speed)
                     r, g, b = colorsys.hsv_to_rgb(phase % 1.0, 1.0, 1.0)
                     col = (r * 255, g * 255, b * 255)
+                    if nz:
+                        zones = zones_rainbow(phase, nz)
                     self.info = ""
                 elif mode == "nabiz":
                     phase += dt / period(speed, 2.2, 0.45)
-                    x = phase % 1.0
-                    env = max(math.exp(-((x - 0.12) / 0.05) ** 2), 0.65 * math.exp(-((x - 0.34) / 0.07) ** 2))
-                    col = scale(pal[int(phase) % len(pal)] if pal else (255, 0, 0), 0.06 + 0.94 * env)
+                    col = scale(pal[int(phase) % len(pal)] if pal else (255, 0, 0), 0.06 + 0.94 * pulse_env(phase))
+                    if nz:
+                        zones = zones_pulse(pal, phase, nz)
+                    self.info = ""
+                elif mode == "tarayici":  # bolgesiz klavyede (eski ayar) ortalama renk tek renk olarak yanar
+                    phase += dt / period(speed, 3.0, 0.45)
+                    zones = zones_scanner(pal, phase, nz or 4)
+                    col = zones_mean(zones)
+                    self.info = ""
+                elif mode == "kivilcim":
+                    if sparkle is None:
+                        sparkle = Sparkle(nz or 4)
+                    zones = sparkle.frame(pal, dt, period(speed, 2.5, 0.3))
+                    col = zones_mean(zones)
                     self.info = ""
                 elif mode == "ses" and split:
                     if music is None:
@@ -712,6 +860,8 @@ class Engine(threading.Thread):
                     lv = music.levels(dt, period(speed, 1.2, 0.08))
                     level = max(lv[p] for p in parts)
                     col = scale(sample(pal, level, False), 0.12 + 0.88 * level)
+                    if nz:
+                        zones = zones_meter(pal, level, nz)
                     value = level
                     self.parts = {p: round(lv[p], 3) for p in parts}
                     self.info = " · ".join("%s %s" % (ceviri.t("part." + p), ceviri.pct(round(lv[p] * 100)))
@@ -727,6 +877,8 @@ class Engine(threading.Thread):
                     fall = period(speed, 1.2, 0.08)
                     level = x if x > level else max(x, level - dt / fall)
                     col = scale(sample(pal, level, False), 0.12 + 0.88 * level)
+                    if nz:
+                        zones = zones_meter(pal, level, nz)
                     value = level
                     self.info = ceviri.t("info.audio", v=ceviri.pct(round(p * 100)))
                 elif mode == "sistem":
@@ -746,16 +898,25 @@ class Engine(threading.Thread):
                                 sys_target, self.info = clamp((cpu - 40) / 55.0), ceviri.t("info.cpuTemp", t=int(cpu))
                     sys_val += (sys_target - sys_val) * min(1.0, dt * 2.0)
                     col = sample(pal, sys_val, False)
+                    if nz:
+                        zones = zones_meter(pal, sys_val, nz)
                     value = sys_val
                 elif mode == "ekran":
                     if now - scr_at > 0.12:
                         scr_at = now
                         if screen is None:
                             screen = ScreenSampler()
-                        scr_target = screen.color()
+                        scr_target = screen.colors(nz) if nz else screen.color()  # bolgeli: ekranin seritleri
                     k = min(1.0, dt / period(speed, 1.5, 0.05))
-                    scr = mix(scr, scr_target, k)
-                    col = scr
+                    if nz:
+                        if not isinstance(scr[0], tuple) or len(scr) != nz or len(scr_target) != nz:
+                            scr = scr_target if len(scr_target) == nz else tuple((0.0, 0.0, 0.0) for _ in range(nz))
+                        scr = tuple(mix(a, b, k) for a, b in zip(scr, scr_target))
+                        zones = scr
+                        col = zones_mean(scr)
+                    else:
+                        scr = mix(scr, scr_target, k)
+                        col = scr
                     self.info = ""
                 elif mode == "oyun":
                     if game is None:
@@ -769,6 +930,8 @@ class Engine(threading.Thread):
                 self.current = out
                 self.value = value
                 self.warn = warn
+                if zones is not None and not hasattr(self.kb, "set_zones"):
+                    zones = None
                 key = out if zones is None else tuple(
                     tuple(int(clamp(c * bright / 255.0) * 255 + 0.5) for c in z) for z in zones)
                 if now - fs_at > 2.0:  # tam ekran durumu 2 sn'de bir sorulur (ucuz bir kabuk cagrisi)
