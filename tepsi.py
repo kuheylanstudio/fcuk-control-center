@@ -303,15 +303,20 @@ class Tray:
         except (OSError, ValueError):
             self._osd_later(t("osd.kbLight"), t("tray.engineDown"), state=False)
 
-    def _touchpad(self):
-        time.sleep(0.4)  # donanim cevirsin, Windows durumu yazsin
-        on = fntus.touchpad_enabled()
+    def _touchpad(self, want=None):
+        if want is None:
+            time.sleep(0.4)  # donanim cevirsin, Windows durumu yazsin
+            on = fntus.touchpad_enabled()
+        else:
+            on = fntus.set_touchpad(want)
         self._osd_later(t("osd.touchpad"), "" if on is None else t("osd.on" if on else "osd.off"), state=on)
 
     def fn_key(self, code):
         bg = lambda f, *a: threading.Thread(target=f, args=a, daemon=True).start()
         if code == fntus.FN_TOUCHPAD:
             bg(self._touchpad)
+        elif code in (fntus.FN_TOUCHPAD_OFF, fntus.FN_TOUCHPAD_ON):
+            bg(self._touchpad, code == fntus.FN_TOUCHPAD_ON)
         elif code == fntus.FN_SCREEN_OFF:
             bg(fntus.screen_off)
         elif code == fntus.FN_CAMERA_OFF:

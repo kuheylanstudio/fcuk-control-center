@@ -27,7 +27,11 @@ IOCTL_WAIT_EVENT = 0x322404
 IOCTL_GET_NOTIFY_VALUE = 0x322408
 
 # Fn kodlari (Monster Abra A5 V21.1)
-FN_TOUCHPAD = 0x5D      # Fn+F1 (touchpad'i donanim cevirir)
+FN_TOUCHPAD = 0x5D      # Fn+F1, eski davranis (touchpad'i donanim cevirir)
+# Fn+F1, 18.11.2026 olcumu: denetleyici yalnizca istenen durumu bildirir, ceviren yok (Monster'da FnKey.exe
+# yapiyordu). Biz Windows'un touchpad kisayoluyla uygulariz.
+FN_TOUCHPAD_OFF = 0xFC
+FN_TOUCHPAD_ON = 0xFD
 FN_SCREEN_OFF = 0xD7    # Fn+F2
 FN_MUTE = 0xFB          # Fn+F3 (Windows'un kendi OSD'si var)
 FN_VOLUME = 0xFA        # Fn+F5/F6 (Windows'un kendi OSD'si var)
@@ -429,6 +433,31 @@ def touchpad_enabled():
             return bool(winreg.QueryValueEx(k, "Enabled")[0])
     except OSError:
         return None
+
+
+u32.keybd_event.argtypes = [wt.BYTE, wt.BYTE, wt.DWORD, ctypes.c_size_t]
+
+
+def _touchpad_hotkey():
+    """Win+Ctrl+F24: Windows'un hassas touchpad ac/kapa kisayolu (ureticilerin Fn tusu da bunu gonderir)."""
+    for vk in (0x5B, 0x11, 0x87):
+        u32.keybd_event(vk, 0, 0, 0)
+    for vk in (0x87, 0x11, 0x5B):
+        u32.keybd_event(vk, 0, 2, 0)  # KEYEVENTF_KEYUP
+
+
+def set_touchpad(on):
+    """Touchpad'i istenen duruma getirir; son durumu dondurur (bilinmiyorsa None)."""
+    cur = touchpad_enabled()
+    if cur is None or cur == on:
+        return cur
+    _touchpad_hotkey()
+    for _ in range(10):  # Windows durumu kayda yazana kadar
+        time.sleep(0.1)
+        cur = touchpad_enabled()
+        if cur == on:
+            break
+    return cur
 
 
 def screen_off():
