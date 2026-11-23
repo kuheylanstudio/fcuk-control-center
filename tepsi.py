@@ -14,9 +14,11 @@ import ctypes
 import json
 import os
 import shutil
+import socket
 import sys
 import threading
 import time
+import urllib.parse
 import urllib.request
 from ctypes import wintypes as wt
 
@@ -89,6 +91,8 @@ u32.RegisterClassExW.restype = wt.ATOM
 u32.CreateWindowExW.argtypes = [wt.DWORD, wt.LPCWSTR, wt.LPCWSTR, wt.DWORD, ctypes.c_int, ctypes.c_int,
                                 ctypes.c_int, ctypes.c_int, wt.HWND, wt.HMENU, wt.HINSTANCE, wt.LPVOID]
 u32.CreateWindowExW.restype = wt.HWND
+u32.FindWindowW.argtypes = [wt.LPCWSTR, wt.LPCWSTR]
+u32.FindWindowW.restype = wt.HWND
 u32.RegisterWindowMessageW.argtypes = [wt.LPCWSTR]
 u32.RegisterHotKey.argtypes = [wt.HWND, ctypes.c_int, wt.UINT, wt.UINT]
 u32.UnregisterHotKey.argtypes = [wt.HWND, ctypes.c_int]
@@ -131,6 +135,10 @@ def load_icon():
 
 
 # ----------------------------------------------------------------------------- motorla konusma
+def is_running():
+    return bool(u32.FindWindowW(TRAY_CLASS, None))
+
+
 class Api:
     def __init__(self, base):
         self.base = base
@@ -145,6 +153,18 @@ class Api:
                                      headers={"Content-Type": "application/json"})
         with self.opener.open(req, timeout=timeout) as r:
             return json.loads(r.read().decode("utf-8"))
+
+    def engine_gone(self):
+        """Motor GERCEKTEN yok mu: baglanti reddediliyor. Gec yanit (uyanma, yogun sistem) 'yok' demek degildir.
+        Windows 127.0.0.1'de reddi ~2 sn'de bildirir: bu yuzden istekten (1,5 sn) uzun beklenir."""
+        u = urllib.parse.urlsplit(self.base)
+        try:
+            socket.create_connection((u.hostname, u.port), timeout=4).close()
+        except ConnectionRefusedError:
+            return True
+        except OSError:
+            pass
+        return False
 
 
 # ----------------------------------------------------------------------------- tepsi
@@ -198,12 +218,13 @@ class Tray:
         # Fn dinleyicisi yalnizca Clevo/Monster koprusu (ACPI\CLV) varsa: HP'de kopru aranmaz bile, diger
         # markalarda (Lenovo, MSI...) Clevo kodu calismaz
         self.fn = None
+        self.tp_lock = threading.Lock()
         try:
             clevo = hw.vendor_kind() is None and hw.clevo_present()
         except Exception:
             clevo = False
         if clevo:
-            self.fn = fntus.Listener(lambda code: u32.PostMessageW(self.hwnd, WM_FNKEY, code, 0))
+            self.fn = fntus.Listener(self._on_fn)
             self.fn.start()
         # Oyun ici gosterge ve genel kisayol tuslari (her markada)
         self.overlay = None
@@ -303,20 +324,34 @@ class Tray:
         except (OSError, ValueError):
             self._osd_later(t("osd.kbLight"), t("tray.engineDown"), state=False)
 
-    def _touchpad(self, want=None):
-        if want is None:
-            time.sleep(0.4)  # donanim cevirsin, Windows durumu yazsin
-            on = fntus.touchpad_enabled()
+    def _on_fn(self, code):
+        """Dinleyici is parcaciginda. Touchpad pencere kuyrugunu beklemez (Gezgin takilirsa kuyruk da takilir)."""
+        if code in (fntus.FN_TOUCHPAD_OFF, fntus.FN_TOUCHPAD_ON):
+            threading.Thread(target=self._touchpad_toggle, daemon=True).start()
         else:
-            on = fntus.set_touchpad(want)
+            u32.PostMessageW(self.hwnd, WM_FNKEY, code, 0)
+
+    def _touchpad_toggle(self):
+        def via_engine():  # yonetici: on plandaki yonetici penceresinde de calisir
+            r = self.api.post("/api/touchpad", {}, timeout=3)
+            if not r.get("ok"):
+                raise OSError("motor: %r" % r)
+
+        with self.tp_lock:  # art arda basislar sirayla: her biri bir oncekinin sonucunu cevirir
+            on = fntus.toggle_touchpad([via_engine, fntus.press_touchpad_hotkey])
+        self._show_touchpad(on)
+
+    def _touchpad(self):
+        time.sleep(0.4)  # donanim cevirsin, Windows durumu yazsin
+        self._show_touchpad(fntus.touchpad_enabled())
+
+    def _show_touchpad(self, on):
         self._osd_later(t("osd.touchpad"), "" if on is None else t("osd.on" if on else "osd.off"), state=on)
 
     def fn_key(self, code):
         bg = lambda f, *a: threading.Thread(target=f, args=a, daemon=True).start()
         if code == fntus.FN_TOUCHPAD:
             bg(self._touchpad)
-        elif code in (fntus.FN_TOUCHPAD_OFF, fntus.FN_TOUCHPAD_ON):
-            bg(self._touchpad, code == fntus.FN_TOUCHPAD_ON)
         elif code == fntus.FN_SCREEN_OFF:
             bg(fntus.screen_off)
         elif code == fntus.FN_CAMERA_OFF:
@@ -397,11 +432,17 @@ class Tray:
                 self.seen_engine = True
                 self.down_since = None
                 self._show_notices()
-            except (OSError, ValueError):
+            except Exception:  # yarim yanit (HTTPException) da dahil: yoklayici olmesin
                 self.state = None
-                self.down_since = self.down_since or time.monotonic()
                 # Motor kapatildiysa (arayuzden "Cik") simge de gider. Bekcinin yeniden baslatmasi ~3 sn surer.
-                if self.seen_engine and time.monotonic() - self.down_since > 8:
+                # Yalnizca REDDEDILEN baglanti ve yalnizca uyanik gecen sure sayilir: uyanirken geciken motor
+                # yuzunden tepsi kapanir, Fn tuslari da onunla olurdu.
+                if not (self.seen_engine and self.api.engine_gone()):
+                    self.down_since = None
+                elif self.down_since is None:
+                    self.down_since = fntus.awake_seconds()
+                elif fntus.awake_seconds() - self.down_since > 8:
+                    fntus.log("motor kapali, tepsi kapaniyor")
                     u32.PostMessageW(self.hwnd, WM_CLOSE_TRAY, 0, 0)
                     return
             u32.PostMessageW(self.hwnd, WM_REFRESH, 0, 0)

@@ -228,10 +228,18 @@ class DCHU:
 
     def support(self):
         """{ozellik: {"state": ok|partial|no, "why": metin, ...}}: ilk cagride okunarak yoklanir."""
-        if self._support is None:
+        s = self._support
+        if s is None:
             import destek
-            self._support = destek.clevo(self)
-        return self._support
+            s = self._support = destek.clevo(self)
+        return s
+
+    def enable_fn_events(self):
+        """Fn bildirimlerini acar (0x46). Acilista / uyanirken bir kez yanit vermeyen denetleyici motor kapanana
+        dek 'yok' sayilmasin: o durumda once yeniden, yine yalnizca okuyarak yoklanir."""
+        if self.support()["ec"]["state"] == "no":
+            self._support = None
+        self.set_wmi(0x46, 0)
 
     def _need(self, feature):
         """Ozellik bu modelde yoksa Unsupported (denetleyiciye hicbir sey gonderilmeden)."""

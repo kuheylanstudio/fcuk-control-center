@@ -33,6 +33,7 @@ import ceviri
 import destek
 import donanim as hw
 import envanter
+import fntus
 import guncelleme
 import kayit
 import islemci
@@ -1067,6 +1068,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"error": t("err.rate")}, 400)
             ok = App.display.set_rate(hz)
             return self._json({"ok": ok, "hz": App.display.current()[2]})
+        if path == "/api/touchpad":  # Fn+F1 (tepsi surecinden): yalnizca sabit Win+Ctrl+F24 gonderilir.
+            # Motor yonetici: on plandaki pencere de yoneticiyken (Gorev Yoneticisi, kimi oyunlar) tepsinin
+            # gonderdigi tuslari Windows (UIPI) sessizce atar.
+            fntus.press_touchpad_hotkey()
+            return self._json({"ok": True})
         if path == "/api/kb":  # Fn klavye isigi tuslari (tepsi surecinden)
             act = body.get("action")
             with App.lock:
@@ -1409,15 +1415,13 @@ def serve():
     App.inventory = envanter.Inventory()
     App.inventory.start()
     App.nvapi = nvidia.NvApi()
-    # Fn tusu olaylarini ac (Clevo "events enabled", komut 0x46). Bunu eskiden FnKey.exe acilista yapiyordu;
-    # gonderilmezse denetleyici Fn bildirimlerini AcpiBridge'e iletmez (14.11.2026 olculdu). Yeniden
-    # baslatmaya dek kalicidir; her acilista gonderilir. Denetleyici Clevo komut setine yanit vermiyorsa
-    # DCHU bunu Unsupported ile reddeder (destek.py).
-    if App.dchu.available and getattr(App.dchu, "kind", "clevo") == "clevo":
-        try:
-            App.dchu.set_wmi(0x46, 0)
-        except Exception:
-            pass
+    # Fn tusu olaylarini acik tut (Clevo "events enabled", komut 0x46). Bunu eskiden FnKey.exe yapiyordu;
+    # gonderilmezse denetleyici Fn bildirimlerini AcpiBridge'e iletmez ve izni her uykuda unutur
+    # (fntus.EventKeeper). Denetleyici Clevo komut setine yanit vermiyorsa DCHU bunu Unsupported ile
+    # reddeder (destek.py).
+    clevo_fn = App.dchu.available and getattr(App.dchu, "kind", "clevo") == "clevo"
+    if clevo_fn:
+        fntus.EventKeeper(App.dchu.enable_fn_events, log).start()
     try:
         App.server = Server(("127.0.0.1", PORT), Handler)
     except OSError as exc:
@@ -1473,6 +1477,8 @@ def serve():
                      args=(lambda: App.cfg.get("update_mode", "auto"), lambda: App.engine.running)).start()
     if hw.is_admin() and App.dchu.available and getattr(App.dchu, "kind", "clevo") == "clevo":  # yalnizca Clevo/Monster: Monster Fn programlari engellenir
         threading.Thread(target=fn_block_loop, daemon=True).start()
+    if clevo_fn and FROZEN and hw.is_admin():  # Fn tuslarini tepsi sureci dinler: o yoksa tuslar olu
+        threading.Thread(target=tray_guard_loop, daemon=True).start()
     threading.Thread(target=startup_profile, args=(cc,), daemon=True).start()
     App.server.serve_forever()
     App.server.server_close()
@@ -1597,6 +1603,22 @@ def cc_guard_once():
     except Exception:
         log("CC engeli hatasi: " + traceback.format_exc().replace("\n", " | "))
         return False
+
+
+def tray_guard_loop():
+    """Tepsi sureci kapanmis / cokmusse normal yetkili goreviyle geri getirir (yonetici motor onu dogrudan
+    baslatirsa simge de yonetici olur, tiklamalar engellenir)."""
+    import tepsi
+    while True:
+        time.sleep(30)
+        if not App.engine.running:
+            return
+        try:
+            if not tepsi.is_running():
+                rc, out = hw.run(["schtasks", "/run", "/tn", TASK_TRAY])
+                log("tepsi yoktu, yeniden baslatildi (kod %d) %s" % (rc, out if rc else ""))
+        except Exception as exc:
+            log("tepsi bekcisi: %r" % exc)
 
 
 def fn_block_loop():

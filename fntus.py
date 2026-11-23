@@ -7,8 +7,12 @@ Kanal: AcpiBridge surucusu (ACPI\\CLV0001, arayuz {86994c74-...}). Denetleyici b
 ACPI bildirimi uretir; surucu bunu kayitli olaya isaret eder, deger IOCTL_ACPIBIOS_GET_NOTIFY_VALUE ile okunur.
 (Kodlar ve IOCTL'ler Monster'in DCHUService.exe'sinden ve 14.11.2026 tus denemelerinden.)
 
-Olculen davranis: touchpad, kamera, ucak modu, ses ve parlaklik tuslarini donanim/Windows KENDISI yapar;
-bize yalnizca bildirim gelir. Klavye isigi tuslarini ise bizim RGB motorumuz uygular (yoksa motor ezer).
+Denetleyici bu bildirimleri yalnizca 0x46 ("events enabled") komutundan sonra yollar ve izni uykuda (S3),
+hazirda beklemede UNUTUR (22.11.2026, fn.log: uykudan motor yeniden baslayana dek sifir kod). Bu yuzden
+motor komutu EventKeeper ile yeniler.
+
+Olculen davranis: kamera, ucak modu, ses ve parlaklik tuslarini donanim/Windows KENDISI yapar, touchpad'i
+biz ceviririz; digerlerinde bize yalnizca bildirim gelir. Klavye isigi tuslarini ise bizim RGB motorumuz uygular (yoksa motor ezer).
 Bu modul normal yetkili tepsi surecinde calisir (OSD kullanici masaustunde gorunmeli).
 """
 import ctypes
@@ -28,8 +32,9 @@ IOCTL_GET_NOTIFY_VALUE = 0x322408
 
 # Fn kodlari (Monster Abra A5 V21.1)
 FN_TOUCHPAD = 0x5D      # Fn+F1, eski davranis (touchpad'i donanim cevirir)
-# Fn+F1, 18.11.2026 olcumu: denetleyici yalnizca istenen durumu bildirir, ceviren yok (Monster'da FnKey.exe
-# yapiyordu). Biz Windows'un touchpad kisayoluyla uygulariz.
+# Fn+F1: denetleyici sirayla FC / FD yollar, ceviren yok (Monster'da FnKey.exe yapiyordu). Koddaki yone
+# GUVENILMEZ: denetleyicinin sayaci uyku, yeniden baslatma ya da Ayarlar'dan degisiklikte Windows'un gercek
+# durumundan kayar ve basis bosa giderdi. Iki kod da "cevir" demektir.
 FN_TOUCHPAD_OFF = 0xFC
 FN_TOUCHPAD_ON = 0xFD
 FN_SCREEN_OFF = 0xD7    # Fn+F2
@@ -54,6 +59,8 @@ k32.WaitForSingleObject.restype = wt.DWORD
 k32.CloseHandle.argtypes = [ctypes.c_void_p]
 k32.GetModuleHandleW.argtypes = [wt.LPCWSTR]
 k32.GetModuleHandleW.restype = wt.HMODULE
+k32.GetTickCount64.restype = ctypes.c_ulonglong
+k32.QueryUnbiasedInterruptTime.argtypes = [ctypes.POINTER(ctypes.c_ulonglong)]
 sapi.SetupDiGetClassDevsW.restype = ctypes.c_void_p
 sapi.SetupDiGetClassDevsW.argtypes = [ctypes.c_void_p, wt.LPCWSTR, wt.HWND, wt.DWORD]
 sapi.SetupDiEnumDeviceInterfaces.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, wt.DWORD, ctypes.c_void_p]
@@ -73,6 +80,77 @@ def log(msg):
             f.write("%s %s\n" % (time.strftime("%d.%m %H:%M:%S"), msg))
     except Exception:
         pass
+
+
+# ----------------------------------------------------------------------------- uyku / uyanma
+def awake_seconds():
+    """Acilistan beri UYANIK gecen sure (uyku ve hazirda bekleme sayilmaz)."""
+    v = ctypes.c_ulonglong()
+    k32.QueryUnbiasedInterruptTime(ctypes.byref(v))
+    return v.value / 1e7
+
+
+def slept_seconds():
+    return k32.GetTickCount64() / 1000.0 - awake_seconds()
+
+
+class WakeWatch:
+    """Guc olayi gerektirmeden uyanmayi yakalar: toplam uyku suresi artmissa makine uyuyup uyanmistir
+    (S3, S0 bekleme, hazirda bekleme, hizli baslatma)."""
+
+    def __init__(self, slept=None):
+        self.slept = slept or slept_seconds
+        self.last = self.slept()
+
+    def woke(self):
+        cur = self.slept()
+        if cur - self.last > 1.0:
+            self.last = cur
+            return True
+        return False
+
+
+class EventKeeper(threading.Thread):
+    """Motorda calisir: Fn bildirim iznini (0x46) acilista ve her uyanmada arka arkaya, ayrica surekli
+    EVERY saniyede bir yeniler. Komut ~12 ms, sahte tus uretmez (22.11.2026 olculdu)."""
+    BURST = (0, 1, 3, 7, 15, 30)  # uyanirken denetleyici / surucu hemen hazir olmayabilir
+    EVERY = 30
+
+    def __init__(self, send, report, watch=None, clock=time.monotonic):
+        super().__init__(daemon=True)
+        self.send, self.report, self.clock = send, report, clock
+        self.watch = watch or WakeWatch()
+        self.error = None
+        self._plan()
+
+    def _plan(self):
+        now = self.clock()
+        self.due = [now + d for d in self.BURST]
+
+    def step(self):
+        if self.watch.woke():
+            self._plan()
+            self.report("uyanma algilandi, Fn olaylari yeniden aciliyor")
+        now = self.clock()
+        if now < self.due[0]:
+            return
+        self.due = [d for d in self.due if d > now] or [now + self.EVERY]
+        try:
+            self.send()
+            error = None
+        except Exception as exc:
+            error = repr(exc)
+        if error != self.error:  # yalnizca degisim yazilir
+            self.report("Fn olaylari acilamadi: " + error if error else "Fn olaylari yeniden acildi")
+            self.error = error
+
+    def run(self):
+        while True:
+            try:
+                self.step()
+            except Exception as exc:
+                self.report("Fn bekcisi hatasi: %r" % exc)
+            time.sleep(1)
 
 
 class _GUID(ctypes.Structure):
@@ -113,6 +191,7 @@ class Listener(threading.Thread):
         super().__init__(daemon=True)
         self.on_key = on_key
         self.running = True
+        self.watch = WakeWatch()
 
     def run(self):
         while self.running:
@@ -126,6 +205,7 @@ class Listener(threading.Thread):
 
     wait = 3
     _missing = False
+    _found = False  # kopru bir kez goruldu: bu bir Clevo, kaybolursa seyrek degil sik aranir
 
     def _session(self):
         path = bridge_path()
@@ -133,9 +213,10 @@ class Listener(threading.Thread):
             if not self._missing:
                 log("kopru aygiti bulunamadi (Clevo/Monster degilse Fn tuslari Windows'a ve ureticiye kalir)")
             self._missing = True
-            self.wait = min(self.wait * 2, 60)
+            self.wait = 1 if self._found else min(self.wait * 2, 60)
             return
         self._missing = False
+        self._found = True
         self.wait = 3
         h = k32.CreateFileW(path, 0xC0000000, 3, None, 3, 0, None)
         if not h or h == ctypes.c_void_p(-1).value:
@@ -152,6 +233,11 @@ class Listener(threading.Thread):
             while self.running:
                 r = k32.WaitForSingleObject(ev, 1000)
                 if r == 0x102:  # zaman asimi
+                    if self.watch.woke():
+                        # surucu uykuda olay kaydini dusurebilir, tutamac yine gecerli gorunur
+                        log("uyanma algilandi, kopru yeniden kaydediliyor")
+                        self.wait = 0.2
+                        return
                     continue
                 if r != 0:
                     return
@@ -446,18 +532,41 @@ def _touchpad_hotkey():
         u32.keybd_event(vk, 0, 2, 0)  # KEYEVENTF_KEYUP
 
 
-def set_touchpad(on):
-    """Touchpad'i istenen duruma getirir; son durumu dondurur (bilinmiyorsa None)."""
-    cur = touchpad_enabled()
-    if cur is None or cur == on:
-        return cur
-    _touchpad_hotkey()
-    for _ in range(10):  # Windows durumu kayda yazana kadar
-        time.sleep(0.1)
-        cur = touchpad_enabled()
-        if cur == on:
+u32.GetAsyncKeyState.argtypes = [ctypes.c_int]
+u32.GetAsyncKeyState.restype = ctypes.c_short
+
+
+def press_touchpad_hotkey():
+    """Shift / Alt basiliyken kisayol baska bir kisayola donusur: birakilmasi en cok 1 sn beklenir."""
+    for _ in range(20):
+        if not any(u32.GetAsyncKeyState(vk) < 0 for vk in (0x10, 0x12)):
             break
-    return cur
+        time.sleep(0.05)
+    _touchpad_hotkey()
+
+
+def toggle_touchpad(presses):
+    """Touchpad'in GERCEK durumunu cevirir. presses: sirayla denenecek gonderim yollari; biri durumu
+    degistirene dek surer. Durum okunamiyorsa ikinci deneme geri cevirebilir: ilk basarili gonderimde durulur.
+    Son durumu dondurur (bilinmiyorsa None)."""
+    before = touchpad_enabled()
+    for i, press in enumerate(presses):
+        try:
+            press()
+        except Exception as exc:
+            log("touchpad gonderim %d hatasi: %r" % (i + 1, exc))
+            if i + 1 < len(presses) and touchpad_enabled() == before:
+                continue
+        if before is None:
+            return touchpad_enabled()
+        for _ in range(20):  # Windows durumu kayda yazana kadar
+            time.sleep(0.1)
+            cur = touchpad_enabled()
+            if cur is not None and cur != before:
+                log("touchpad %s (yol %d)" % ("acik" if cur else "kapali", i + 1))
+                return cur
+    log("touchpad cevrilemedi")
+    return before
 
 
 def screen_off():

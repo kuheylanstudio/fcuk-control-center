@@ -488,9 +488,15 @@ class TestOpenDchu(unittest.TestCase):
         import re
         with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "control_center.py"), encoding="utf-8") as f:
             src = f.read()
-        self.assertRegex(src, r'if (?:App\.dchu\.available and )?(?:App\.dchu\.kind|getattr\(App\.dchu, "kind", "clevo"\)) == "clevo":\s*\n\s*try:\s*\n\s*App\.dchu\.set_wmi\(0x46')
+        self.assertRegex(src, r'clevo_fn = App\.dchu\.available and getattr\(App\.dchu, "kind", "clevo"\) == "clevo"\n'
+                              r'    if clevo_fn:\n        fntus\.EventKeeper\(App\.dchu\.enable_fn_events')
         self.assertRegex(src, r'(?:App\.dchu\.kind|getattr\(App\.dchu, "kind", "clevo"\)) == "clevo".*\n\s*threading\.Thread\(target=fn_block_loop')
-        self.assertEqual(len(re.findall(r"set_wmi\(0x46", src)), 1)
+        # 0x46'nin tek yolu: yukaridaki kosul -> DCHU.enable_fn_events
+        self.assertEqual(len(re.findall(r"clevo_fn =", src)), 1)
+        self.assertEqual(len(re.findall(r"enable_fn_events", src)), 1)
+        self.assertEqual(len(re.findall(r"set_wmi\(0x46", src)), 0)
+        with open(hw.__file__, encoding="utf-8") as f:
+            self.assertEqual(len(re.findall(r"set_wmi\(0x46", f.read())), 1)
 
     def test_asus_open_failure_is_null(self):
         with mock.patch.object(hw, "clevo_present", return_value=False), self._alien(), \

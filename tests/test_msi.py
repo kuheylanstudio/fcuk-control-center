@@ -434,8 +434,8 @@ class DetectTest(unittest.TestCase):
         with open(cc.__file__, encoding="utf-8") as f:
             src = f.read()
         # Clevo'ya ozel Fn olayi komutu ve IFEO engellemesi yalnizca kind == "clevo" iken
-        self.assertIn('App.dchu.available and getattr(App.dchu, "kind", "clevo") == "clevo":\n        try:\n'
-                      '            App.dchu.set_wmi(0x46, 0)', src)
+        self.assertIn('clevo_fn = App.dchu.available and getattr(App.dchu, "kind", "clevo") == "clevo"\n'
+                      '    if clevo_fn:\n        fntus.EventKeeper(App.dchu.enable_fn_events, log).start()', src)
 
     def test_kb_zones_any_caps_shape(self):
         # 2.4.0: state() caps'i sozluk sandi; Clevo'da caps bir yontem -> /api/state 500 (14.11.2026, Monster)
