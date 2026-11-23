@@ -894,6 +894,7 @@ class Handler(BaseHTTPRequestHandler):
         eng, sen = App.engine, App.sensors
         seq = -1
         theme = 0  # henuz gonderilmedi
+        sen.watch(True)  # pencere acik: sicaklik ve fan devri her saniye
         try:
             while eng.running:
                 v = eng.value
@@ -913,6 +914,8 @@ class Handler(BaseHTTPRequestHandler):
                 time.sleep(0.05)
         except OSError:
             pass
+        finally:
+            sen.watch(False)
 
     def do_POST(self):
         if not self._allowed():
@@ -1445,6 +1448,17 @@ def serve():
                                   lambda: App.manager.cfg.get("log_csv", False),
                                   lambda: (App.manager.applied, App.manager.app))
     App.sensors.listeners.append(App.recorder.tick)
+    mgr = App.manager
+    # Gosterge, CSV kaydi ya da isi bekcisi alarmi varken denetleyici durumu her saniye okunur
+    App.sensors.need_fast = lambda: bool(mgr.cfg.get("overlay") or mgr.cfg.get("log_csv")
+                                         or mgr.guard or mgr._hot or mgr._blind)
+
+    def engine_temps():  # klavye Sistem durumu modu: ikinci bir denetleyici okumasi yerine son olcum
+        snap = App.sensors.snapshot
+        if isinstance(snap.get("cpu_temp"), (int, float)):
+            return snap["cpu_temp"], snap.get("gpu_temp") or 0
+        return App.dchu.temps()
+    App.engine.temps = engine_temps
     App.battery = kayit.BatteryLog(os.path.join(data_dir(), "pil.json"))
     threading.Thread(target=App.battery.loop, args=(log,), daemon=True).start()
     App.engine.settings = core.snapshot(App.cfg)

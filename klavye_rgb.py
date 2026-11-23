@@ -751,6 +751,7 @@ class Engine(threading.Thread):
     def __init__(self, kb):
         super().__init__(daemon=True)
         self._wake = threading.Event()  # ayar degisince uyuyan donguyu hemen uyandirir
+        self.temps = None  # (cpu, gpu) veren islev; control_center sensorun son olcumunu baglar
         self.kb = kb
         # (mod, palet[(r,g,b)..], hiz 0..100, kaynak, parlaklik 0..1[, secenekler]) - arayuz tek seferde degistirir
         self.settings = ("sabit", ((255, 255, 255),), 50, "cpu_temp", 1.0)
@@ -891,7 +892,7 @@ class Engine(threading.Thread):
                             v = sysinfo.battery()
                             sys_target, self.info = v, ceviri.t("info.battery", v=ceviri.pct(round(v * 100)))
                         else:
-                            cpu, gpu = self.kb.temps()
+                            cpu, gpu = (self.temps or self.kb.temps)()
                             if source == "gpu_temp":
                                 sys_target, self.info = clamp((gpu - 40) / 45.0), ceviri.t("info.gpuTemp", t=int(gpu))
                             else:

@@ -1032,8 +1032,13 @@ def base_mhz():
 
 
 class Sensors(threading.Thread):
-    """Saniyede bir tum olcumleri toplar; son 180 saniyelik gecmisi tutar."""
+    """Saniyede bir tum olcumleri toplar; son 180 saniyelik gecmisi tutar.
+    Denetleyici durumu (sicaklik, fan devri) pahalidir: Clevo'da tek okuma ~50 ms islemci (surucude ACPI/EC isi).
+    Kimse izlemiyorsa ve sistem serin / bostaysa STATUS_IDLE saniyede bir okunur, aradaki olcumler son degeri tasir.
+    Isinma ya da yuk baslarsa (yuk her saniye ucuz sayaclardan olculur) bir sonraki saniyede yeniden her saniye okunur."""
     HISTORY = 180
+    STATUS_IDLE = 5.0
+    WARM_CPU, WARM_GPU, BUSY_LOAD = 75, 70, 50  # bunlardan biri asilinca durum her saniye okunur
 
     def __init__(self, dchu):
         super().__init__(daemon=True)
@@ -1056,6 +1061,27 @@ class Sensors(threading.Thread):
         self.disk_ids = lambda: []  # envanter hazir olunca control_center baglar
         self.disks = {}
         self.error = ""
+        self.need_fast = lambda: False  # control_center baglar: gosterge, CSV kaydi, isi bekcisi alarmi
+        self._viewers = 0               # acik arayuz akislari (SSE)
+        self._vlock = threading.Lock()
+
+    def watch(self, on):
+        """Arayuz akisi acildi (True) / kapandi (False): pencere aciksa canli degerler her saniye okunur."""
+        with self._vlock:
+            self._viewers = max(0, self._viewers + (1 if on else -1))
+
+    def status_due(self, prev, since):
+        """Bu olcumde denetleyici durumu okunsun mu? prev: bir onceki olcum, since: son okumadan beri gecen sn."""
+        if since >= self.STATUS_IDLE or self._viewers > 0:
+            return True
+        try:
+            if self.need_fast():
+                return True
+        except Exception:
+            return True
+        num = lambda k: prev.get(k) if isinstance(prev.get(k), (int, float)) else 0
+        return (num("cpu_temp") >= self.WARM_CPU or num("gpu_temp") >= self.WARM_GPU
+                or num("cpu_load") >= self.BUSY_LOAD or bool(prev.get("gpu_active")))
 
     def _disk_health(self, now):
         """Disk sicakligi ve NVMe sagligi: 30 sn'de bir (IOCTL ucuz ama SMART gunlugu her saniye gereksiz)."""
@@ -1119,15 +1145,19 @@ class Sensors(threading.Thread):
                 pass
         last_t = time.monotonic()
         nv_awake_until = 0.0
+        hw, hw_at = {}, None  # son denetleyici durumu ve okundugu an
         while self.running:
             t0 = time.monotonic()
             dt = max(t0 - last_t, 0.001)
             last_t = t0
             s = {"t": time.time()}
-            try:
-                s.update(self.dchu.status())
-            except Exception as exc:  # denetleyici yanit vermezse olcum surer
-                s["dchu_error"] = str(exc)
+            if hw_at is None or self.status_due(self.snapshot, t0 - hw_at):
+                try:
+                    hw, hw_at = self.dchu.status(), t0
+                except Exception as exc:  # denetleyici yanit vermezse olcum surer; sonraki saniye yeniden denenir
+                    hw = {}
+                    s["dchu_error"] = str(exc)
+            s.update(hw)
             try:
                 c = pdh.collect()
                 perf, util, nom = c.get("perf", {}), c.get("util", {}), c.get("nominal", {})
