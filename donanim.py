@@ -85,6 +85,7 @@ TOOLS = {
     "powercfg": ("powercfg.exe",),
     "powershell": (r"WindowsPowerShell\v1.0\powershell.exe",),
     "nvidia-smi": ("nvidia-smi.exe", r"%PF%\NVIDIA Corporation\NVSMI\nvidia-smi.exe"),
+    "pnputil": ("pnputil.exe",),
 }
 
 
@@ -910,6 +911,129 @@ def nvidia_lock_clocks(lo, hi):
     return run(["nvidia-smi", "-lgc", "%d,%d" % (lo, hi)])
 
 
+# ============================================================================= ekran kartini kapatma (Tasarruf)
+# Eski Control Center'in "guc tasarrufu" modundaki gibi NVIDIA karti tamamen kapatilir: aygit Windows'ta devre
+# disi birakilir, surucu iner, kok PCIe portu karti D3cold'a (sifir guc) alir. Yalnizca MSHybrid/Optimus
+# dizustulerde guvenlidir: dahili ekran tumlesik grafige bagli olmali ve karta takili bir ekran olmamali.
+# DXGI devre disi karti hic gostermez; bu yuzden aygit SetupAPI ile bulunur (yeniden baslatmadan sonra da).
+DISPLAY_CLASS = "4d36e968-e325-11ce-bfc1-08002be10318"
+NVIDIA_PCI = "PCI\\VEN_10DE&"
+CM_PROB_DISABLED = 22
+DN_STARTED, DN_HAS_PROBLEM = 0x8, 0x400
+PNP_REBOOT = 3010  # pnputil: degisiklik yeniden baslatmada gecerli olacak
+
+
+def display_devices():
+    """Ekran bagdastiricisi sinifindaki takili aygitlar (devre disi olanlar dahil):
+    [{"id", "name", "nvidia", "disabled", "running"}]. Okunamazsa bos liste."""
+    out = []
+    try:
+        sapi = ctypes.WinDLL("setupapi", use_last_error=True)
+        cfg = ctypes.WinDLL("cfgmgr32")
+        sapi.SetupDiGetClassDevsW.argtypes = [c_void_p, wt.LPCWSTR, wt.HWND, wt.DWORD]
+        sapi.SetupDiGetClassDevsW.restype = c_void_p
+        sapi.SetupDiEnumDeviceInfo.argtypes = [c_void_p, wt.DWORD, c_void_p]
+        sapi.SetupDiGetDeviceInstanceIdW.argtypes = [c_void_p, c_void_p, wt.LPWSTR, wt.DWORD, c_void_p]
+        sapi.SetupDiGetDeviceRegistryPropertyW.argtypes = [c_void_p, c_void_p, wt.DWORD, c_void_p, c_void_p,
+                                                           wt.DWORD, c_void_p]
+        sapi.SetupDiDestroyDeviceInfoList.argtypes = [c_void_p]
+        cfg.CM_Get_DevNode_Status.argtypes = [c_void_p, c_void_p, wt.DWORD, wt.ULONG]
+
+        class _DevInfo(ctypes.Structure):  # SP_DEVINFO_DATA
+            _fields_ = [("cbSize", wt.DWORD), ("guid", ctypes.c_byte * 16), ("inst", wt.DWORD), ("res", c_void_p)]
+
+        g = guid(DISPLAY_CLASS)
+        h = sapi.SetupDiGetClassDevsW(ctypes.byref(g), None, None, 0x2)  # DIGCF_PRESENT
+        if not h or h == c_void_p(-1).value:
+            return out
+        try:
+            i = 0
+            buf = ctypes.create_unicode_buffer(400)
+            name = ctypes.create_unicode_buffer(256)
+            while True:
+                d = _DevInfo()
+                d.cbSize = ctypes.sizeof(d)
+                if not sapi.SetupDiEnumDeviceInfo(h, i, ctypes.byref(d)):
+                    break
+                i += 1
+                if not sapi.SetupDiGetDeviceInstanceIdW(h, ctypes.byref(d), buf, 400, None):
+                    continue
+                name.value = ""
+                sapi.SetupDiGetDeviceRegistryPropertyW(h, ctypes.byref(d), 0, None, name,  # SPDRP_DEVICEDESC
+                                                       ctypes.sizeof(name), None)
+                status, problem = wt.ULONG(), wt.ULONG()
+                ok = cfg.CM_Get_DevNode_Status(ctypes.byref(status), ctypes.byref(problem), d.inst, 0) == 0
+                dev_id = buf.value
+                out.append({"id": dev_id, "name": name.value, "nvidia": dev_id.upper().startswith(NVIDIA_PCI),
+                            "disabled": ok and bool(status.value & DN_HAS_PROBLEM)
+                            and problem.value == CM_PROB_DISABLED,
+                            "running": ok and bool(status.value & DN_STARTED)
+                            and not status.value & DN_HAS_PROBLEM})
+        finally:
+            sapi.SetupDiDestroyDeviceInfoList(h)
+    except (OSError, AttributeError):
+        pass
+    return out
+
+
+def dgpu_device(devices=None):
+    """NVIDIA ekran karti aygiti (devre disi olsa da) ya da None."""
+    devices = display_devices() if devices is None else devices
+    return next((d for d in devices if d["nvidia"]), None)
+
+
+def nvidia_outputs():
+    """NVIDIA bagdastiricisina bagli ekran sayisi (DXGI). Optimus'ta dahili ekran tumlesik grafikte gorunur;
+    burada bir ekran varsa (karta bagli HDMI/DP ya da MUX'ta yalniz-NVIDIA kipi) kart kapatilirsa o ekran kararir.
+    Okunamazsa None."""
+    try:
+        dxgi = ctypes.WinDLL("dxgi")
+        f = c_void_p()
+        if dxgi.CreateDXGIFactory1(ctypes.byref(guid("770aae78-f26f-4dba-a829-253c83d1b387")), ctypes.byref(f)) != 0:
+            return None
+        count, i = 0, 0
+        try:
+            while True:
+                a = c_void_p()
+                if _vcall(f, 12, ctypes.c_long, ctypes.c_uint, c_void_p)(f, i, ctypes.byref(a)) != 0:
+                    break
+                i += 1
+                d = _DXGIDesc1()
+                _vcall(a, 10, ctypes.c_long, c_void_p)(a, ctypes.byref(d))
+                if d.vendor == 0x10DE:
+                    j = 0
+                    while True:  # IDXGIAdapter::EnumOutputs
+                        o = c_void_p()
+                        if _vcall(a, 7, ctypes.c_long, ctypes.c_uint, c_void_p)(a, j, ctypes.byref(o)) != 0:
+                            break
+                        _vcall(o, 2, ctypes.c_ulong)(o)
+                        j += 1
+                    count += j
+                _vcall(a, 2, ctypes.c_ulong)(a)
+        finally:
+            _vcall(f, 2, ctypes.c_ulong)(f)
+        return count
+    except OSError:
+        return None
+
+
+def dgpu_off_blocker(devices=None):
+    """Karti kapatmak guvenli degilse nedeni (ceviri anahtari), guvenliyse None.
+    - Calisan baska (tumlesik) bir ekran bagdastiricisi yoksa ekran tamamen kararir.
+    - Karta bagli bir ekran varsa o ekran kararir."""
+    devices = display_devices() if devices is None else devices
+    if not any(d["running"] and not d["nvidia"] and d["id"].upper().startswith("PCI\\") for d in devices):
+        return "err.gpuOffNoIgpu"
+    if nvidia_outputs():
+        return "err.gpuOffDisplay"
+    return None
+
+
+def set_dgpu(dev_id, enabled):
+    """NVIDIA karti ac / kapat (yonetici). (donus kodu, cikti); PNP_REBOOT: yeniden baslatmada gecerli."""
+    return run(["pnputil", "/enable-device" if enabled else "/disable-device", dev_id], timeout=45)
+
+
 # ============================================================================= ekran
 class DEVMODEW(ctypes.Structure):
     _fields_ = [("dmDeviceName", ctypes.c_wchar * 32), ("dmSpecVersion", wt.WORD), ("dmDriverVersion", wt.WORD),
@@ -1058,6 +1182,18 @@ class Sensors(threading.Thread):
                         ("cpu_temp", "gpu_temp", "cpu_power", "cpu_load", "gpu_load", "cpu_rpm", "gpu_rpm", "cpu_mhz")}
         self.listeners = []  # her olcumden sonra cagrilir (profil bekcisi)
         self.base = base_mhz()
+        self.gpu_off = False  # NVIDIA kart Tasarruf profiliyle kapatildi (profiller.Manager bildirir)
+        self.detect_gpus()
+        self.disk_ids = lambda: []  # envanter hazir olunca control_center baglar
+        self.disks = {}
+        self.error = ""
+        self.need_fast = lambda: False  # control_center baglar: gosterge, CSV kaydi, isi bekcisi alarmi
+        self._viewers = 0               # acik arayuz akislari (SSE)
+        self._vlock = threading.Lock()
+
+    def detect_gpus(self):
+        """Ekran kartlarini (DXGI) yeniden tanir. Kapali kart (Tasarruf) DXGI'da gorunmez: kart yeniden
+        acildiktan sonra cagrilir; eski NVML tutamaci gecersiz oldugu icin birakilir."""
         adapters = gpu_adapters()
         nv = [a for a in adapters if a[1] == 0x10DE]
         self.gpu_name = nv[0][0] if nv else ""
@@ -1066,12 +1202,6 @@ class Sensors(threading.Thread):
         self.igpu_name = other[0][0] if other else ""
         self.igpu_luid = other[0][2].lower() if other else ""
         self.nvml = None
-        self.disk_ids = lambda: []  # envanter hazir olunca control_center baglar
-        self.disks = {}
-        self.error = ""
-        self.need_fast = lambda: False  # control_center baglar: gosterge, CSV kaydi, isi bekcisi alarmi
-        self._viewers = 0               # acik arayuz akislari (SSE)
-        self._vlock = threading.Lock()
 
     def watch(self, on):
         """Arayuz akisi acildi (True) / kapandi (False): pencere aciksa canli degerler her saniye okunur."""
@@ -1203,7 +1333,10 @@ class Sensors(threading.Thread):
                 s["pdh_error"] = str(exc)
             if s.get("gpu_active"):
                 nv_awake_until = t0 + 5.0
-            if t0 < nv_awake_until:
+            if self.gpu_off:  # kart Tasarruf profiliyle kapali: NVML'ye hic dokunulmaz
+                nv_awake_until = 0.0
+                s["gpu_state"] = "off"
+            elif t0 < nv_awake_until:
                 if self.nvml is None:
                     self.nvml = NVML()
                 try:

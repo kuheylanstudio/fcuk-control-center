@@ -58,6 +58,16 @@ SCHED_TXT = {0: "tüm çekirdekler", 1: "yalnız P", 2: "P öncelikli", 3: "yaln
 # cpu.fmax_p / fmax_e: MHz, 0 = sinir yok.  gpu: (alt, ust) MHz ya da None = kilit yok
 PROFILES = [
     {
+        # Eski Control Center'in "Guc tasarrufu" modunun karsiligi, ustune islemci tavani ve en sessiz egri.
+        # Kart kapali oldugu icin bos durumdaki 5-8 W'lik NVIDIA tuketimi (uyanik P8) de sifirlanir.
+        "id": "tasarruf", "name": "Tasarruf", "tag": "Ekran kartı kapalı, en az güç",
+        "desc": "NVIDIA ekran kartı tamamen kapatılır (sıfır güç), denetleyici güç tasarrufu modunda, turbo kapalı, "
+                "işlemci tavanlı, fanlar en geç ve en yavaş devirde, ekran 60 Hz. Pil ömrü en uzun, ses en az.",
+        "ec": 1, "fan": ("curve", (75, 30, 88, 50), (75, 30, 88, 50)),
+        "cpu": {"boost": 0, "epp": 100, "fmax_p": 1600, "fmax_e": 1200, "sched": 4, "sched_short": 4, "park": None},
+        "gpu": None, "gpu_off": True, "refresh": "min", "aspm": 2, "overlay": "eff",
+    },
+    {
         "id": "tam_sessiz", "name": "Tam Sessiz", "tag": "Fan en alt devirde, duyulmaz",
         "desc": "Turbo kapalı, denetleyici sessiz modda, fanlar en alt devirde, ekran kartı düşük saatte kilitli, ekran 60 Hz. Okuma, yazı, film, gece.",
         "ec": 0, "fan": ("curve", (70, 30, 84, 50), (70, 30, 84, 50)),
@@ -95,7 +105,13 @@ PROFILES = [
 ]
 BUILTIN = list(PROFILES)
 BY_ID = {p["id"]: p for p in PROFILES}
-LEVEL = {"tam_sessiz": 1, "sessiz_kullanim": 2, "sessiz_oyun": 3, "performans": 4, "ultra": 5}
+LEVEL = {"tasarruf": 0, "tam_sessiz": 1, "sessiz_kullanim": 2, "sessiz_oyun": 3, "performans": 4, "ultra": 5}
+
+
+def level_of(p):
+    """Profilin seviye cubugu (0 Tasarruf .. 5 Ultra). 0 gecerli bir seviyedir: 'or' ile varsayilana dusmesin."""
+    lv = p.get("level")
+    return lv if lv is not None else LEVEL.get(p["id"], 3)
 
 # ----------------------------------------------------------------------------- ozel profiller
 # Kullanici en fazla 3 profil tanimlar. Her biri hazir bir profili TEMEL alir (denetleyici guc modu, zamanlayici,
@@ -183,7 +199,7 @@ def build_custom(c):
     return {"id": c["id"], "name": c["name"], "custom": True, "base": b["id"], "ec": b["ec"], "fan": fan,
             "cpu": cpu, "gpu": (210, c["gpu_max"]) if c["gpu_max"] else None, "gpu_abs": True,
             "refresh": c["refresh"], "aspm": b["aspm"], "overlay": b["overlay"], "ac_only": bool(b.get("ac_only")),
-            "level": LEVEL.get(b["id"], 3)}
+            "gpu_off": bool(b.get("gpu_off")), "level": LEVEL.get(b["id"], 3)}
 
 
 def set_custom(items):
@@ -427,6 +443,10 @@ class Manager:
         self._app_prev = ""     # uygulama acilmadan onceki profil: kapaninca buna donulur
         self._app_applied = ""  # kuralin uyguladigi profil (pilde ac_only ise Performans'a donusmus)
         self.defaults = {k: _read(BALANCED, k) for k in ("park", "park1")}
+        # Tasarruf'la kapatilmis kart (yeniden baslatmadan sonra da kapali kalir): sensorler NVML'ye dokunmasin
+        if cfg.get("gpu_off"):
+            dev = hw.dgpu_device()
+            sensors.gpu_off = bool(dev and dev["disabled"])
         sensors.listeners.append(self._tick)
 
     # ------------------------------------------------------------------ bilgi
@@ -464,7 +484,9 @@ class Manager:
             power_txt = self.dchu.profile_power_label(p)
         gpu_txt = (t("val.gpuCap", mhz=gpu_caps(p["gpu"], absolute=p.get("gpu_abs"))[1]) if p["gpu"]
                    else t("val.gpuFree"))
-        if not self.sensors.gpu_name:
+        if p.get("gpu_off"):
+            gpu_txt = t("val.gpuOff")
+        if not (self.sensors.gpu_name or getattr(self.sensors, "gpu_off", False)):
             gpu_txt = t("val.unsupported")
         return [
             (t("row.powerMode"), power_txt),
@@ -490,7 +512,7 @@ class Manager:
         def desc(p):
             return t("prof.customDesc") if p.get("custom") else t("prof.%s.desc" % p["id"])
         return [{"id": p["id"], "name": name(p["id"]), "tag": tag(p), "desc": desc(p),
-                 "custom": bool(p.get("custom")), "level": p.get("level") or LEVEL.get(p["id"], 3),
+                 "custom": bool(p.get("custom")), "level": level_of(p), "gpu_off": bool(p.get("gpu_off")),
                  "ac_only": bool(p.get("ac_only")), "rows": self.describe(p), "spec": spec(p),
                  "fan": [list(p["fan"][1]), list(p["fan"][2])] if p["fan"][0] == "curve" else p["fan"][0]}
                 for p in PROFILES]
@@ -634,9 +656,76 @@ class Manager:
             raise RuntimeError(t("err.settings", list=", ".join(bad)))
         return t("msg.cpuDone", boost=t("boost.%d" % c["boost"]), epp=c["epp"])
 
-    def _gpu(self, p):
-        if not self.sensors.gpu_name:  # NVIDIA kart yok: nvidia-smi hic cagrilmaz
+    # ------------------------------------------------------------------ ekran karti ac / kapat
+    def _gpu_off(self):
+        """Tasarruf: NVIDIA karti Windows'ta devre disi birakir (surucu iner, kart D3cold'a, sifir guc).
+        Bayrak (cfg gpu_off) ONCE kaydedilir: islem yarida kalsa da diger profiller karti geri acar.
+        Kullanicinin kendisinin kapattigi karta bayrak konmaz; onu uygulama hicbir zaman acmaz."""
+        devs = hw.display_devices()
+        dev = hw.dgpu_device(devs)
+        if not dev:
             raise hw.Unsupported(t("err.noNvidia"))
+        if dev["disabled"]:
+            self.sensors.gpu_off = True
+            return t("val.gpuOff")
+        if not hw.is_admin():
+            raise RuntimeError(t("err.gpuOffAdmin"))
+        why = hw.dgpu_off_blocker(devs)
+        if why:  # dahili ekran karta bagli ya da karta takili bir ekran var: kapatilirsa ekran kararir
+            raise RuntimeError(t(why))
+        self.cfg["gpu_off"] = True
+        self.save()
+        rc, out = hw.set_dgpu(dev["id"], False)
+        if rc not in (0, hw.PNP_REBOOT):
+            self.cfg.pop("gpu_off", None)
+            self.save()
+            raise RuntimeError(out[:160])
+        self._gpu_locked = False
+        self.sensors.gpu_off = True
+        self.sensors.nvml = None
+        return t("msg.gpuOffReboot") if rc == hw.PNP_REBOOT else t("val.gpuOff")
+
+    def _gpu_on(self):
+        """Tasarruf'un kapattigi karti geri acar; acmadiysa (ya da kart zaten aciksa) hicbir sey yapmaz.
+        Dondurur: True = kart bu cagride acildi."""
+        if not self.cfg.get("gpu_off"):
+            return False
+        dev = hw.dgpu_device()
+        if not dev or not dev["disabled"]:
+            self.cfg.pop("gpu_off", None)
+            self.save()
+            self.sensors.gpu_off = False
+            return False
+        if not hw.is_admin():
+            raise RuntimeError(t("err.gpuOffAdmin"))
+        rc, out = hw.set_dgpu(dev["id"], True)
+        if rc not in (0, hw.PNP_REBOOT):
+            raise RuntimeError(out[:160])
+        self.cfg.pop("gpu_off", None)
+        self.save()
+        self.sensors.gpu_off = False
+        # Surucu yuklenip DXGI karti yeniden gosterene kadar bekle (genelde 1-3 sn)
+        for _ in range(16):
+            self.sensors.detect_gpus()
+            if self.sensors.gpu_name:
+                break
+            time.sleep(0.5)
+        return True
+
+    def _gpu(self, p):
+        if p.get("gpu_off"):
+            return self._gpu_off()
+        woke = self._gpu_on()
+        if not self.sensors.gpu_name:  # NVIDIA kart yok: nvidia-smi hic cagrilmaz
+            if woke:
+                return t("msg.gpuOn")
+            raise hw.Unsupported(t("err.noNvidia"))
+        if woke and p["gpu"]:
+            time.sleep(1.5)  # surucu yeni yuklendi: nvidia-smi ilk saniyede karti bulamayabilir
+        msg = self._gpu_clocks(p)
+        return t("msg.gpuOn") + " · " + msg if woke else msg
+
+    def _gpu_clocks(self, p):
         if not hw.is_admin():
             if p["gpu"]:
                 raise RuntimeError(t("err.gpuAdmin"))
@@ -813,8 +902,8 @@ class Manager:
             for key, fn in (("step.ec", lambda: self.dchu.set_power_mode(3)),
                             ("step.fan", lambda: self.dchu.set_fan_mode(hw.FAN_AUTO)),
                             ("step.scheme", self._restore_scheme),
-                            ("step.gpu", lambda: self.sensors.gpu_name and hw.is_admin()
-                             and hw.nvidia_lock_clocks(0, None))):
+                            ("step.gpu", lambda: self._gpu_on() or (self.sensors.gpu_name and hw.is_admin()
+                                                                    and hw.nvidia_lock_clocks(0, None)))):
                 try:
                     fn()
                     rep.append({"step": t(key), "ok": True, "msg": t("msg.factory")})

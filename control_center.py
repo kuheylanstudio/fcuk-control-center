@@ -281,6 +281,18 @@ def sanitize_cc(raw):
     prev = raw.get("prev_scheme")
     if isinstance(prev, str) and re.fullmatch(r"[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}", prev):
         out["prev_scheme"] = prev
+    # Tasarruf profili NVIDIA karti kapatti: baska profil (ya da Fabrika) karti geri acsin diye kalici
+    if raw.get("gpu_off") is True:
+        out["gpu_off"] = True
+    # Fan sayfasindaki "Kendi egrim": egri gecerliyse kalir, secim yalnizca egriyle birlikte anlamli
+    u = raw.get("fan_user")
+    if isinstance(u, dict):
+        try:
+            out["fan_user"] = profiller.clean_user_curve(u.get("cpu"), u.get("gpu"))
+        except ValueError:
+            pass  # bozuk kayit atilir
+    if raw.get("fan_sel") == "user" and "fan_user" in out:
+        out["fan_sel"] = "user"
     return out
 
 
@@ -830,7 +842,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(dict(tray_hud(s, mgr), **{
                 "profile": mgr.applied, "guard": mgr.guard, "lang": ceviri.lang(),
                 "profiles": [{"id": p["id"], "name": profiller.name(p["id"]), "ac_only": bool(p.get("ac_only")),
-                              "level": p.get("level") or profiller.LEVEL.get(p["id"], 3)}
+                              "level": profiller.level_of(p)}
                              for p in profiller.PROFILES],
                 # tepsinin fan menusu: fan denetlenebiliyor mu (Acer/HP'de modele bagli)
                 "ec": hw.caps(App.dchu)["fan_max"], "caps": [k for k, v in hw.caps(App.dchu).items() if v is True], "fan_mode": App.dchu.fan_mode(), "cpu_temp": s.get("cpu_temp"), "gpu_temp": s.get("gpu_temp"),

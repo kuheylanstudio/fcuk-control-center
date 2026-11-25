@@ -174,7 +174,7 @@ function liveHardware(s) {
   set('hwCpuL', P(s.cpu_load));
   set('hwCpuM', s.cpu_mhz ? F(s.cpu_mhz) + ' MHz' : '–');
   const awake = s.gpu_state === 'active';
-  set('hwNvS', T(awake ? 'hw.active' : 'hw.sleep'), awake ? 'ok' : '');
+  set('hwNvS', T(awake ? 'hw.active' : s.gpu_state === 'off' ? 'gpu.off' : 'hw.sleep'), awake ? 'ok' : '');
   set('hwNvL', P(s.gpu_load)); set('hwIgL', P(s.igpu_load));
   set('hwNvT', s.gpu_temp ? F(s.gpu_temp) + ' °C' : '–', tempCls(s.gpu_temp, 78, 87));
   set('hwNvC', awake && s.gpu_clock != null ? F(s.gpu_clock) + ' MHz' : '–');
@@ -348,7 +348,7 @@ function buildNvidia() {
 }
 function liveNvidia(s) {
   const awake = s.gpu_state === 'active';
-  set('nvS', T(awake ? 'hw.active' : 'hw.sleep'), awake ? 'ok' : '');
+  set('nvS', T(awake ? 'hw.active' : s.gpu_state === 'off' ? 'gpu.off' : 'hw.sleep'), awake ? 'ok' : '');
   set('nvL', P(s.gpu_load));
   set('nvT', s.gpu_temp ? F(s.gpu_temp) + ' °C' : '–', tempCls(s.gpu_temp, 78, 87));
   set('nvW', awake && s.gpu_power != null ? F(s.gpu_power, 1) + ' W' : '–');

@@ -58,7 +58,7 @@ TPM_RIGHTBUTTON, TPM_RETURNCMD, TPM_NONOTIFY = 0x2, 0x100, 0x80
 IMAGE_ICON, LR_LOADFROMFILE = 1, 0x10
 ERROR_ALREADY_EXISTS = 183
 
-LEVELS = {"tam_sessiz": 1, "sessiz_kullanim": 2, "sessiz_oyun": 3, "performans": 4, "ultra": 5}
+LEVELS = {"tasarruf": 0, "tam_sessiz": 1, "sessiz_kullanim": 2, "sessiz_oyun": 3, "performans": 4, "ultra": 5}
 
 # Uygulamanin tek simgesi: tepsi, pencere, exe ve kurulum hep bunu kullanir (16-256 piksel cok boyutlu .ico)
 APP_ICON = os.path.join(getattr(sys, "_MEIPASS", None) or os.path.dirname(os.path.abspath(__file__)),
@@ -382,7 +382,7 @@ class Tray:
         self.level = 0
         if s:  # ozel profilin seviyesi temel aldigi profilden gelir (motor bildirir)
             p = next((x for x in s.get("profiles", []) if x["id"] == s.get("profile")), None)
-            self.level = LEVELS.get(s.get("profile")) or (p or {}).get("level", 0)
+            self.level = LEVELS.get(s.get("profile"), (p or {}).get("level", 0))
         self.nid.uFlags = NIF_ICON | NIF_TIP | NIF_SHOWTIP
         self.nid.hIcon = self._icon(self.level)
         self.nid.szTip = self._tip()

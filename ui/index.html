@@ -1179,7 +1179,7 @@ function applyI18n(root = document) {
 if (window.I18N) applyI18n();
 const PAL_HINT = { one: t('pal.one'), steps: t('pal.steps'), loop: t('pal.loop'), range: t('pal.range'), slots: t('pal.slots'), zones: t('pal.zones') };
 const SPECTRUM = 'var(--spectrum)';
-const LEVEL = { tam_sessiz: 1, sessiz_kullanim: 2, sessiz_oyun: 3, performans: 4, ultra: 5 };
+const LEVEL = { tasarruf: 0, tam_sessiz: 1, sessiz_kullanim: 2, sessiz_oyun: 3, performans: 4, ultra: 5 };
 const FAN_MODE_TXT = { 0: t('fanmode.0'), 1: t('fanmode.1'), 6: t('fanmode.6'), 7: t('fanmode.7') };  // 7: elle hiz (Acer ozel hiz, Gigabyte sabit hiz)
 const NO_LINK = t('err.noLink');
 
@@ -1382,7 +1382,7 @@ function tempCls(id, t) { const n = document.getElementById(id); n.classList.tog
 function renderStatus(s) {
   setText('tmCpu', s.cpu_temp == null ? '–' : fmt(s.cpu_temp) + ' °C'); tempCls('tmCpu', s.cpu_temp);
   const awake = s.gpu_state === 'active';
-  setText('tmGpu', !awake || s.gpu_temp == null ? t('gpu.asleep') : fmt(s.gpu_temp) + ' °C'); tempCls('tmGpu', awake ? s.gpu_temp : null);
+  setText('tmGpu', s.gpu_state === 'off' ? t('gpu.off') : !awake || s.gpu_temp == null ? t('gpu.asleep') : fmt(s.gpu_temp) + ' °C'); tempCls('tmGpu', awake ? s.gpu_temp : null);
   setText('tmPow', s.cpu_power == null ? '–' : fmt(s.cpu_power, 1) + ' W');
   setText('tmFan', s.cpu_rpm == null ? (s.cpu_duty == null ? '–' : pct(fmt(s.cpu_duty))) : fmt(s.cpu_rpm) + ' rpm');
 }
@@ -1397,7 +1397,7 @@ function renderSensors(s) {
     setText('cpuMhz', fmt(s.cpu_mhz) + ' MHz');
     setText('igpuPow', W(s.igpu_power));
     const awake = s.gpu_state === 'active';
-    const st = $('#gpuState'); st.textContent = awake ? t('gpu.active') : t('gpu.asleep'); st.classList.toggle('on', awake);
+    const st = $('#gpuState'); st.textContent = awake ? t('gpu.active') : s.gpu_state === 'off' ? t('gpu.off') : t('gpu.asleep'); st.classList.toggle('on', awake);
     setText('gpuPow', awake ? W(s.gpu_power) : '–');
     setText('gpuLoad', pct(fmt(s.gpu_load)));
     setText('gpuClock', awake && s.gpu_clock != null ? fmt(s.gpu_clock) + ' MHz' : '–');
@@ -1481,13 +1481,13 @@ function renderProfiles() {
   for (const p of meta.profiles) {
     const b = el('button', 'pbtn');
     b.type = 'button'; b.dataset.id = p.id;
-    b.append(lvl(LEVEL[p.id] || p.level || 3), el('b', '', p.name), el('span', '', p.tag));
+    b.append(lvl(p.id in LEVEL ? LEVEL[p.id] : (p.level ?? 3)), el('b', '', p.name), el('span', '', p.tag));
     b.addEventListener('click', () => applyProfile(p.id));
     q.append(b);
 
     const c = el('article', 'card'); c.dataset.id = p.id;
     const head = el('div', 'tile-top');
-    head.append(el('h3', '', p.name), lvl(LEVEL[p.id] || p.level || 3));
+    head.append(el('h3', '', p.name), lvl(p.id in LEVEL ? LEVEL[p.id] : (p.level ?? 3)));
     const dl = el('dl', 'rows');
     for (const [k, v] of p.rows) dl.append(el('dt', '', k), el('dd', '', v));
     const foot = el('div', 'card-foot');

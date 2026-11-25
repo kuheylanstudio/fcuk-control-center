@@ -525,6 +525,17 @@ if ($Mode -eq 'Uninstall') {
     if ($wsh.Popup("$AppTitle kaldırılsın mı?`n`nAyarlarınız $Data\ayarlar altına yedeklenir.", 0, $AppTitle, 4 + 32) -ne 6) { exit 0 }
     Step 'FCUK Control Center kapatılıyor'
     Stop-Fcuk
+    # Tasarruf profili NVIDIA kartı kapattıysa geri aç: uygulama gidince kartı açacak kimse kalmaz
+    try {
+        $cfgFile = Join-Path $Veri 'config.json'
+        $cc = if (Test-Path $cfgFile) { (Get-Content $cfgFile -Raw -Encoding UTF8 | ConvertFrom-Json).cc } else { $null }
+        if ($cc -and $cc.gpu_off) {
+            Get-PnpDevice -Class Display -ErrorAction SilentlyContinue |
+                Where-Object { $_.InstanceId -like 'PCI\VEN_10DE&*' -and "$($_.Problem)" -eq 'CM_PROB_DISABLED' } |
+                ForEach-Object { [void](Invoke-Quiet 'pnputil.exe' @('/enable-device', $_.InstanceId)); Ok "Ekran kartı yeniden açıldı: $($_.FriendlyName)" }
+        }
+    } catch { Warn "Ekran kartı durumu okunamadı: $_" }
+    $global:LASTEXITCODE = 0
     foreach ($t in $Tasks + $OldTasks) { [void](Invoke-Quiet 'schtasks.exe' @('/delete', '/tn', $t, '/f')) }
     $global:LASTEXITCODE = 0
     Ok 'Açılış görevleri silindi'

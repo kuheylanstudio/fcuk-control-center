@@ -62,7 +62,7 @@ FALLBACK = {TURBO: (TURBO, PERFORMANCE, BALANCED), PERFORMANCE: (PERFORMANCE, BA
 # Clevo guc modu (profiller.py "ec" alani) -> Acer: 0 sessiz, 1 tasarruf, 2 performans, 3 eglence (dengeli)
 FROM_CLEVO = {0: QUIET, 1: ECO, 2: PERFORMANCE, 3: BALANCED}
 # Uygulamanin profilleri -> Acer guc profili (Ultra yalnizca fiste ve turbo destekliyse turbo)
-BY_APP_PROFILE = {"tam_sessiz": QUIET, "sessiz_kullanim": BALANCED, "sessiz_oyun": BALANCED,
+BY_APP_PROFILE = {"tasarruf": ECO, "tam_sessiz": QUIET, "sessiz_kullanim": BALANCED, "sessiz_oyun": BALANCED,
                   "performans": PERFORMANCE, "ultra": TURBO}
 
 # algilayicilar
