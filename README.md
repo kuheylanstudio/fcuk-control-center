@@ -14,9 +14,9 @@
 
 [English](README.en.md) · **Türkçe**
 
-<a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.1.0/FCUK-Control-Center-Setup-3.1.0.exe"><img alt="İndir: FCUK-Control-Center-Setup-3.1.0.exe" src="https://img.shields.io/badge/%C4%B0ndir-FCUK--Control--Center--Setup--3.1.0.exe-2ea44f?style=for-the-badge&logo=windows&logoColor=white"></a>
+<a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.2.0/FCUK-Control-Center-Setup-3.2.0.exe"><img alt="İndir: FCUK-Control-Center-Setup-3.2.0.exe" src="https://img.shields.io/badge/%C4%B0ndir-FCUK--Control--Center--Setup--3.2.0.exe-2ea44f?style=for-the-badge&logo=windows&logoColor=white"></a>
 <br>
-<a href="https://www.virustotal.com/gui/file/15498cdff88daa573deed6bffac89a5a1bfcd202b85fabe9b57d9ac3cdca59f0"><img alt="VirusTotal tarama sonucu" src="https://img.shields.io/badge/VirusTotal-tarama%20sonucu-394EFF?logo=virustotal&logoColor=white"></a>
+<a href="https://www.virustotal.com/gui/file/dd5099a77dca33543b9da515e969a74b64ddb387bac8c2f668d488e76aff377d"><img alt="VirusTotal tarama sonucu" src="https://img.shields.io/badge/VirusTotal-tarama%20sonucu-394EFF?logo=virustotal&logoColor=white"></a>
 <br>
 <sub>Windows 10/11 (64 bit) · <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/latest">tüm sürümler ve SHA-256</a> · <a href="#güvenlik-ve-doğrulama">güvenlik ve doğrulama</a></sub>
 
@@ -50,8 +50,8 @@ bilgisayarlarda da donanım tespiti, canlı izleme, NVIDIA ve işlemci ayarları
 <tr>
 <td width="33%" valign="top">
 
-### ⚡ 5 performans profili
-Tam Sessiz'den Ultra Performans'a. Her profil güç modunu, fan eğrisini, işlemci / ekran kartı sınırlarını ve ekran yenileme hızını **tek tıkla** birlikte ayarlar.
+### ⚡ 6 performans profili
+Ekran kartını kapatan Tasarruf'tan Ultra Performans'a. Her profil güç modunu, fan eğrisini, işlemci / ekran kartı sınırlarını ve ekran yenileme hızını **tek tıkla** birlikte ayarlar.
 
 </td>
 <td width="33%" valign="top">
@@ -99,7 +99,7 @@ GitHub'dan yeni sürümü denetler, SHA-256 ile doğrular ve kurar. Otomatik ya 
 
 <table>
 <tr>
-<td width="50%"><img src="docs/screenshots/profiller.png" alt="Performans profilleri"><br><sub><b>Performans profilleri</b>: tek tıkla beş hazır profil</sub></td>
+<td width="50%"><img src="docs/screenshots/profiller.png" alt="Performans profilleri"><br><sub><b>Performans profilleri</b>: tek tıkla altı hazır profil</sub></td>
 <td width="50%"><img src="docs/screenshots/fan.png" alt="Fan eğrisi"><br><sub><b>Fan eğrisi</b>: eğri, canlı nokta ve fan denetimi</sub></td>
 </tr>
 <tr>
@@ -118,7 +118,7 @@ GitHub'dan yeni sürümü denetler, SHA-256 ile doğrular ve kurar. Otomatik ya 
 
 ## Hızlı başlangıç
 
-1. **[Kurulum dosyasını indirin](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.1.0/FCUK-Control-Center-Setup-3.1.0.exe)** ve çift tıklayın.
+1. **[Kurulum dosyasını indirin](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.2.0/FCUK-Control-Center-Setup-3.2.0.exe)** ve çift tıklayın.
 2. Yönetici iznini onaylayın; kurulum cihazınızı tanır ve yalnızca ona ait adımları uygular.
 3. Uygulama açılır. Bir **performans profili** seçin, hepsi bu.
 
@@ -136,7 +136,7 @@ GitHub'dan yeni sürümü denetler, SHA-256 ile doğrular ve kurar. Otomatik ya 
 | **Canlı izleme** | İşlemci sıcaklığı/gücü/yükü, çekirdek başına MHz, ekran kartı sıcaklığı/gücü/saati/VRAM/PCIe/kısıtlama nedeni, tümleşik grafik yükü, disk başına okuma/yazma hızı, bellek, ağ, pil | Her bilgisayar |
 | **NVIDIA** | Güç yönetimi modu, düşük gecikme, V-Sync, en yüksek kare hızı, doku filtreleme, iş parçacıklı optimizasyon, tercih edilen grafik işlemcisi (Optimus), elle saat sınırı. Ayarlar NVIDIA Denetim Masası'nın kullandığı aynı sürücü profiline yazılır | NVIDIA kart; yazmak için yönetici modu |
 | **İşlemci** | İşlemci modeline göre yalnızca etkili olan ayarlar: turbo modu, EPP (Speed Shift), P ve E çekirdek frekans tavanları (melez Intel), işlemci durumu sınırları, çekirdek zamanlayıcı politikası, çekirdek park etme | Her bilgisayar (Windows güç planı) |
-| **Performans profilleri** | Beş profil: Tam Sessiz → Ultra Performans; her biri gömülü denetleyici güç modu, fan eğrisi, işlemci, ekran kartı ve ekran yenileme hızını birlikte ayarlar. Cihazda olmayan adımlar atlanır ve raporda gösterilir | Clevo / Monster, Alienware, Asus, Lenovo Legion, Lenovo IdeaPad, MSI, HP Omen / Victus, Acer Predator / Nitro, Gigabyte (güç modu) |
+| **Performans profilleri** | Altı profil: Tasarruf → Ultra Performans; her biri gömülü denetleyici güç modu, fan eğrisi, işlemci, ekran kartı ve ekran yenileme hızını birlikte ayarlar. Tasarruf, Optimus'lu dizüstülerde NVIDIA kartı tamamen kapatır (en sessiz, en az güç; başka profile geçince kart geri açılır). Cihazda olmayan adımlar atlanır ve raporda gösterilir | Clevo / Monster, Alienware, Asus, Lenovo Legion, Lenovo IdeaPad, MSI, HP Omen / Victus, Acer Predator / Nitro, Gigabyte (güç modu) |
 | **Fanlar** | Özel fan eğrisi, fan devri ve sıcaklık okuması | Clevo / Monster, Alienware, Asus, Lenovo Legion (Özel modda), Gigabyte; MSI, HP ve Acer'da fan modu / tam devir (modele göre) |
 | **Klavye RGB** | 9 ışık modu: sabit, nefes alma, renk geçişi, gökkuşağı, nabız, ses/müzik, sistem durumu, ekran rengi ve **oyun tepkisi**; 4 bölgeli klavyelerde ayrıca bölge renkleri | Clevo / Monster, Alienware (AlienFX), Asus (Aura), Lenovo Legion, MSI (USB klavye), HP Omen, Acer Predator / Nitro, Gigabyte (ITE) |
 | **Oyun tepkisi** | Klavye cana göre yeşilden kırmızıya döner, can %35'in altındayken kalp atışı gibi yanıp söner; ateş, yetenek, kill ve ölümde parlar. **League of Legends** (Riot'un resmi canlı oyun verisi) ve **Counter-Strike 2** (resmi Game State Integration). Oyun belleğine dokunulmaz | Klavye RGB olan cihaz |
@@ -185,19 +185,19 @@ yazmayı gerektirir. Uygulama hiçbir çekirdek sürücüsü kurmaz.
 
 ### setup.exe (önerilen)
 
-1. **[FCUK-Control-Center-Setup-3.1.0.exe](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.1.0/FCUK-Control-Center-Setup-3.1.0.exe)** dosyasını indirin.
+1. **[FCUK-Control-Center-Setup-3.2.0.exe](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.2.0/FCUK-Control-Center-Setup-3.2.0.exe)** dosyasını indirin.
 2. Çift tıklayın ve yönetici iznini onaylayın. Kurulum penceresi her adımı gösterir; bitince uygulama açılır.
 3. Windows "Bilgisayarınız korundu" (SmartScreen) derse: **Ek bilgi → Yine de çalıştır**. Ayrıntı:
    [Güvenlik ve doğrulama](#güvenlik-ve-doğrulama).
 
 ### Güvenlik ve doğrulama
 
-- **VirusTotal:** [3.1.0 kurulum dosyasının tarama raporu](https://www.virustotal.com/gui/file/15498cdff88daa573deed6bffac89a5a1bfcd202b85fabe9b57d9ac3cdca59f0)
+- **VirusTotal:** [3.2.0 kurulum dosyasının tarama raporu](https://www.virustotal.com/gui/file/dd5099a77dca33543b9da515e969a74b64ddb387bac8c2f668d488e76aff377d)
   (yukarıdaki rozet de aynı rapora gider). Yeni sürümler yayımlandığında GitHub Actions ile VirusTotal'a
   yüklenir; rapor bağlantısı sürüm notlarının sonuna eklenir. PyInstaller ile paketlenen programları birkaç
   antivirüs motoru bazen yanlışlıkla işaretler (genel "Trojan/Wacatac" vb. adlarla); kaynak kodun tamamı bu depodadır.
 - **SHA-256:** indirdiğiniz dosyanın [sürüm sayfasındaki](https://github.com/kuheylanstudio/fcuk-control-center/releases/latest)
-  özetle aynı olduğunu denetleyin: `Get-FileHash FCUK-Control-Center-Setup-3.1.0.exe`
+  özetle aynı olduğunu denetleyin: `Get-FileHash FCUK-Control-Center-Setup-3.2.0.exe`
 - **Kod imzası:** kurulum programı şu an kod imzalı değildir; SmartScreen uyarısı bu yüzdendir. Derleme betiği
   imzalamaya hazırdır (bkz. [Kod imzalama](#kod-imzalama)); imzalı bir sürüm yayımlandıktan sonra güncelleyici
   yalnızca aynı yayıncının imzasını taşıyan kurulum dosyalarını kurar.
@@ -271,7 +271,7 @@ powershell -ExecutionPolicy Bypass -File setup_olustur.ps1   # çıktı: dist\se
 
 Bu şekilde derlenen setup.exe üreticiye ait DLL'i içerir; kendi bilgisayarınız için kullanın, herkese açık
 dağıtmayın. Dağıtılabilir (DLL'siz) paket için: `setup_olustur.ps1 -Dagitim` (çıktı:
-`dist\FCUK-Control-Center-Setup-3.1.0.exe`). İndirme düğmesindeki dosya budur.
+`dist\FCUK-Control-Center-Setup-3.2.0.exe`). İndirme düğmesindeki dosya budur.
 
 #### Kod imzalama
 
@@ -364,7 +364,7 @@ ideapad.py         Lenovo IdeaPad arka ucu (GameZone WMI, Energy Management sür
 envanter.py        donanım envanteri (CIM), P/E çekirdek tespiti, NVMe SMART ve disk sıcaklığı (IOCTL)
 nvidia.py          NVIDIA sürücü ayarları (NVAPI DRS), kart bilgisi (NVML)
 islemci.py         modele göre işlemci ayarları (Windows güç planı)
-profiller.py       beş performans profili, özel profiller, ısı koruması, fiş/pil ve uygulama kuralları
+profiller.py       altı performans profili, özel profiller, ısı koruması, fiş/pil ve uygulama kuralları
 kayit.py           sensör geçmişi (bellekte 1 saat, isteğe bağlı günlük CSV), kısılma türü, pil sağlığı geçmişi
 gosterge.py        oyun içi gösterge (katmanlı, tıklamayı geçiren, en üstte pencere)
 kare.py            FPS ölçümü (ETW: DXGI/D3D9 Present olayları; oyuna dokunmaz)
@@ -440,7 +440,7 @@ Yalnızca Monster / Clevo dizüstülerde setup.exe eski Control Center bileşenl
 <details>
 <summary><b>Windows neden "Bilgisayarınız korundu" uyarısı veriyor?</b></summary>
 
-Kurulum programı şu an kod imzalı değildir. **Ek bilgi → Yine de çalıştır** ile devam edebilir, dosyayı [VirusTotal raporu](https://www.virustotal.com/gui/file/15498cdff88daa573deed6bffac89a5a1bfcd202b85fabe9b57d9ac3cdca59f0) ve SHA-256 özetiyle doğrulayabilirsiniz. Ayrıntı: [Güvenlik ve doğrulama](#güvenlik-ve-doğrulama).
+Kurulum programı şu an kod imzalı değildir. **Ek bilgi → Yine de çalıştır** ile devam edebilir, dosyayı [VirusTotal raporu](https://www.virustotal.com/gui/file/dd5099a77dca33543b9da515e969a74b64ddb387bac8c2f668d488e76aff377d) ve SHA-256 özetiyle doğrulayabilirsiniz. Ayrıntı: [Güvenlik ve doğrulama](#güvenlik-ve-doğrulama).
 
 </details>
 

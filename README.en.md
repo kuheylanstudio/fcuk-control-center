@@ -14,9 +14,9 @@
 
 **English** · [Türkçe](README.md)
 
-<a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.1.0/FCUK-Control-Center-Setup-3.1.0.exe"><img alt="Download FCUK-Control-Center-Setup-3.1.0.exe" src="https://img.shields.io/badge/Download-FCUK--Control--Center--Setup--3.1.0.exe-2ea44f?style=for-the-badge&logo=windows&logoColor=white"></a>
+<a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.2.0/FCUK-Control-Center-Setup-3.2.0.exe"><img alt="Download FCUK-Control-Center-Setup-3.2.0.exe" src="https://img.shields.io/badge/Download-FCUK--Control--Center--Setup--3.2.0.exe-2ea44f?style=for-the-badge&logo=windows&logoColor=white"></a>
 <br>
-<a href="https://www.virustotal.com/gui/file/15498cdff88daa573deed6bffac89a5a1bfcd202b85fabe9b57d9ac3cdca59f0"><img alt="VirusTotal scan result" src="https://img.shields.io/badge/VirusTotal-scan%20result-394EFF?logo=virustotal&logoColor=white"></a>
+<a href="https://www.virustotal.com/gui/file/dd5099a77dca33543b9da515e969a74b64ddb387bac8c2f668d488e76aff377d"><img alt="VirusTotal scan result" src="https://img.shields.io/badge/VirusTotal-scan%20result-394EFF?logo=virustotal&logoColor=white"></a>
 <br>
 <sub>Windows 10/11 (64-bit) · <a href="https://github.com/kuheylanstudio/fcuk-control-center/releases/latest">all releases and SHA-256</a> · <a href="#security-and-verification">security and verification</a></sub>
 
@@ -49,8 +49,8 @@ computers, hardware detection, live monitoring, NVIDIA and CPU settings still wo
 <tr>
 <td width="33%" valign="top">
 
-### ⚡ 5 performance profiles
-From Silent to Ultra Performance. Each profile sets power mode, fan curve, CPU/GPU limits and refresh rate **in one click**.
+### ⚡ 6 performance profiles
+From Power Saver, which turns the GPU off, to Ultra Performance. Each profile sets power mode, fan curve, CPU/GPU limits and refresh rate **in one click**.
 
 </td>
 <td width="33%" valign="top">
@@ -98,7 +98,7 @@ Checks GitHub releases, verifies SHA-256 and installs. Automatic or manual.
 
 <table>
 <tr>
-<td width="50%"><img src="docs/screenshots/profiller.png" alt="Performance profiles"><br><sub><b>Performance profiles</b>: five presets, one click</sub></td>
+<td width="50%"><img src="docs/screenshots/profiller.png" alt="Performance profiles"><br><sub><b>Performance profiles</b>: six presets, one click</sub></td>
 <td width="50%"><img src="docs/screenshots/fan.png" alt="Fan curve"><br><sub><b>Fan curve</b>: curve, live point and fan control</sub></td>
 </tr>
 <tr>
@@ -117,7 +117,7 @@ Checks GitHub releases, verifies SHA-256 and installs. Automatic or manual.
 
 ## Quick start
 
-1. **[Download the installer](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.1.0/FCUK-Control-Center-Setup-3.1.0.exe)** and double-click it.
+1. **[Download the installer](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.2.0/FCUK-Control-Center-Setup-3.2.0.exe)** and double-click it.
 2. Approve the administrator prompt; setup detects your device and applies only the steps for it.
 3. The app opens. Pick a **performance profile**.
 
@@ -131,7 +131,7 @@ Checks GitHub releases, verifies SHA-256 and installs. Automatic or manual.
 | **Live monitoring** | CPU temperature/power/load, per-core MHz, GPU temperature/power/clock/VRAM/PCIe/throttle reason, integrated graphics load, per-disk read/write speed, memory, network, battery | Any computer |
 | **NVIDIA** | Power management mode, low latency, V-Sync, max frame rate, texture filtering, threaded optimization, preferred GPU (Optimus), manual clock limit. Settings are written to the same driver profile the NVIDIA Control Panel uses | NVIDIA GPU; admin mode to write |
 | **CPU** | Only the settings that are effective for your CPU model: turbo mode, EPP (Speed Shift), P and E core frequency caps (hybrid Intel), processor state limits, core scheduler policy, core parking | Any computer (Windows power plan) |
-| **Performance profiles** | Five profiles, Silent → Ultra Performance; each sets embedded-controller power mode, fan curve, CPU, GPU and display refresh rate together. Steps the device lacks are skipped and shown in the report | Clevo / Monster, Alienware, Asus, Lenovo Legion, Lenovo IdeaPad, MSI, HP Omen / Victus, Acer Predator / Nitro, Gigabyte (power mode) |
+| **Performance profiles** | Six profiles, Power Saver → Ultra Performance; each sets embedded-controller power mode, fan curve, CPU, GPU and display refresh rate together. Power Saver turns the NVIDIA GPU fully off on Optimus laptops (quietest, lowest power; it is turned back on when you switch profiles). Steps the device lacks are skipped and shown in the report | Clevo / Monster, Alienware, Asus, Lenovo Legion, Lenovo IdeaPad, MSI, HP Omen / Victus, Acer Predator / Nitro, Gigabyte (power mode) |
 | **Fans** | Custom fan curve, fan speed and temperature readout | Clevo / Monster, Alienware, Asus, Lenovo Legion (in Custom mode), Gigabyte; fan mode / full speed on MSI, HP and Acer (model dependent) |
 | **Keyboard RGB** | 9 lighting modes: static, breathing, color cycle, rainbow, pulse, audio/music, system status, screen color and **game reaction**; per-zone colors on 4-zone keyboards | Clevo / Monster, Alienware (AlienFX), Asus (Aura), Lenovo Legion, MSI (USB keyboard), HP Omen, Acer Predator / Nitro, Gigabyte (ITE) |
 | **Game reaction** | The keyboard shifts from green to red with your health, pulses like a heartbeat below 35% health, and flashes on shots, abilities, kills and deaths. **League of Legends** (Riot's official live game data) and **Counter-Strike 2** (official Game State Integration). Game memory is never touched | Device with keyboard RGB |
@@ -178,19 +178,19 @@ a kernel driver. The app installs no kernel driver.
 
 ### setup.exe (recommended)
 
-1. Download **[FCUK-Control-Center-Setup-3.1.0.exe](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.1.0/FCUK-Control-Center-Setup-3.1.0.exe)**.
+1. Download **[FCUK-Control-Center-Setup-3.2.0.exe](https://github.com/kuheylanstudio/fcuk-control-center/releases/download/v3.2.0/FCUK-Control-Center-Setup-3.2.0.exe)**.
 2. Double-click it and approve the administrator prompt. The installer window shows every step; the app opens when it finishes.
 3. If Windows says "Windows protected your PC" (SmartScreen): **More info → Run anyway**. Details:
    [Security and verification](#security-and-verification).
 
 ### Security and verification
 
-- **VirusTotal:** [scan report for the 3.1.0 installer](https://www.virustotal.com/gui/file/15498cdff88daa573deed6bffac89a5a1bfcd202b85fabe9b57d9ac3cdca59f0)
+- **VirusTotal:** [scan report for the 3.2.0 installer](https://www.virustotal.com/gui/file/dd5099a77dca33543b9da515e969a74b64ddb387bac8c2f668d488e76aff377d)
   (the badge above links to the same report). New releases are uploaded to VirusTotal via GitHub Actions; the report
   link is appended to the release notes. Programs packaged with PyInstaller are sometimes falsely flagged by a few
   antivirus engines (under generic names such as "Trojan/Wacatac"); the full source code is in this repository.
 - **SHA-256:** verify that the file you downloaded matches the hash on the [release page](https://github.com/kuheylanstudio/fcuk-control-center/releases/latest):
-  `Get-FileHash FCUK-Control-Center-Setup-3.1.0.exe`
+  `Get-FileHash FCUK-Control-Center-Setup-3.2.0.exe`
 - **Code signing:** the installer is currently not code-signed; that is why SmartScreen warns. The build script is
   ready for signing (see [Code signing](#code-signing)); once a signed release is published, the updater installs only
   installers carrying the same publisher's signature.
@@ -255,7 +255,7 @@ powershell -ExecutionPolicy Bypass -File setup_olustur.ps1   # output: dist\setu
 
 A setup.exe built this way contains the manufacturer's DLL; use it on your own computer and do not distribute it
 publicly. For a distributable (DLL-free) package: `setup_olustur.ps1 -Dagitim` (output:
-`dist\FCUK-Control-Center-Setup-3.1.0.exe`). This is the file behind the download button.
+`dist\FCUK-Control-Center-Setup-3.2.0.exe`). This is the file behind the download button.
 
 #### Code signing
 
@@ -346,7 +346,7 @@ ideapad.py         Lenovo IdeaPad backend (GameZone WMI, Energy Management drive
 envanter.py        hardware inventory (CIM), P/E core detection, NVMe SMART and disk temperature (IOCTL)
 nvidia.py          NVIDIA driver settings (NVAPI DRS), card info (NVML)
 islemci.py         model-aware CPU settings (Windows power plan)
-profiller.py       five performance profiles, custom profiles, thermal protection, plug/battery and app rules
+profiller.py       six performance profiles, custom profiles, thermal protection, plug/battery and app rules
 kayit.py           sensor history (1 hour in memory, optional daily CSV), throttle type, battery health history
 gosterge.py        in-game overlay (layered, click-through, always-on-top window)
 kare.py            FPS measurement (ETW: DXGI/D3D9 Present events; does not touch the game)

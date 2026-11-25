@@ -46,7 +46,7 @@ import profiller
 import tanilama
 from ceviri import t
 
-VERSION = "3.1.0"
+VERSION = "3.2.0"
 PORT = 47815
 HOSTS = ("127.0.0.1:%d" % PORT, "localhost:%d" % PORT)
 BASE = "http://127.0.0.1:%d" % PORT
